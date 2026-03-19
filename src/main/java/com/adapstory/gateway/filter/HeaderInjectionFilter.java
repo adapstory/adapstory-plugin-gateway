@@ -1,0 +1,121 @@
+package com.adapstory.gateway.filter;
+
+import com.adapstory.gateway.dto.PluginSecurityContext;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.slf4j.MDC;
+import org.springframework.core.annotation.Order;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+/**
+ * Фильтр внедрения обязательных заголовков.
+ *
+ * <p>Инжектирует: request-id (UUID), correlation-id (из входящего или UUID),
+ * user-id=plugin:{pluginId}. Пробрасывает существующий correlation-id.
+ */
+@Component
+@Order(3)
+public class HeaderInjectionFilter extends OncePerRequestFilter {
+
+  static final String HEADER_REQUEST_ID = "X-Request-Id";
+  static final String HEADER_CORRELATION_ID = "X-Correlation-Id";
+  static final String HEADER_USER_ID = "X-User-Id";
+
+  @Override
+  protected void doFilterInternal(
+      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+      throws ServletException, IOException {
+    String requestId = UUID.randomUUID().toString();
+
+    String correlationId = request.getHeader(HEADER_CORRELATION_ID);
+    if (correlationId == null || correlationId.isBlank()) {
+      correlationId = UUID.randomUUID().toString();
+    }
+
+    String userId = resolveUserId(request);
+
+    MDC.put("request-id", requestId);
+    MDC.put("correlation-id", correlationId);
+    MDC.put("user-id", userId);
+
+    try {
+      MandatoryHeadersRequestWrapper wrappedRequest =
+          new MandatoryHeadersRequestWrapper(request, requestId, correlationId, userId);
+
+      response.setHeader(HEADER_REQUEST_ID, requestId);
+      response.setHeader(HEADER_CORRELATION_ID, correlationId);
+
+      filterChain.doFilter(wrappedRequest, response);
+    } finally {
+      MDC.remove("request-id");
+      MDC.remove("correlation-id");
+      MDC.remove("user-id");
+    }
+  }
+
+  @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    return request.getRequestURI().startsWith("/actuator/");
+  }
+
+  private String resolveUserId(HttpServletRequest request) {
+    PluginSecurityContext pluginContext =
+        (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
+    if (pluginContext != null) {
+      return "plugin:" + pluginContext.pluginId();
+    }
+    return "anonymous";
+  }
+
+  /** Обёртка запроса, добавляющая обязательные заголовки. */
+  private static class MandatoryHeadersRequestWrapper extends HttpServletRequestWrapper {
+
+    private final Map<String, String> injectedHeaders;
+
+    MandatoryHeadersRequestWrapper(
+        HttpServletRequest request, String requestId, String correlationId, String userId) {
+      super(request);
+      this.injectedHeaders = new LinkedHashMap<>();
+      this.injectedHeaders.put(HEADER_REQUEST_ID, requestId);
+      this.injectedHeaders.put(HEADER_CORRELATION_ID, correlationId);
+      this.injectedHeaders.put(HEADER_USER_ID, userId);
+    }
+
+    @Override
+    public String getHeader(String name) {
+      String injected = injectedHeaders.get(name);
+      return injected != null ? injected : super.getHeader(name);
+    }
+
+    @Override
+    public Enumeration<String> getHeaders(String name) {
+      String injected = injectedHeaders.get(name);
+      if (injected != null) {
+        return Collections.enumeration(List.of(injected));
+      }
+      return super.getHeaders(name);
+    }
+
+    @Override
+    public Enumeration<String> getHeaderNames() {
+      List<String> names = new java.util.ArrayList<>(Collections.list(super.getHeaderNames()));
+      for (String key : injectedHeaders.keySet()) {
+        if (!names.contains(key)) {
+          names.add(key);
+        }
+      }
+      return Collections.enumeration(names);
+    }
+  }
+}

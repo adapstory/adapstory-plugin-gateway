@@ -1,0 +1,11 @@
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/AbstractGatewayIntegrationTest.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/PermissionCacheIT.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/PluginGatewayAuthIT.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/PluginGatewayCircuitBreakerIT.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/PluginGatewayE2eIT.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/WebhookDispatchIT.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/cache/PermissionCacheServiceTest.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/filter/PermissionEnforcementFilterTest.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/filter/PluginAuthFilterTest.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/routing/PluginRouteResolverTest.java
+/Users/stepanbokarev/Documents/GitHub/adapstory-ai-lms/adapstory-plugin-gateway/src/test/java/com/adapstory/gateway/routing/WebhookDispatcherTest.java
