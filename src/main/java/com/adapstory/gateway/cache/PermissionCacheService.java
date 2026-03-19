@@ -12,6 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.messaging.handler.annotation.Header;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 /**
@@ -34,7 +36,7 @@ public class PermissionCacheService {
   private final StringRedisTemplate redisTemplate;
   private final GatewayProperties properties;
   private final ObjectMapper objectMapper;
-  private final MeterRegistry meterRegistry;
+  private final Counter revokedCounter;
 
   public PermissionCacheService(
       StringRedisTemplate redisTemplate,
@@ -44,7 +46,10 @@ public class PermissionCacheService {
     this.redisTemplate = redisTemplate;
     this.properties = properties;
     this.objectMapper = objectMapper;
-    this.meterRegistry = meterRegistry;
+    this.revokedCounter =
+        Counter.builder("plugin.permissions.revoked.count")
+            .description("Number of plugin permission revocation events processed")
+            .register(meterRegistry);
   }
 
   /**
@@ -100,14 +105,17 @@ public class PermissionCacheService {
   @KafkaListener(
       topics = "${gateway.kafka.topics.permission-revocation}",
       groupId = "plugin-gateway-permissions")
-  public void onPluginPermissionsRevoked(String message) {
+  public void onPluginPermissionsRevoked(
+      @Payload String message,
+      @Header(name = "correlation-id", required = false) String correlationId,
+      @Header(name = "request-id", required = false) String requestId) {
     String previousCorrelationId = MDC.get("correlation-id");
     String previousRequestId = MDC.get("request-id");
     try {
-      JsonNode tree = objectMapper.readTree(message);
+      // Propagate tracing headers from Kafka into MDC (per monitoring-observability-regulation)
+      setMdcFromHeaders(correlationId, requestId);
 
-      // Extract correlation-id and request-id from CloudEvent extensions
-      setMdcFromEvent(tree);
+      JsonNode tree = objectMapper.readTree(message);
 
       // Idempotency: check ce-id deduplication
       String ceId = extractCeId(tree);
@@ -125,10 +133,7 @@ public class PermissionCacheService {
       String pluginId = extractPluginIdFromData(dataNode);
       if (pluginId != null) {
         invalidate(pluginId);
-        Counter.builder("plugin.permissions.revoked.count")
-            .tag("pluginId", pluginId)
-            .register(meterRegistry)
-            .increment();
+        revokedCounter.increment();
         log.info(
             "Processed PluginPermissionsRevoked event for plugin '{}', revokedPermissions={}",
             pluginId,
@@ -146,7 +151,10 @@ public class PermissionCacheService {
 
   String extractCeId(JsonNode tree) {
     JsonNode idNode = tree.path("id");
-    return idNode.isMissingNode() ? null : idNode.asText();
+    if (idNode.isMissingNode() || idNode.isNull()) {
+      return null;
+    }
+    return idNode.asText();
   }
 
   boolean isDuplicateEvent(String ceId) {
@@ -186,14 +194,12 @@ public class PermissionCacheService {
     return pluginIdNode.isMissingNode() ? null : pluginIdNode.asText();
   }
 
-  private void setMdcFromEvent(JsonNode tree) {
-    JsonNode correlationId = tree.path("correlationid");
-    if (!correlationId.isMissingNode()) {
-      MDC.put("correlation-id", correlationId.asText());
+  private static void setMdcFromHeaders(String correlationId, String requestId) {
+    if (correlationId != null) {
+      MDC.put("correlation-id", correlationId);
     }
-    JsonNode requestId = tree.path("requestid");
-    if (!requestId.isMissingNode()) {
-      MDC.put("request-id", requestId.asText());
+    if (requestId != null) {
+      MDC.put("request-id", requestId);
     }
   }
 

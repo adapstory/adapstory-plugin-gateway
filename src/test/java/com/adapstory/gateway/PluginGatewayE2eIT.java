@@ -84,10 +84,15 @@ class PluginGatewayE2eIT extends AbstractGatewayIntegrationTest {
     // Step 2: Publish Kafka invalidation event
     String cloudEvent =
         String.format(
-            "{\"specversion\":\"1.0\",\"type\":\"PluginPermissionsChanged\","
-                + "\"source\":\"bc02\",\"data\":{\"pluginId\":\"%s\"}}",
-            PLUGIN_ID);
-    kafkaTemplate.send(new ProducerRecord<>("plugin.permissions.changed", PLUGIN_ID, cloudEvent));
+            "{\"specversion\":\"1.0\",\"id\":\"ce-e2e-001\","
+                + "\"type\":\"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1\","
+                + "\"source\":\"/bc02/plugins/%s\","
+                + "\"data\":{\"pluginId\":\"%s\","
+                + "\"revokedPermissions\":[\"content.write\"],"
+                + "\"currentPermissions\":[\"content.read\"]}}",
+            PLUGIN_ID, PLUGIN_ID);
+    kafkaTemplate.send(
+        new ProducerRecord<>("GLOBAL_PLUGIN_PERMISSIONS_REVOKED", PLUGIN_ID, cloudEvent));
 
     // Step 3: Wait for cache invalidation
     await()
@@ -114,5 +119,15 @@ class PluginGatewayE2eIT extends AbstractGatewayIntegrationTest {
     var response = testClient.get().uri("/actuator/health").retrieve().toEntity(String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  @Test
+  @DisplayName("AC#9: Prometheus metrics endpoint — GET /actuator/prometheus → 200 without auth")
+  void prometheusEndpoint_returns200_withMetrics() {
+    var response =
+        testClient.get().uri("/actuator/prometheus").retrieve().toEntity(String.class);
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(response.getBody()).contains("jvm_memory");
   }
 }

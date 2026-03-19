@@ -131,7 +131,7 @@ class PermissionCacheServiceTest {
           .thenReturn(true);
 
       // Act
-      cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT);
+      cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
       // Assert
       verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
@@ -152,7 +152,7 @@ class PermissionCacheServiceTest {
             .thenReturn(false);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT);
+        cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
         // Assert — invalidate() NOT called
         verify(redisTemplate, never()).delete(anyString());
@@ -169,7 +169,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT);
+        cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
         // Assert
         verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
@@ -184,7 +184,7 @@ class PermissionCacheServiceTest {
       @DisplayName("should not invalidate on malformed JSON")
       void should_notInvalidate_on_malformedJson() {
         // Act
-        cacheService.onPluginPermissionsRevoked("not-valid-json{{{");
+        cacheService.onPluginPermissionsRevoked("not-valid-json{{{", null, null);
 
         // Assert
         verify(redisTemplate, never()).delete(anyString());
@@ -202,7 +202,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(eventWithoutPluginId);
+        cacheService.onPluginPermissionsRevoked(eventWithoutPluginId, null, null);
 
         // Assert
         verify(redisTemplate, never()).delete(anyString());
@@ -226,7 +226,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(oversizedEvent);
+        cacheService.onPluginPermissionsRevoked(oversizedEvent, null, null);
 
         // Assert — invalidate() NOT called
         verify(redisTemplate, never()).delete(anyString());
@@ -238,49 +238,36 @@ class PermissionCacheServiceTest {
   @DisplayName("pluginId extraction")
   class PluginIdExtraction {
 
+    private final ObjectMapper mapper = new ObjectMapper();
+
     @Test
     @DisplayName("extracts pluginId from camelCase key")
-    void extractPluginId_camelCase() {
+    void extractPluginId_camelCase() throws Exception {
       // Arrange
-      ObjectMapper mapper = new ObjectMapper();
-      try {
-        var data = mapper.readTree("{\"pluginId\":\"test-plugin\"}");
+      var data = mapper.readTree("{\"pluginId\":\"test-plugin\"}");
 
-        // Act & Assert
-        assertThat(cacheService.extractPluginIdFromData(data)).isEqualTo("test-plugin");
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+      // Act & Assert
+      assertThat(cacheService.extractPluginIdFromData(data)).isEqualTo("test-plugin");
     }
 
     @Test
     @DisplayName("extracts pluginId from snake_case key")
-    void extractPluginId_snakeCase() {
+    void extractPluginId_snakeCase() throws Exception {
       // Arrange
-      ObjectMapper mapper = new ObjectMapper();
-      try {
-        var data = mapper.readTree("{\"plugin_id\":\"test-plugin\"}");
+      var data = mapper.readTree("{\"plugin_id\":\"test-plugin\"}");
 
-        // Act & Assert
-        assertThat(cacheService.extractPluginIdFromData(data)).isEqualTo("test-plugin");
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+      // Act & Assert
+      assertThat(cacheService.extractPluginIdFromData(data)).isEqualTo("test-plugin");
     }
 
     @Test
     @DisplayName("returns null when pluginId missing")
-    void extractPluginId_missing() {
+    void extractPluginId_missing() throws Exception {
       // Arrange
-      ObjectMapper mapper = new ObjectMapper();
-      try {
-        var data = mapper.readTree("{\"other\":\"value\"}");
+      var data = mapper.readTree("{\"other\":\"value\"}");
 
-        // Act & Assert
-        assertThat(cacheService.extractPluginIdFromData(data)).isNull();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
+      // Act & Assert
+      assertThat(cacheService.extractPluginIdFromData(data)).isNull();
     }
   }
 }

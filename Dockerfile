@@ -1,10 +1,9 @@
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
-RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
+RUN apk --no-cache upgrade
 
 WORKDIR /app
-COPY target/adapstory-plugin-gateway-*.jar /app/
-RUN cd /app && rm -f *-javadoc.jar *-sources.jar && mv *.jar app.jar
+COPY target/adapstory-plugin-gateway-*-exec.jar /app/app.jar
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 EXPOSE 8090

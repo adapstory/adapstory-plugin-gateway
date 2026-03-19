@@ -40,6 +40,7 @@ public class PluginRouteResolver {
   private static final Set<String> HOP_BY_HOP_HEADERS =
       Set.of(
           "connection",
+          "content-length",
           "keep-alive",
           "proxy-authenticate",
           "proxy-authorization",

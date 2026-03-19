@@ -19,6 +19,12 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.sdk.trace.ReadableSpan;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
 import jakarta.servlet.FilterChain;
 import java.time.Instant;
 import java.util.Date;
@@ -203,6 +209,41 @@ class PluginAuthFilterTest {
 
     // Assert
     assertThat(response.getStatus()).isEqualTo(401);
+  }
+
+  @Test
+  @DisplayName("Valid JWT — sets OTLP span attributes plugin.id and tenant.id (AC #3)")
+  void validJwt_setsOtlpSpanAttributes() throws Exception {
+    // Arrange
+    String token =
+        buildValidToken(
+            "adapstory.education_module.ai-grader",
+            "tenant-uuid",
+            List.of("content.read"),
+            "CORE");
+
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+    request.addHeader("Authorization", "Bearer " + token);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    SdkTracerProvider tracerProvider = SdkTracerProvider.builder().build();
+    Tracer tracer = tracerProvider.get("test");
+    Span span = tracer.spanBuilder("test-filter-otlp").startSpan();
+
+    // Act
+    try (Scope scope = span.makeCurrent()) {
+      filter.doFilterInternal(request, response, filterChain);
+    }
+    span.end();
+    tracerProvider.close();
+
+    // Assert — ReadableSpan exposes attributes set during filter execution
+    ReadableSpan readableSpan = (ReadableSpan) span;
+    assertThat(readableSpan.getAttribute(AttributeKey.stringKey("plugin.id")))
+        .isEqualTo("adapstory.education_module.ai-grader");
+    assertThat(readableSpan.getAttribute(AttributeKey.stringKey("tenant.id")))
+        .isEqualTo("tenant-uuid");
   }
 
   @Test
