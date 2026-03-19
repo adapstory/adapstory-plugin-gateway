@@ -1,6 +1,7 @@
 package com.adapstory.gateway.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
@@ -31,7 +33,7 @@ class PermissionCacheServiceTest {
   private PermissionCacheService cacheService;
   private StringRedisTemplate redisTemplate;
   private ValueOperations<String, String> valueOperations;
-  private MeterRegistry meterRegistry;
+  private SimpleMeterRegistry meterRegistry;
 
   @BeforeEach
   @SuppressWarnings("unchecked")
@@ -137,6 +139,24 @@ class PermissionCacheServiceTest {
       verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
     }
 
+    @Test
+    @DisplayName("should increment Micrometer counter tagged by pluginId on valid event (M-3)")
+    void should_incrementCounter_on_validRevocationEvent() {
+      // Arrange
+      when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+          .thenReturn(true);
+
+      // Act
+      cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
+
+      // Assert
+      double count =
+          meterRegistry
+              .counter("plugin.permissions.revoked.count", "pluginId", "adapstory.assessment.quiz")
+              .count();
+      assertThat(count).isEqualTo(1.0);
+    }
+
     @Nested
     @DisplayName("Idempotency")
     class Idempotency {
@@ -173,6 +193,29 @@ class PermissionCacheServiceTest {
 
         // Assert
         verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
+      }
+
+      @Test
+      @DisplayName("should still invalidate when ce-id is absent (M-2 — idempotency bypassed)")
+      void should_invalidateCache_when_ceIdAbsent() {
+        // Arrange — event without "id" field
+        String eventWithoutCeId =
+            """
+            {"specversion":"1.0",\
+            "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
+            "source":"/bc02/plugins/adapstory.assessment.quiz",\
+            "data":{"pluginId":"adapstory.assessment.quiz",\
+            "revokedPermissions":["write:learner"],\
+            "currentPermissions":["read:data_model"]}}""";
+
+        // Act
+        cacheService.onPluginPermissionsRevoked(eventWithoutCeId, null, null);
+
+        // Assert — invalidation still happens (fail-open for cache invalidation)
+        verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
+        // No dedup key should be set
+        verify(valueOperations, never())
+            .setIfAbsent(anyString(), anyString(), any(Duration.class));
       }
     }
 
@@ -230,6 +273,19 @@ class PermissionCacheServiceTest {
 
         // Assert — invalidate() NOT called
         verify(redisTemplate, never()).delete(anyString());
+      }
+
+      @Test
+      @DisplayName("should rethrow transient Redis error for Spring Kafka retry (H-1)")
+      void should_rethrowTransientRedisError() {
+        // Arrange — Redis is down during dedup check
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+            .thenThrow(new RedisConnectionFailureException("Connection refused"));
+
+        // Act & Assert — exception propagates to Spring Kafka error handler
+        assertThatThrownBy(
+                () -> cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null))
+            .isInstanceOf(RedisConnectionFailureException.class);
       }
     }
   }

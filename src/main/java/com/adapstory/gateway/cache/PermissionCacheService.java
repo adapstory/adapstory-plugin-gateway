@@ -1,9 +1,9 @@
 package com.adapstory.gateway.cache;
 
 import com.adapstory.gateway.config.GatewayProperties;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.List;
@@ -32,11 +32,12 @@ public class PermissionCacheService {
   private static final int MAX_SCOPE_LENGTH = 255;
   private static final Duration DEDUP_TTL = Duration.ofHours(24);
   private static final String DEDUP_KEY_PREFIX = "revoked-event-processed:";
+  private static final String COUNTER_NAME = "plugin.permissions.revoked.count";
 
   private final StringRedisTemplate redisTemplate;
   private final GatewayProperties properties;
   private final ObjectMapper objectMapper;
-  private final Counter revokedCounter;
+  private final MeterRegistry meterRegistry;
 
   public PermissionCacheService(
       StringRedisTemplate redisTemplate,
@@ -46,10 +47,7 @@ public class PermissionCacheService {
     this.redisTemplate = redisTemplate;
     this.properties = properties;
     this.objectMapper = objectMapper;
-    this.revokedCounter =
-        Counter.builder("plugin.permissions.revoked.count")
-            .description("Number of plugin permission revocation events processed")
-            .register(meterRegistry);
+    this.meterRegistry = meterRegistry;
   }
 
   /**
@@ -101,6 +99,10 @@ public class PermissionCacheService {
    * Kafka consumer: invalidates cache when plugin permissions are revoked (Story SEC-3.1). Event
    * format: CloudEvents 1.0 with data containing pluginId and revokedPermissions fields. Idempotent
    * via ce-id deduplication in Redis (24h TTL).
+   *
+   * <p>Error strategy (per integration-rules.md): deserialization/parsing errors are caught and
+   * skipped (fail-safe); transient infrastructure errors (Redis) are rethrown for Spring Kafka
+   * retry via DefaultErrorHandler.
    */
   @KafkaListener(
       topics = "${gateway.kafka.topics.permission-revocation}",
@@ -115,11 +117,13 @@ public class PermissionCacheService {
       // Propagate tracing headers from Kafka into MDC (per monitoring-observability-regulation)
       setMdcFromHeaders(correlationId, requestId);
 
-      JsonNode tree = objectMapper.readTree(message);
+      JsonNode tree = parseEvent(message);
 
       // Idempotency: check ce-id deduplication
       String ceId = extractCeId(tree);
-      if (ceId != null && isDuplicateEvent(ceId)) {
+      if (ceId == null) {
+        log.warn("Received PluginPermissionsRevoked event without ce-id, idempotency check skipped");
+      } else if (isDuplicateEvent(ceId)) {
         log.debug("Skipping duplicate revocation event ce-id={}", ceId);
         return;
       }
@@ -133,7 +137,7 @@ public class PermissionCacheService {
       String pluginId = extractPluginIdFromData(dataNode);
       if (pluginId != null) {
         invalidate(pluginId);
-        revokedCounter.increment();
+        meterRegistry.counter(COUNTER_NAME, "pluginId", pluginId).increment();
         log.info(
             "Processed PluginPermissionsRevoked event for plugin '{}', revokedPermissions={}",
             pluginId,
@@ -141,12 +145,21 @@ public class PermissionCacheService {
       } else {
         log.warn("Could not extract pluginId from PluginPermissionsRevoked event");
       }
-    } catch (Exception ex) {
+    } catch (JsonProcessingException ex) {
+      // Deserialization error — skip (fail-safe, no DLQ needed for cache invalidation)
       log.warn("Malformed GLOBAL_PLUGIN_PERMISSIONS_REVOKED event: {}", ex.getMessage());
     } finally {
       restoreMdc("correlation-id", previousCorrelationId);
       restoreMdc("request-id", previousRequestId);
     }
+  }
+
+  /**
+   * Парсит JSON event. Выделен в метод для разделения JsonProcessingException (parsing, skip) от
+   * runtime exceptions (transient, rethrow for retry).
+   */
+  JsonNode parseEvent(String message) throws JsonProcessingException {
+    return objectMapper.readTree(message);
   }
 
   String extractCeId(JsonNode tree) {
