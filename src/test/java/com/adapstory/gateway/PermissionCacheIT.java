@@ -4,7 +4,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
 import java.util.List;
@@ -12,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -77,30 +77,71 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 
-  @Test
-  @DisplayName("AC#6: PluginPermissionsChanged Kafka event → consumer invalidates Redis cache key")
-  void kafkaEvent_invalidatesRedisCache() {
-    // Arrange: pre-populate cache
-    redisTemplate
-        .opsForValue()
-        .set(CACHE_KEY, "content.read,submission.read", Duration.ofMinutes(5));
-    assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNotNull();
+  @Nested
+  @DisplayName("SEC-3.1: PluginPermissionsRevoked Kafka event handling")
+  class RevocationEventHandling {
 
-    // Act: publish PluginPermissionsChanged CloudEvents event
-    String cloudEvent =
-        String.format(
-            """
-            {"specversion":"1.0","type":"PluginPermissionsChanged","source":"bc02",\
-            "data":{"pluginId":"%s","tenantId":"%s"}}""",
-            PLUGIN_ID, TENANT_ID);
+    @Test
+    @DisplayName(
+        "AC#2: GLOBAL_PLUGIN_PERMISSIONS_REVOKED event invalidates Redis cache for pluginId")
+    void revocationEvent_invalidatesRedisCache() {
+      // Arrange: pre-populate cache
+      redisTemplate
+          .opsForValue()
+          .set(CACHE_KEY, "content.read,submission.read", Duration.ofMinutes(5));
+      assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNotNull();
 
-    kafkaTemplate.send(new ProducerRecord<>("plugin.permissions.changed", PLUGIN_ID, cloudEvent));
+      // Act: publish PluginPermissionsRevoked CloudEvents event
+      String cloudEvent =
+          String.format(
+              """
+              {"specversion":"1.0","id":"ce-it-test-001",\
+              "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
+              "source":"/bc02/plugins/%s",\
+              "data":{"pluginId":"%s",\
+              "revokedPermissions":["content.write"],\
+              "currentPermissions":["content.read"]}}""",
+              PLUGIN_ID, PLUGIN_ID);
 
-    // Assert: wait for consumer to process and invalidate
-    await()
-        .atMost(Duration.ofSeconds(10))
-        .pollInterval(Duration.ofMillis(200))
-        .untilAsserted(() -> assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNull());
+      kafkaTemplate.send(
+          new ProducerRecord<>("GLOBAL_PLUGIN_PERMISSIONS_REVOKED", PLUGIN_ID, cloudEvent));
+
+      // Assert: wait for consumer to process and invalidate
+      org.awaitility.Awaitility.await()
+          .atMost(Duration.ofSeconds(10))
+          .pollInterval(Duration.ofMillis(200))
+          .untilAsserted(() -> assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNull());
+    }
+
+    @Test
+    @DisplayName("AC#2: cache miss after revocation (getCachedPermissions returns null)")
+    void cacheMiss_afterRevocation() {
+      // Arrange: pre-populate cache
+      redisTemplate
+          .opsForValue()
+          .set(CACHE_KEY, "content.read,submission.read", Duration.ofMinutes(5));
+
+      // Act: publish revocation event
+      String cloudEvent =
+          String.format(
+              """
+              {"specversion":"1.0","id":"ce-it-test-002",\
+              "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
+              "source":"/bc02/plugins/%s",\
+              "data":{"pluginId":"%s",\
+              "revokedPermissions":["submission.read"],\
+              "currentPermissions":["content.read"]}}""",
+              PLUGIN_ID, PLUGIN_ID);
+
+      kafkaTemplate.send(
+          new ProducerRecord<>("GLOBAL_PLUGIN_PERMISSIONS_REVOKED", PLUGIN_ID, cloudEvent));
+
+      // Assert: cache is null after revocation
+      org.awaitility.Awaitility.await()
+          .atMost(Duration.ofSeconds(10))
+          .pollInterval(Duration.ofMillis(200))
+          .untilAsserted(() -> assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNull());
+    }
   }
 
   @Test

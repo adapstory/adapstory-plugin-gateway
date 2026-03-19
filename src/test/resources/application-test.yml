@@ -17,6 +17,10 @@ gateway:
   routes:
     content: http://placeholder:0
 
+  kafka:
+    topics:
+      permission-revocation: GLOBAL_PLUGIN_PERMISSIONS_REVOKED
+
   permission-cache:
     ttl-minutes: 5
     key-prefix: "plugin:permissions:"

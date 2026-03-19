@@ -65,6 +65,11 @@ gateway:
         PUT: tenant.write
         DELETE: tenant.write
 
+  # Kafka topic configuration
+  kafka:
+    topics:
+      permission-revocation: GLOBAL_PLUGIN_PERMISSIONS_REVOKED
+
   # Permission cache
   permission-cache:
     ttl-minutes: 5
