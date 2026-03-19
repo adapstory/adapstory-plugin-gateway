@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.adapstory.gateway.cache.PermissionCacheServiceTest
--------------------------------------------------------------------------------
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.498 s -- in com.adapstory.gateway.cache.PermissionCacheServiceTest
