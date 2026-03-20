@@ -1,5 +1,6 @@
 package com.adapstory.gateway.cache;
 
+import com.adapstory.gateway.client.PermissionFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -7,6 +8,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -38,16 +40,19 @@ public class PermissionCacheService {
   private final GatewayProperties properties;
   private final ObjectMapper objectMapper;
   private final MeterRegistry meterRegistry;
+  private final PermissionFetchClient permissionFetchClient;
 
   public PermissionCacheService(
       StringRedisTemplate redisTemplate,
       GatewayProperties properties,
       ObjectMapper objectMapper,
-      MeterRegistry meterRegistry) {
+      MeterRegistry meterRegistry,
+      PermissionFetchClient permissionFetchClient) {
     this.redisTemplate = redisTemplate;
     this.properties = properties;
     this.objectMapper = objectMapper;
     this.meterRegistry = meterRegistry;
+    this.permissionFetchClient = permissionFetchClient;
   }
 
   /**
@@ -96,6 +101,22 @@ public class PermissionCacheService {
   }
 
   /**
+   * Запрашивает permissions из BC-02 REST API, кеширует результат в Redis.
+   *
+   * <p>Используется при промахе кеша вместо fallback на JWT claims (Story SEC-3.2). При сбое BC-02
+   * или открытом circuit breaker возвращает {@code Optional.empty()} — вызывающий код реализует
+   * fail-closed (503 ADAP-SEC-0011).
+   *
+   * @param pluginId идентификатор плагина
+   * @return {@code Optional<List<String>>} со scope-именами; {@code empty()} при сбое BC-02
+   */
+  public Optional<List<String>> fetchAndCachePermissions(String pluginId) {
+    Optional<List<String>> fetched = permissionFetchClient.fetchPermissions(pluginId);
+    fetched.ifPresent(permissions -> cachePermissions(pluginId, permissions));
+    return fetched;
+  }
+
+  /**
    * Kafka consumer: invalidates cache when plugin permissions are revoked (Story SEC-3.1). Event
    * format: CloudEvents 1.0 with data containing pluginId and revokedPermissions fields. Idempotent
    * via ce-id deduplication in Redis (24h TTL).
@@ -122,7 +143,8 @@ public class PermissionCacheService {
       // Idempotency: check ce-id deduplication
       String ceId = extractCeId(tree);
       if (ceId == null) {
-        log.warn("Received PluginPermissionsRevoked event without ce-id, idempotency check skipped");
+        log.warn(
+            "Received PluginPermissionsRevoked event without ce-id, idempotency check skipped");
       } else if (isDuplicateEvent(ceId)) {
         log.debug("Skipping duplicate revocation event ce-id={}", ceId);
         return;

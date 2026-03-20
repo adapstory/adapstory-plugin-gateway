@@ -65,6 +65,10 @@ gateway:
         PUT: tenant.write
         DELETE: tenant.write
 
+  # BC-02 (Plugin Lifecycle) connection for manifest-based permission checks (SEC-3.2)
+  bc02:
+    base-url: http://localhost:8081
+
   # Kafka topic configuration
   kafka:
     topics:

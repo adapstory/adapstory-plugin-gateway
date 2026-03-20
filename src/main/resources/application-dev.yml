@@ -12,6 +12,9 @@ gateway:
     jwks-uri: http://dev-keycloak-svc:8080/realms/plugins/protocol/openid-connect/certs
     issuer: https://auth.dev.adapstory.com/realms/plugins
 
+  bc02:
+    base-url: http://dev-plugin-lifecycle-svc.env-dev.svc.cluster.local:8080
+
   routes:
     content: http://dev-data-model-engine-svc.env-dev.svc.cluster.local:8081
     submission: http://dev-submission-svc.env-dev.svc.cluster.local:8080

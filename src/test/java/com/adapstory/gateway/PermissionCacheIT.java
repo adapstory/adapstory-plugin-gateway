@@ -2,6 +2,7 @@ package com.adapstory.gateway;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,16 +18,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 /**
- * Интеграционные тесты: Redis Permission Cache + Kafka Invalidation (AC#5, AC#6). Реальные Redis
- * (Testcontainers) и Kafka.
+ * Интеграционные тесты: Redis Permission Cache + Kafka Invalidation + BC-02 REST fallback
+ * (SEC-3.2). Реальные Redis (Testcontainers), Kafka и WireMock BC-02.
  */
 class PermissionCacheIT extends AbstractGatewayIntegrationTest {
 
   private static final String PLUGIN_ID = "adapstory.education_module.ai-grader";
   private static final String TENANT_ID = "tenant-uuid";
   private static final String CACHE_KEY = "plugin:permissions:" + PLUGIN_ID;
+  private static final String BC02_PERMISSIONS_PATH =
+      "/internal/api/v1/plugins/" + PLUGIN_ID + "/permissions";
 
   @Autowired private KafkaTemplate<String, String> kafkaTemplate;
 
@@ -40,18 +45,20 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
                     .withBody("{\"id\":\"123\"}")));
+
+    // Default: BC-02 returns content.read for this plugin
+    stubBc02Permissions(PLUGIN_ID, List.of("content.read"));
   }
 
   @Test
-  @DisplayName("AC#5: First request → cache miss → cached in Redis → second request → cache hit")
-  void permissionsCachedInRedis_andHitOnSecondRequest() {
+  @DisplayName(
+      "AC#3: Cache miss → BC-02 fetch → cached in Redis → second request → cache hit (no BC-02 call)")
+  void cacheMiss_fetchFromBc02_thenCacheHit() {
     // Arrange
     String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
-
-    // Assert: cache is empty
     assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNull();
 
-    // Act: first request (cache miss → cache set)
+    // Act: first request (cache miss → BC-02 fetch → cache set)
     var response1 =
         testClient
             .get()
@@ -61,12 +68,14 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
             .toEntity(String.class);
     assertThat(response1.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-    // Assert: permissions cached in Redis
+    // Assert: permissions cached in Redis (from BC-02, not JWT)
     String cached = redisTemplate.opsForValue().get(CACHE_KEY);
-    assertThat(cached).isNotNull();
-    assertThat(cached).contains("content.read");
+    assertThat(cached).isNotNull().contains("content.read");
 
-    // Act: second request (cache hit)
+    // Assert: BC-02 was called exactly once
+    BC02_WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(BC02_PERMISSIONS_PATH)));
+
+    // Act: second request (cache hit → no BC-02 call)
     var response2 =
         testClient
             .get()
@@ -75,6 +84,77 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
             .retrieve()
             .toEntity(String.class);
     assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+    // Assert: BC-02 still called only once (cache hit on second request)
+    BC02_WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(BC02_PERMISSIONS_PATH)));
+  }
+
+  @Test
+  @DisplayName("AC#1: Permission in JWT but NOT in BC-02 manifest → 403 ADAP-SEC-0010")
+  void permissionRevokedInManifest_returns403() {
+    // Arrange: BC-02 returns only submission.read (content.read revoked)
+    BC02_WIREMOCK.resetMappings();
+    stubBc02Permissions(PLUGIN_ID, List.of("submission.read"));
+
+    String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
+
+    // Act & Assert
+    try {
+      testClient
+          .get()
+          .uri("/gateway/api/content/v1/materials/123")
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+          .retrieve()
+          .toEntity(String.class);
+      assertThat(false).as("Should have thrown 403").isTrue();
+    } catch (HttpClientErrorException.Forbidden e) {
+      assertThat(e.getResponseBodyAsString()).contains("ADAP-SEC-0010");
+      assertThat(e.getResponseBodyAsString()).contains("has been revoked");
+    }
+  }
+
+  @Test
+  @DisplayName("AC#2: Permission in both JWT AND manifest → request allowed")
+  void permissionInBothJwtAndManifest_requestAllowed() {
+    // Arrange
+    String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
+
+    // Act
+    var response =
+        testClient
+            .get()
+            .uri("/gateway/api/content/v1/materials/123")
+            .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+            .retrieve()
+            .toEntity(String.class);
+
+    // Assert
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+  }
+
+  @Test
+  @DisplayName("AC#4: Redis miss AND BC-02 unavailable → 503 ADAP-SEC-0011 (fail-closed)")
+  void redisMissAndBc02Unavailable_returns503() {
+    // Arrange: BC-02 returns 500
+    BC02_WIREMOCK.resetMappings();
+    BC02_WIREMOCK.stubFor(
+        get(urlPathEqualTo(BC02_PERMISSIONS_PATH)).willReturn(aResponse().withStatus(500)));
+
+    String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
+
+    // Act & Assert
+    try {
+      testClient
+          .get()
+          .uri("/gateway/api/content/v1/materials/123")
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+          .retrieve()
+          .toEntity(String.class);
+      assertThat(false).as("Should have thrown 503").isTrue();
+    } catch (HttpServerErrorException.ServiceUnavailable e) {
+      assertThat(e.getResponseBodyAsString()).contains("ADAP-SEC-0011");
+      assertThat(e.getResponseBodyAsString()).contains("Unable to verify plugin permissions");
+    }
   }
 
   @Nested
@@ -83,7 +163,58 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
 
     @Test
     @DisplayName(
-        "AC#2: GLOBAL_PLUGIN_PERMISSIONS_REVOKED event invalidates Redis cache for pluginId")
+        "AC#5: Revocation event → cache invalidated → next request fetches from BC-02 (not JWT)")
+    void revocationEvent_invalidatesCache_nextRequestFetchesFromBc02() {
+      // Arrange: pre-populate cache with old permissions
+      redisTemplate
+          .opsForValue()
+          .set(CACHE_KEY, "content.read,submission.read", Duration.ofMinutes(5));
+
+      // Act: publish PluginPermissionsRevoked CloudEvents event
+      String cloudEvent =
+          String.format(
+              """
+              {"specversion":"1.0","id":"ce-it-sec32-001",\
+              "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
+              "source":"/bc02/plugins/%s",\
+              "data":{"pluginId":"%s",\
+              "revokedPermissions":["submission.read"],\
+              "currentPermissions":["content.read"]}}""",
+              PLUGIN_ID, PLUGIN_ID);
+
+      kafkaTemplate.send(
+          new ProducerRecord<>("GLOBAL_PLUGIN_PERMISSIONS_REVOKED", PLUGIN_ID, cloudEvent));
+
+      // Assert: cache invalidated
+      org.awaitility.Awaitility.await()
+          .atMost(Duration.ofSeconds(10))
+          .pollInterval(Duration.ofMillis(200))
+          .untilAsserted(() -> assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNull());
+
+      // Act: next request → cache miss → BC-02 fetch (not JWT fallback)
+      // BC-02 returns only content.read (submission.read revoked)
+      BC02_WIREMOCK.resetMappings();
+      stubBc02Permissions(PLUGIN_ID, List.of("content.read"));
+
+      String jwt =
+          buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read", "submission.read"), "CORE");
+
+      var response =
+          testClient
+              .get()
+              .uri("/gateway/api/content/v1/materials/123")
+              .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+              .retrieve()
+              .toEntity(String.class);
+      assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+      // Assert: new cache entry is from BC-02 (content.read only)
+      String cached = redisTemplate.opsForValue().get(CACHE_KEY);
+      assertThat(cached).isEqualTo("content.read");
+    }
+
+    @Test
+    @DisplayName("AC#2: GLOBAL_PLUGIN_PERMISSIONS_REVOKED event invalidates Redis cache")
     void revocationEvent_invalidatesRedisCache() {
       // Arrange: pre-populate cache
       redisTemplate
@@ -95,7 +226,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
       String cloudEvent =
           String.format(
               """
-              {"specversion":"1.0","id":"ce-it-test-001",\
+              {"specversion":"1.0","id":"ce-it-sec32-002",\
               "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
               "source":"/bc02/plugins/%s",\
               "data":{"pluginId":"%s",\
@@ -112,36 +243,6 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
           .pollInterval(Duration.ofMillis(200))
           .untilAsserted(() -> assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNull());
     }
-
-    @Test
-    @DisplayName("AC#2: cache miss after revocation (getCachedPermissions returns null)")
-    void cacheMiss_afterRevocation() {
-      // Arrange: pre-populate cache
-      redisTemplate
-          .opsForValue()
-          .set(CACHE_KEY, "content.read,submission.read", Duration.ofMinutes(5));
-
-      // Act: publish revocation event
-      String cloudEvent =
-          String.format(
-              """
-              {"specversion":"1.0","id":"ce-it-test-002",\
-              "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
-              "source":"/bc02/plugins/%s",\
-              "data":{"pluginId":"%s",\
-              "revokedPermissions":["submission.read"],\
-              "currentPermissions":["content.read"]}}""",
-              PLUGIN_ID, PLUGIN_ID);
-
-      kafkaTemplate.send(
-          new ProducerRecord<>("GLOBAL_PLUGIN_PERMISSIONS_REVOKED", PLUGIN_ID, cloudEvent));
-
-      // Assert: cache is null after revocation
-      org.awaitility.Awaitility.await()
-          .atMost(Duration.ofSeconds(10))
-          .pollInterval(Duration.ofMillis(200))
-          .untilAsserted(() -> assertThat(redisTemplate.opsForValue().get(CACHE_KEY)).isNull());
-    }
   }
 
   @Test
@@ -150,7 +251,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     // Arrange
     String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
 
-    // Act: trigger cache set
+    // Act: trigger cache set via BC-02 fetch
     testClient
         .get()
         .uri("/gateway/api/content/v1/materials/123")
@@ -163,5 +264,28 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     assertThat(ttl).isNotNull();
     assertThat(ttl).isGreaterThan(0);
     assertThat(ttl).isLessThanOrEqualTo(300); // 5 minutes = 300 seconds
+  }
+
+  @Test
+  @DisplayName("AC#7: Empty manifest permissions → 403 for any permission")
+  void emptyManifestPermissions_returns403() {
+    // Arrange: BC-02 returns empty permissions
+    BC02_WIREMOCK.resetMappings();
+    stubBc02Permissions(PLUGIN_ID, List.of());
+
+    String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
+
+    // Act & Assert
+    try {
+      testClient
+          .get()
+          .uri("/gateway/api/content/v1/materials/123")
+          .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+          .retrieve()
+          .toEntity(String.class);
+      assertThat(false).as("Should have thrown 403").isTrue();
+    } catch (HttpClientErrorException.Forbidden e) {
+      assertThat(e.getResponseBodyAsString()).contains("ADAP-SEC-0010");
+    }
   }
 }

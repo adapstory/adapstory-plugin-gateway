@@ -28,7 +28,8 @@ class PluginRouteResolverTest {
                 "identity", "http://adapstory-identity:8080"),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
-            new GatewayProperties.WebhookConfig(3, 1000, 2.0, 8000, null, null));
+            new GatewayProperties.WebhookConfig(3, 1000, 2.0, 8000, null, null),
+            new GatewayProperties.Bc02Config("http://localhost:8081"));
 
     resolver =
         new PluginRouteResolver(

@@ -39,7 +39,8 @@ class WebhookDispatcherTest {
             Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
-            new GatewayProperties.WebhookConfig(3, 100, 2.0, wireMockServer.port(), null, null));
+            new GatewayProperties.WebhookConfig(3, 100, 2.0, wireMockServer.port(), null, null),
+            new GatewayProperties.Bc02Config("http://localhost:8081"));
 
     dispatcher =
         new WebhookDispatcher(properties, RestClient.builder(), Runnable::run) {
@@ -173,7 +174,8 @@ class WebhookDispatcherTest {
             Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
-            new GatewayProperties.WebhookConfig(3, 100, 2.0, 8000, null, null));
+            new GatewayProperties.WebhookConfig(3, 100, 2.0, 8000, null, null),
+            new GatewayProperties.Bc02Config("http://localhost:8081"));
 
     WebhookDispatcher realDispatcher =
         new WebhookDispatcher(properties, RestClient.builder(), Runnable::run);

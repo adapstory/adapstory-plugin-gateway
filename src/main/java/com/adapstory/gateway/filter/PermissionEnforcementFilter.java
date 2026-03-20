@@ -5,6 +5,7 @@ import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
@@ -20,10 +22,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * Фильтр проверки разрешений плагина.
+ * Фильтр проверки разрешений плагина — intersection model (Story SEC-3.2).
  *
- * <p>Извлекает требуемое разрешение из маппинга route→permission в конфигурации, проверяет наличие
- * этого разрешения в JWT claims плагина. При отсутствии возвращает 403 с Pattern 8 error format.
+ * <p>Разрешение выдаётся ТОЛЬКО если требуемая permission присутствует в JWT claims И в текущем
+ * манифесте плагина (из Redis/BC-02). Отозванная permission отклоняется немедленно (ADAP-SEC-0010),
+ * без ожидания истечения JWT. При невозможности проверки — fail-closed (ADAP-SEC-0011).
  */
 @Component
 @Order(2)
@@ -32,17 +35,27 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
   private static final Logger log = LoggerFactory.getLogger(PermissionEnforcementFilter.class);
   private static final String GATEWAY_PREFIX = "/gateway/api/";
 
+  static final String ERROR_CODE_PERMISSION_REVOKED = "ADAP-SEC-0010";
+  static final String ERROR_CODE_PERMISSION_UNAVAILABLE = "ADAP-SEC-0011";
+
+  private static final String METRIC_CACHE_HIT = "plugin_gateway_permission_cache_hit_total";
+  private static final String METRIC_DENIED = "plugin_gateway_permission_denied_total";
+  private static final String METRIC_UNAVAILABLE = "plugin_gateway_permission_unavailable_total";
+
   private final GatewayProperties properties;
   private final ObjectMapper objectMapper;
   private final PermissionCacheService permissionCacheService;
+  private final MeterRegistry meterRegistry;
 
   public PermissionEnforcementFilter(
       GatewayProperties properties,
       ObjectMapper objectMapper,
-      PermissionCacheService permissionCacheService) {
+      PermissionCacheService permissionCacheService,
+      MeterRegistry meterRegistry) {
     this.properties = properties;
     this.objectMapper = objectMapper;
     this.permissionCacheService = permissionCacheService;
+    this.meterRegistry = meterRegistry;
   }
 
   @Override
@@ -59,6 +72,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
 
     String path = request.getRequestURI();
     String method = request.getMethod();
+    String pluginId = pluginContext.pluginId();
 
     String requiredPermission = resolveRequiredPermission(path, method);
     if (requiredPermission == null) {
@@ -74,24 +88,17 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       return;
     }
 
-    // Use permission cache when available. On cache miss, fall back to JWT claims and re-cache.
-    // Known limitation: after Kafka invalidation, the next request with the same JWT will re-cache
-    // stale JWT claims. Proper fix: fetch fresh permissions from BC-02 REST API on cache miss
-    // instead of falling back to JWT. Tracked as tech debt — see PermissionCacheService comment.
-    List<String> effectivePermissions =
-        permissionCacheService.getCachedPermissions(pluginContext.pluginId());
-    if (effectivePermissions == null) {
-      effectivePermissions = pluginContext.permissions();
-      permissionCacheService.cachePermissions(pluginContext.pluginId(), effectivePermissions);
-    }
-
-    if (!effectivePermissions.contains(requiredPermission)) {
-      String shortPluginId = extractShortPluginId(pluginContext.pluginId());
-      log.info(
-          "Permission denied for plugin '{}': required={}, granted={}",
-          shortPluginId,
+    // Step 1: Check JWT claims first — if JWT itself lacks the permission, reject immediately
+    List<String> jwtPermissions = pluginContext.permissions();
+    if (!jwtPermissions.contains(requiredPermission)) {
+      log.warn(
+          "Permission denied for plugin {}: required={}, jwt={}",
+          pluginId,
           requiredPermission,
-          effectivePermissions);
+          jwtPermissions);
+      meterRegistry
+          .counter(METRIC_DENIED, "pluginId", pluginId, "errorCode", "JWT_MISSING")
+          .increment();
 
       GatewayErrorWriter.writeError(
           objectMapper,
@@ -100,8 +107,71 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
           403,
           "Forbidden",
           String.format(
-              "Plugin '%s' does not have permission '%s'", shortPluginId, requiredPermission),
-          buildDetails(pluginContext, requiredPermission, effectivePermissions));
+              "Plugin '%s' does not have permission '%s'",
+              extractShortPluginId(pluginId), requiredPermission),
+          buildDetails(pluginContext, requiredPermission, jwtPermissions));
+      return;
+    }
+
+    // Step 2: Get manifest permissions from Redis cache or BC-02 REST
+    List<String> manifestPermissions = permissionCacheService.getCachedPermissions(pluginId);
+
+    if (manifestPermissions != null) {
+      meterRegistry.counter(METRIC_CACHE_HIT, "pluginId", pluginId).increment();
+    } else {
+      // Cache miss — fetch from BC-02 REST API (NOT JWT fallback)
+      Optional<List<String>> fetched = permissionCacheService.fetchAndCachePermissions(pluginId);
+
+      if (fetched.isEmpty()) {
+        // Fail-closed: cannot verify permissions (ADAP-SEC-0011)
+        log.warn(
+            "Permission verification unavailable for plugin {}: Redis miss and BC-02 fetch failed",
+            pluginId);
+        meterRegistry.counter(METRIC_UNAVAILABLE, "pluginId", pluginId).increment();
+
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("pluginId", pluginId);
+        details.put("errorCode", ERROR_CODE_PERMISSION_UNAVAILABLE);
+
+        GatewayErrorWriter.writeError(
+            objectMapper,
+            response,
+            request,
+            503,
+            "Service Unavailable",
+            "Unable to verify plugin permissions",
+            details);
+        return;
+      }
+      manifestPermissions = fetched.get();
+    }
+
+    // Step 3: Intersection check — requiredPermission must be in BOTH JWT AND manifest
+    if (!manifestPermissions.contains(requiredPermission)) {
+      // Permission was in JWT but NOT in manifest → revoked (ADAP-SEC-0010)
+      log.warn(
+          "Permission denied for plugin {}: required={}, manifest={}",
+          pluginId,
+          requiredPermission,
+          manifestPermissions);
+      meterRegistry
+          .counter(METRIC_DENIED, "pluginId", pluginId, "errorCode", ERROR_CODE_PERMISSION_REVOKED)
+          .increment();
+
+      Map<String, Object> details = new LinkedHashMap<>();
+      details.put("pluginId", pluginId);
+      details.put("requiredPermission", requiredPermission);
+      details.put("grantedPermissions", manifestPermissions);
+      details.put("errorCode", ERROR_CODE_PERMISSION_REVOKED);
+
+      GatewayErrorWriter.writeError(
+          objectMapper,
+          response,
+          request,
+          403,
+          "Forbidden",
+          String.format("Permission '%s' has been revoked", requiredPermission),
+          details);
       return;
     }
 

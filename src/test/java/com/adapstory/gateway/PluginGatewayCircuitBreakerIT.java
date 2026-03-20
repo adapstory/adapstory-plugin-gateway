@@ -59,6 +59,8 @@ class PluginGatewayCircuitBreakerIT extends AbstractGatewayIntegrationTest {
   void resetCircuitBreakers() {
     circuitBreakerRegistry.getAllCircuitBreakers().forEach(cb -> cb.reset());
     BC_WIREMOCK.resetAll();
+    // BC-02 permissions stub for intersection model (SEC-3.2)
+    stubBc02Permissions(PLUGIN_ID, List.of("content.read"));
   }
 
   @Test

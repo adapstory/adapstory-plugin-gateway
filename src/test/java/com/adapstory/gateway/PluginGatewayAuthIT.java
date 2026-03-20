@@ -30,7 +30,6 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
   @BeforeEach
   void setupBcMock() {
     BC_WIREMOCK.resetAll();
-    // Re-register JWKS stub after reset (it's on a different server, but just in case)
     BC_WIREMOCK.stubFor(
         get(urlPathEqualTo("/api/content/v1/materials/123"))
             .willReturn(
@@ -38,6 +37,9 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
                     .withBody("{\"id\":\"123\",\"title\":\"Test Material\"}")));
+
+    // BC-02 permissions stub for intersection model (SEC-3.2)
+    stubBc02Permissions(PLUGIN_ID, List.of("content.read"));
   }
 
   @Test

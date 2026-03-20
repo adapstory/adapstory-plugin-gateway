@@ -14,7 +14,8 @@ public record GatewayProperties(
     Map<String, String> routes,
     PermissionsConfig permissions,
     PermissionCacheConfig permissionCache,
-    WebhookConfig webhook) {
+    WebhookConfig webhook,
+    Bc02Config bc02) {
 
   public record JwtConfig(
       @NotBlank String jwksUri,
@@ -40,4 +41,7 @@ public record GatewayProperties(
       }
     }
   }
+
+  /** Конфигурация подключения к BC-02 (Plugin Lifecycle) для запроса manifest permissions. */
+  public record Bc02Config(@NotBlank String baseUrl) {}
 }

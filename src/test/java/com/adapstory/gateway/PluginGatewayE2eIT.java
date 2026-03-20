@@ -41,6 +41,9 @@ class PluginGatewayE2eIT extends AbstractGatewayIntegrationTest {
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
                     .withBody("{\"id\":\"123\",\"title\":\"E2E Material\"}")));
+
+    // BC-02 permissions stub for intersection model (SEC-3.2)
+    stubBc02Permissions(PLUGIN_ID, List.of("content.read"));
   }
 
   @Test
@@ -124,8 +127,7 @@ class PluginGatewayE2eIT extends AbstractGatewayIntegrationTest {
   @Test
   @DisplayName("AC#9: Prometheus metrics endpoint — GET /actuator/prometheus → 200 without auth")
   void prometheusEndpoint_returns200_withMetrics() {
-    var response =
-        testClient.get().uri("/actuator/prometheus").retrieve().toEntity(String.class);
+    var response = testClient.get().uri("/actuator/prometheus").retrieve().toEntity(String.class);
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     assertThat(response.getBody()).contains("jvm_memory");

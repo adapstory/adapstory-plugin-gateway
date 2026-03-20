@@ -52,6 +52,7 @@ public abstract class AbstractGatewayIntegrationTest {
 
   static final WireMockServer JWKS_WIREMOCK = new WireMockServer(0);
   static final WireMockServer BC_WIREMOCK = new WireMockServer(0);
+  static final WireMockServer BC02_WIREMOCK = new WireMockServer(0);
 
   // --- RSA key pair for JWT signing ---
 
@@ -71,6 +72,7 @@ public abstract class AbstractGatewayIntegrationTest {
 
     JWKS_WIREMOCK.start();
     BC_WIREMOCK.start();
+    BC02_WIREMOCK.start();
 
     String jwksJson = new JWKSet(rsaKey.toPublicJWK()).toString();
     JWKS_WIREMOCK.stubFor(WireMock.get("/certs").willReturn(WireMock.okJson(jwksJson)));
@@ -101,6 +103,9 @@ public abstract class AbstractGatewayIntegrationTest {
 
     // Route: content → BC WireMock
     registry.add("gateway.routes.content", BC_WIREMOCK::baseUrl);
+
+    // BC-02 permissions endpoint → BC02 WireMock (SEC-3.2)
+    registry.add("gateway.bc02.base-url", BC02_WIREMOCK::baseUrl);
   }
 
   @BeforeEach
@@ -109,6 +114,30 @@ public abstract class AbstractGatewayIntegrationTest {
     if (keys != null && !keys.isEmpty()) {
       redisTemplate.delete(keys);
     }
+  }
+
+  @BeforeEach
+  void resetBc02WireMock() {
+    BC02_WIREMOCK.resetAll();
+  }
+
+  /**
+   * Настраивает WireMock-заглушку BC-02 для возврата permissions плагина.
+   *
+   * @param pluginId идентификатор плагина
+   * @param permissions список scope-имён для ответа
+   */
+  protected static void stubBc02Permissions(String pluginId, List<String> permissions) {
+    String permJson =
+        permissions.stream().map(p -> "\"" + p + "\"").reduce((a, b) -> a + "," + b).orElse("");
+    String body =
+        String.format(
+            "{\"data\":{\"pluginId\":\"%s\",\"permissions\":[%s]},\"messages\":[],\"error\":null}",
+            pluginId, permJson);
+
+    BC02_WIREMOCK.stubFor(
+        WireMock.get("/internal/api/v1/plugins/" + pluginId + "/permissions")
+            .willReturn(WireMock.okJson(body)));
   }
 
   /** Create HTTP headers with a valid JWT Bearer token. */

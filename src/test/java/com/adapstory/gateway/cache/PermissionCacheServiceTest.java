@@ -10,13 +10,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.adapstory.gateway.client.PermissionFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,7 @@ class PermissionCacheServiceTest {
   private StringRedisTemplate redisTemplate;
   private ValueOperations<String, String> valueOperations;
   private SimpleMeterRegistry meterRegistry;
+  private PermissionFetchClient permissionFetchClient;
 
   @BeforeEach
   @SuppressWarnings("unchecked")
@@ -42,6 +44,7 @@ class PermissionCacheServiceTest {
     valueOperations = mock(ValueOperations.class);
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     meterRegistry = new SimpleMeterRegistry();
+    permissionFetchClient = mock(PermissionFetchClient.class);
 
     GatewayProperties properties =
         new GatewayProperties(
@@ -50,10 +53,12 @@ class PermissionCacheServiceTest {
             Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
-            new GatewayProperties.WebhookConfig(3, 1000, 2.0, 8000, null, null));
+            new GatewayProperties.WebhookConfig(3, 1000, 2.0, 8000, null, null),
+            new GatewayProperties.Bc02Config("http://localhost:8081"));
 
     cacheService =
-        new PermissionCacheService(redisTemplate, properties, new ObjectMapper(), meterRegistry);
+        new PermissionCacheService(
+            redisTemplate, properties, new ObjectMapper(), meterRegistry, permissionFetchClient);
   }
 
   @Nested
@@ -113,6 +118,45 @@ class PermissionCacheServiceTest {
   }
 
   @Nested
+  @DisplayName("BC-02 fetch and cache (SEC-3.2)")
+  class FetchAndCache {
+
+    @Test
+    @DisplayName("should fetch from BC-02 and cache on success")
+    void should_fetchAndCache_on_success() {
+      // Arrange
+      when(permissionFetchClient.fetchPermissions("test-plugin"))
+          .thenReturn(Optional.of(List.of("content.read", "grade.write")));
+
+      // Act
+      Optional<List<String>> result = cacheService.fetchAndCachePermissions("test-plugin");
+
+      // Assert
+      assertThat(result).isPresent();
+      assertThat(result.get()).containsExactly("content.read", "grade.write");
+      verify(valueOperations)
+          .set(
+              eq("plugin:permissions:test-plugin"),
+              eq("content.read,grade.write"),
+              eq(Duration.ofMinutes(5)));
+    }
+
+    @Test
+    @DisplayName("should return empty Optional when BC-02 unavailable")
+    void should_returnEmpty_when_bc02Unavailable() {
+      // Arrange
+      when(permissionFetchClient.fetchPermissions("test-plugin")).thenReturn(Optional.empty());
+
+      // Act
+      Optional<List<String>> result = cacheService.fetchAndCachePermissions("test-plugin");
+
+      // Assert
+      assertThat(result).isEmpty();
+      verify(valueOperations, never()).set(anyString(), anyString(), any(Duration.class));
+    }
+  }
+
+  @Nested
   @DisplayName("PermissionCacheService — revocation event handling")
   class RevocationEventHandling {
 
@@ -166,9 +210,7 @@ class PermissionCacheServiceTest {
       void should_skipDuplicateEvent() {
         // Arrange — first call returns false (key already exists)
         when(valueOperations.setIfAbsent(
-                eq("revoked-event-processed:ce-uuid-123"),
-                eq("1"),
-                eq(Duration.ofHours(24))))
+                eq("revoked-event-processed:ce-uuid-123"), eq("1"), eq(Duration.ofHours(24))))
             .thenReturn(false);
 
         // Act
@@ -183,9 +225,7 @@ class PermissionCacheServiceTest {
       void should_processFirstEvent_and_setDedupKey() {
         // Arrange
         when(valueOperations.setIfAbsent(
-                eq("revoked-event-processed:ce-uuid-123"),
-                eq("1"),
-                eq(Duration.ofHours(24))))
+                eq("revoked-event-processed:ce-uuid-123"), eq("1"), eq(Duration.ofHours(24))))
             .thenReturn(true);
 
         // Act
@@ -214,8 +254,7 @@ class PermissionCacheServiceTest {
         // Assert — invalidation still happens (fail-open for cache invalidation)
         verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
         // No dedup key should be set
-        verify(valueOperations, never())
-            .setIfAbsent(anyString(), anyString(), any(Duration.class));
+        verify(valueOperations, never()).setIfAbsent(anyString(), anyString(), any(Duration.class));
       }
     }
 

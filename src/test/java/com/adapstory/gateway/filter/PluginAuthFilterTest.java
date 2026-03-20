@@ -87,7 +87,8 @@ class PluginAuthFilterTest {
             Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
-            new GatewayProperties.WebhookConfig(3, 1000, 2.0, 8000, null, null));
+            new GatewayProperties.WebhookConfig(3, 1000, 2.0, 8000, null, null),
+            new GatewayProperties.Bc02Config("http://localhost:8081"));
 
     filter = new PluginAuthFilter(properties, objectMapper);
     filter.init();
@@ -217,10 +218,7 @@ class PluginAuthFilterTest {
     // Arrange
     String token =
         buildValidToken(
-            "adapstory.education_module.ai-grader",
-            "tenant-uuid",
-            List.of("content.read"),
-            "CORE");
+            "adapstory.education_module.ai-grader", "tenant-uuid", List.of("content.read"), "CORE");
 
     MockHttpServletRequest request =
         new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
