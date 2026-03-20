@@ -77,7 +77,7 @@ class PermissionEnforcementFilterTest {
               "CORE");
 
       when(cacheService.getCachedPermissions(ctx.pluginId()))
-          .thenReturn(List.of("content.read", "submission.read"));
+          .thenReturn(Optional.of(List.of("content.read", "submission.read")));
 
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
@@ -104,7 +104,7 @@ class PermissionEnforcementFilterTest {
               "CORE");
 
       when(cacheService.getCachedPermissions(ctx.pluginId()))
-          .thenReturn(List.of("submission.read")); // content.read revoked in manifest
+          .thenReturn(Optional.of(List.of("submission.read"))); // content.read revoked in manifest
 
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
@@ -170,7 +170,7 @@ class PermissionEnforcementFilterTest {
           new PluginSecurityContext(
               "adapstory.education_module.ai-grader", "tenant-1", List.of("content.read"), "CORE");
 
-      when(cacheService.getCachedPermissions(ctx.pluginId())).thenReturn(null);
+      when(cacheService.getCachedPermissions(ctx.pluginId())).thenReturn(Optional.empty());
       when(cacheService.fetchAndCachePermissions(ctx.pluginId()))
           .thenReturn(Optional.of(List.of("content.read")));
 
@@ -194,7 +194,7 @@ class PermissionEnforcementFilterTest {
           new PluginSecurityContext(
               "adapstory.education_module.ai-grader", "tenant-1", List.of("content.read"), "CORE");
 
-      when(cacheService.getCachedPermissions(ctx.pluginId())).thenReturn(null);
+      when(cacheService.getCachedPermissions(ctx.pluginId())).thenReturn(Optional.empty());
       when(cacheService.fetchAndCachePermissions(ctx.pluginId())).thenReturn(Optional.empty());
 
       MockHttpServletRequest request =
@@ -232,7 +232,7 @@ class PermissionEnforcementFilterTest {
           new PluginSecurityContext(
               "adapstory.education_module.ai-grader", "tenant-1", List.of("content.read"), "CORE");
 
-      when(cacheService.getCachedPermissions(ctx.pluginId())).thenReturn(List.of());
+      when(cacheService.getCachedPermissions(ctx.pluginId())).thenReturn(Optional.of(List.of()));
 
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
@@ -295,7 +295,8 @@ class PermissionEnforcementFilterTest {
           new PluginSecurityContext(
               "adapstory.education_module.ai-grader", "tenant-1", List.of("content.read"), "CORE");
 
-      when(cacheService.getCachedPermissions(ctx.pluginId())).thenReturn(List.of("content.read"));
+      when(cacheService.getCachedPermissions(ctx.pluginId()))
+          .thenReturn(Optional.of(List.of("content.read")));
 
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");

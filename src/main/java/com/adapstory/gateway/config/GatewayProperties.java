@@ -25,7 +25,7 @@ public record GatewayProperties(
 
   public record PermissionsConfig(Map<String, Map<String, String>> routeMappings) {}
 
-  public record PermissionCacheConfig(int ttlMinutes, String keyPrefix) {}
+  public record PermissionCacheConfig(@Positive int ttlMinutes, @NotBlank String keyPrefix) {}
 
   public record WebhookConfig(
       int retryMaxAttempts,

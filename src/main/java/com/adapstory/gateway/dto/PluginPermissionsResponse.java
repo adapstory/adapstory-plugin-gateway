@@ -19,5 +19,11 @@ public record PluginPermissionsResponse(Data data) {
    * @param pluginId идентификатор плагина
    * @param permissions список scope-имён из запечатанного манифеста
    */
-  public record Data(String pluginId, List<String> permissions) {}
+  public record Data(String pluginId, List<String> permissions) {
+
+    /** Compact constructor: defensive copy, null → empty list. */
+    public Data {
+      permissions = permissions != null ? List.copyOf(permissions) : List.of();
+    }
+  }
 }

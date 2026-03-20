@@ -21,9 +21,9 @@ import org.springframework.stereotype.Service;
 /**
  * Кеш разрешений плагинов в Redis с инвалидацией через Kafka.
  *
- * <p>Ключ: plugin:{pluginId}:permissions, TTL = configurable (default 5 min). Kafka consumer:
+ * <p>Ключ: plugin:permissions:{pluginId}, TTL = configurable (default 5 min). Kafka consumer:
  * PluginPermissionsRevoked event → инвалидация записи кеша (Story SEC-3.1). На промах кеша: fetch
- * из BC-02 REST API (заглушка — будет реализована при интеграции).
+ * из BC-02 REST API (Story SEC-3.2).
  */
 @Service
 public class PermissionCacheService {
@@ -35,6 +35,11 @@ public class PermissionCacheService {
   private static final Duration DEDUP_TTL = Duration.ofHours(24);
   private static final String DEDUP_KEY_PREFIX = "revoked-event-processed:";
   private static final String COUNTER_NAME = "plugin.permissions.revoked.count";
+
+  /** Negative cache TTL: prevents thundering herd when BC-02 is down (M-5). */
+  private static final Duration NEGATIVE_CACHE_TTL = Duration.ofSeconds(30);
+
+  private static final String NEGATIVE_CACHE_SENTINEL = "__UNAVAILABLE__";
 
   private final StringRedisTemplate redisTemplate;
   private final GatewayProperties properties;
@@ -56,32 +61,39 @@ public class PermissionCacheService {
   }
 
   /**
-   * Get cached permissions for a plugin.
+   * Получает кешированные permissions плагина из Redis.
    *
-   * @param pluginId full plugin identifier
-   * @return cached permissions or null if not in cache
+   * @param pluginId идентификатор плагина
+   * @return {@code Optional.of(permissions)} при cache hit, {@code Optional.empty()} при cache miss
+   *     или negative cache hit (BC-02 unavailable sentinel)
    */
-  public List<String> getCachedPermissions(String pluginId) {
+  public Optional<List<String>> getCachedPermissions(String pluginId) {
+    PermissionFetchClient.validatePluginId(pluginId);
     String key = buildCacheKey(pluginId);
     String cached = redisTemplate.opsForValue().get(key);
     if (cached == null) {
       log.debug("Permission cache miss for plugin '{}'", pluginId);
-      return null;
+      return Optional.empty();
+    }
+    if (NEGATIVE_CACHE_SENTINEL.equals(cached)) {
+      log.debug("Negative cache hit for plugin '{}' (BC-02 was unavailable)", pluginId);
+      return Optional.empty();
     }
     log.debug("Permission cache hit for plugin '{}'", pluginId);
     if (cached.isBlank()) {
-      return List.of();
+      return Optional.of(List.of());
     }
-    return List.of(cached.split(PERMISSIONS_SEPARATOR));
+    return Optional.of(List.of(cached.split(PERMISSIONS_SEPARATOR)));
   }
 
   /**
-   * Cache permissions for a plugin.
+   * Кеширует permissions плагина в Redis.
    *
-   * @param pluginId full plugin identifier
-   * @param permissions list of granted permissions
+   * @param pluginId идентификатор плагина
+   * @param permissions список разрешений
    */
   public void cachePermissions(String pluginId, List<String> permissions) {
+    validatePermissionNames(permissions);
     String key = buildCacheKey(pluginId);
     String value = String.join(PERMISSIONS_SEPARATOR, permissions);
     Duration ttl = Duration.ofMinutes(properties.permissionCache().ttlMinutes());
@@ -90,9 +102,9 @@ public class PermissionCacheService {
   }
 
   /**
-   * Invalidate cached permissions for a plugin.
+   * Инвалидирует кеш permissions плагина.
    *
-   * @param pluginId full plugin identifier
+   * @param pluginId идентификатор плагина
    */
   public void invalidate(String pluginId) {
     String key = buildCacheKey(pluginId);
@@ -104,15 +116,20 @@ public class PermissionCacheService {
    * Запрашивает permissions из BC-02 REST API, кеширует результат в Redis.
    *
    * <p>Используется при промахе кеша вместо fallback на JWT claims (Story SEC-3.2). При сбое BC-02
-   * или открытом circuit breaker возвращает {@code Optional.empty()} — вызывающий код реализует
-   * fail-closed (503 ADAP-SEC-0011).
+   * или открытом circuit breaker возвращает {@code Optional.empty()} и записывает negative cache
+   * (30s) для предотвращения thundering herd — вызывающий код реализует fail-closed (503
+   * ADAP-SEC-0011).
    *
    * @param pluginId идентификатор плагина
    * @return {@code Optional<List<String>>} со scope-именами; {@code empty()} при сбое BC-02
    */
   public Optional<List<String>> fetchAndCachePermissions(String pluginId) {
     Optional<List<String>> fetched = permissionFetchClient.fetchPermissions(pluginId);
-    fetched.ifPresent(permissions -> cachePermissions(pluginId, permissions));
+    if (fetched.isPresent()) {
+      cachePermissions(pluginId, fetched.get());
+    } else {
+      cacheNegativeResult(pluginId);
+    }
     return fetched;
   }
 
@@ -227,6 +244,21 @@ public class PermissionCacheService {
       pluginIdNode = data.path("plugin_id");
     }
     return pluginIdNode.isMissingNode() ? null : pluginIdNode.asText();
+  }
+
+  private void cacheNegativeResult(String pluginId) {
+    String key = buildCacheKey(pluginId);
+    redisTemplate.opsForValue().set(key, NEGATIVE_CACHE_SENTINEL, NEGATIVE_CACHE_TTL);
+    log.debug("Cached negative result for plugin '{}' (BC-02 unavailable, TTL=30s)", pluginId);
+  }
+
+  private static void validatePermissionNames(List<String> permissions) {
+    for (String perm : permissions) {
+      if (perm.contains(PERMISSIONS_SEPARATOR)) {
+        throw new IllegalArgumentException(
+            "Permission name must not contain separator '" + PERMISSIONS_SEPARATOR + "': " + perm);
+      }
+    }
   }
 
   private static void setMdcFromHeaders(String correlationId, String requestId) {

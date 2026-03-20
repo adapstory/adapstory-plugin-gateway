@@ -1,8 +1,10 @@
 package com.adapstory.gateway.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
@@ -145,6 +147,69 @@ class PermissionFetchClientTest {
 
       // Assert
       assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("should return empty Optional when BC-02 returns 404")
+    void should_return_empty_on_not_found() {
+      // Arrange
+      mockServer.expect(requestTo(PERMISSIONS_URI)).andRespond(withResourceNotFound());
+
+      // Act
+      Optional<List<String>> result = client.fetchPermissions(PLUGIN_ID);
+
+      // Assert
+      assertThat(result).isEmpty();
+      mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("should return empty list when BC-02 returns null data")
+    void should_return_empty_list_when_null_data() {
+      // Arrange
+      String responseNullData =
+          """
+          {
+            "data": null,
+            "messages": [],
+            "error": null
+          }
+          """;
+      mockServer
+          .expect(requestTo(PERMISSIONS_URI))
+          .andRespond(withSuccess(responseNullData, MediaType.APPLICATION_JSON));
+
+      // Act
+      Optional<List<String>> result = client.fetchPermissions(PLUGIN_ID);
+
+      // Assert
+      assertThat(result).isPresent();
+      assertThat(result.get()).isEmpty();
+      mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("should throw IllegalArgumentException for null pluginId")
+    void should_throw_on_null_pluginId() {
+      assertThatThrownBy(() -> client.fetchPermissions(null))
+          .isInstanceOf(NullPointerException.class)
+          .hasMessageContaining("pluginId must not be null");
+    }
+
+    @Test
+    @DisplayName("should throw IllegalArgumentException for blank pluginId")
+    void should_throw_on_blank_pluginId() {
+      assertThatThrownBy(() -> client.fetchPermissions(""))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("pluginId must not be blank");
+    }
+
+    @Test
+    @DisplayName("should throw IllegalArgumentException for invalid pluginId format")
+    void should_throw_on_invalid_pluginId_format() {
+      assertThatThrownBy(() -> client.fetchPermissions("../../etc/passwd"))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("pluginId format invalid");
     }
   }
 }

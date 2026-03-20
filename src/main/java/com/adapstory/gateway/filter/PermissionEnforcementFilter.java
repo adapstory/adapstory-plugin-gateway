@@ -84,7 +84,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
           403,
           "Forbidden",
           "No permission mapping configured for this route",
-          buildDetails(pluginContext, null, pluginContext.permissions()));
+          buildDetails(pluginContext, null));
       return;
     }
 
@@ -109,15 +109,17 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
           String.format(
               "Plugin '%s' does not have permission '%s'",
               extractShortPluginId(pluginId), requiredPermission),
-          buildDetails(pluginContext, requiredPermission, jwtPermissions));
+          buildDetails(pluginContext, requiredPermission));
       return;
     }
 
     // Step 2: Get manifest permissions from Redis cache or BC-02 REST
-    List<String> manifestPermissions = permissionCacheService.getCachedPermissions(pluginId);
+    Optional<List<String>> cached = permissionCacheService.getCachedPermissions(pluginId);
+    List<String> manifestPermissions;
 
-    if (manifestPermissions != null) {
+    if (cached.isPresent()) {
       meterRegistry.counter(METRIC_CACHE_HIT, "pluginId", pluginId).increment();
+      manifestPermissions = cached.get();
     } else {
       // Cache miss — fetch from BC-02 REST API (NOT JWT fallback)
       Optional<List<String>> fetched = permissionCacheService.fetchAndCachePermissions(pluginId);
@@ -161,7 +163,6 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       Map<String, Object> details = new LinkedHashMap<>();
       details.put("pluginId", pluginId);
       details.put("requiredPermission", requiredPermission);
-      details.put("grantedPermissions", manifestPermissions);
       details.put("errorCode", ERROR_CODE_PERMISSION_REVOKED);
 
       GatewayErrorWriter.writeError(
@@ -215,16 +216,13 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
   }
 
   private Map<String, Object> buildDetails(
-      PluginSecurityContext pluginContext,
-      String requiredPermission,
-      List<String> effectivePermissions) {
+      PluginSecurityContext pluginContext, String requiredPermission) {
     Map<String, Object> details = new LinkedHashMap<>();
     if (pluginContext != null) {
       details.put("pluginId", pluginContext.pluginId());
       if (requiredPermission != null) {
         details.put("requiredPermission", requiredPermission);
       }
-      details.put("grantedPermissions", effectivePermissions);
     }
     return details;
   }

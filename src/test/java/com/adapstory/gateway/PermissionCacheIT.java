@@ -5,6 +5,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.List;
@@ -99,18 +100,21 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
 
     // Act & Assert
-    try {
-      testClient
-          .get()
-          .uri("/gateway/api/content/v1/materials/123")
-          .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
-          .retrieve()
-          .toEntity(String.class);
-      assertThat(false).as("Should have thrown 403").isTrue();
-    } catch (HttpClientErrorException.Forbidden e) {
-      assertThat(e.getResponseBodyAsString()).contains("ADAP-SEC-0010");
-      assertThat(e.getResponseBodyAsString()).contains("has been revoked");
-    }
+    assertThatThrownBy(
+            () ->
+                testClient
+                    .get()
+                    .uri("/gateway/api/content/v1/materials/123")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                    .retrieve()
+                    .toEntity(String.class))
+        .isInstanceOf(HttpClientErrorException.Forbidden.class)
+        .satisfies(
+            ex -> {
+              var body = ((HttpClientErrorException.Forbidden) ex).getResponseBodyAsString();
+              assertThat(body).contains("ADAP-SEC-0010");
+              assertThat(body).contains("has been revoked");
+            });
   }
 
   @Test
@@ -143,18 +147,21 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
 
     // Act & Assert
-    try {
-      testClient
-          .get()
-          .uri("/gateway/api/content/v1/materials/123")
-          .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
-          .retrieve()
-          .toEntity(String.class);
-      assertThat(false).as("Should have thrown 503").isTrue();
-    } catch (HttpServerErrorException.ServiceUnavailable e) {
-      assertThat(e.getResponseBodyAsString()).contains("ADAP-SEC-0011");
-      assertThat(e.getResponseBodyAsString()).contains("Unable to verify plugin permissions");
-    }
+    assertThatThrownBy(
+            () ->
+                testClient
+                    .get()
+                    .uri("/gateway/api/content/v1/materials/123")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                    .retrieve()
+                    .toEntity(String.class))
+        .isInstanceOf(HttpServerErrorException.ServiceUnavailable.class)
+        .satisfies(
+            ex -> {
+              var body = ((HttpServerErrorException.ServiceUnavailable) ex).getResponseBodyAsString();
+              assertThat(body).contains("ADAP-SEC-0011");
+              assertThat(body).contains("Unable to verify plugin permissions");
+            });
   }
 
   @Nested
@@ -276,16 +283,19 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
 
     // Act & Assert
-    try {
-      testClient
-          .get()
-          .uri("/gateway/api/content/v1/materials/123")
-          .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
-          .retrieve()
-          .toEntity(String.class);
-      assertThat(false).as("Should have thrown 403").isTrue();
-    } catch (HttpClientErrorException.Forbidden e) {
-      assertThat(e.getResponseBodyAsString()).contains("ADAP-SEC-0010");
-    }
+    assertThatThrownBy(
+            () ->
+                testClient
+                    .get()
+                    .uri("/gateway/api/content/v1/materials/123")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                    .retrieve()
+                    .toEntity(String.class))
+        .isInstanceOf(HttpClientErrorException.Forbidden.class)
+        .satisfies(
+            ex -> {
+              var body = ((HttpClientErrorException.Forbidden) ex).getResponseBodyAsString();
+              assertThat(body).contains("ADAP-SEC-0010");
+            });
   }
 }

@@ -73,23 +73,24 @@ class PermissionCacheServiceTest {
           .thenReturn("content.read,submission.read");
 
       // Act
-      List<String> result = cacheService.getCachedPermissions("test-plugin");
+      Optional<List<String>> result = cacheService.getCachedPermissions("test-plugin");
 
       // Assert
-      assertThat(result).containsExactly("content.read", "submission.read");
+      assertThat(result).isPresent();
+      assertThat(result.get()).containsExactly("content.read", "submission.read");
     }
 
     @Test
-    @DisplayName("Cache miss returns null")
-    void cacheMiss_returnsNull() {
+    @DisplayName("Cache miss returns empty Optional")
+    void cacheMiss_returnsEmpty() {
       // Arrange
       when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn(null);
 
       // Act
-      List<String> result = cacheService.getCachedPermissions("test-plugin");
+      Optional<List<String>> result = cacheService.getCachedPermissions("test-plugin");
 
       // Assert
-      assertThat(result).isNull();
+      assertThat(result).isEmpty();
     }
 
     @Test
@@ -142,7 +143,7 @@ class PermissionCacheServiceTest {
     }
 
     @Test
-    @DisplayName("should return empty Optional when BC-02 unavailable")
+    @DisplayName("should return empty Optional and cache negative result when BC-02 unavailable")
     void should_returnEmpty_when_bc02Unavailable() {
       // Arrange
       when(permissionFetchClient.fetchPermissions("test-plugin")).thenReturn(Optional.empty());
@@ -152,7 +153,12 @@ class PermissionCacheServiceTest {
 
       // Assert
       assertThat(result).isEmpty();
-      verify(valueOperations, never()).set(anyString(), anyString(), any(Duration.class));
+      // Negative cache sentinel should be stored with short TTL (30s)
+      verify(valueOperations)
+          .set(
+              eq("plugin:permissions:test-plugin"),
+              eq("__UNAVAILABLE__"),
+              eq(Duration.ofSeconds(30)));
     }
   }
 
