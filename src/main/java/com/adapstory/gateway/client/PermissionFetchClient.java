@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -50,6 +51,7 @@ public class PermissionFetchClient {
    * @param properties конфигурация Gateway (содержит baseUrl BC-02)
    * @param circuitBreakerRegistry реестр circuit breakers
    */
+  @Autowired
   public PermissionFetchClient(
       GatewayProperties properties, CircuitBreakerRegistry circuitBreakerRegistry) {
     Objects.requireNonNull(properties, "properties must not be null");

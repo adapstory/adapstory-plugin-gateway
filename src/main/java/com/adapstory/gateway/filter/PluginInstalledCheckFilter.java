@@ -38,6 +38,8 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
   private final InstalledPluginCacheService cacheService;
   private final ObjectMapper objectMapper;
   private final Counter notInstalledCounter;
+  private final Counter cacheHitCounter;
+  private final Counter cacheMissCounter;
 
   /**
    * Создаёт фильтр проверки установки плагина.
@@ -52,10 +54,19 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
       MeterRegistry meterRegistry) {
     this.cacheService = Objects.requireNonNull(cacheService, "cacheService must not be null");
     this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
+    Objects.requireNonNull(meterRegistry, "meterRegistry must not be null");
     this.notInstalledCounter =
         Counter.builder("plugin_gateway_not_installed_total")
             .description("Number of requests rejected due to plugin not installed for tenant")
-            .register(Objects.requireNonNull(meterRegistry, "meterRegistry must not be null"));
+            .register(meterRegistry);
+    this.cacheHitCounter =
+        Counter.builder("plugin_gateway_installed_cache_hit_total")
+            .description("Number of installed-check cache hits")
+            .register(meterRegistry);
+    this.cacheMissCounter =
+        Counter.builder("plugin_gateway_installed_cache_miss_total")
+            .description("Number of installed-check cache misses (BC-02 fetch)")
+            .register(meterRegistry);
   }
 
   @Override
@@ -80,7 +91,21 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
       return;
     }
 
-    Optional<Boolean> installed = cacheService.isInstalled(pluginId, tenantId);
+    Optional<Boolean> installed;
+    try {
+      installed =
+          cacheService.isInstalled(
+              pluginId, tenantId, cacheHitCounter::increment, cacheMissCounter::increment);
+    } catch (IllegalArgumentException e) {
+      // H-7: Invalid pluginId/tenantId format in cache key — fail-open with warning
+      log.warn(
+          "Invalid key format for installed check, allowing request: pluginId={}, tenantId={}, error={}",
+          pluginId,
+          tenantId,
+          e.getMessage());
+      filterChain.doFilter(request, response);
+      return;
+    }
 
     if (installed.isEmpty()) {
       // BC-02 unavailable — fail-open with warning

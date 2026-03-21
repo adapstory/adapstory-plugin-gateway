@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -56,6 +57,7 @@ public class InstalledPluginFetchClient {
    * @param circuitBreakerRegistry реестр circuit breakers
    * @param objectMapper Jackson ObjectMapper для парсинга ответа
    */
+  @Autowired
   public InstalledPluginFetchClient(
       GatewayProperties properties,
       CircuitBreakerRegistry circuitBreakerRegistry,
@@ -132,6 +134,14 @@ public class InstalledPluginFetchClient {
           tenantId,
           e.getMessage());
       return Optional.empty();
+    } catch (Exception e) {
+      // M-6: Catch any other exception (e.g., IOException from JSON parsing inside CB)
+      log.warn(
+          "Unexpected error checking installed status: pluginId={}, tenantId={}, error={}",
+          pluginId,
+          tenantId,
+          e.getMessage());
+      return Optional.empty();
     }
   }
 
@@ -141,14 +151,24 @@ public class InstalledPluginFetchClient {
     String correlationId =
         Optional.ofNullable(MDC.get("correlation-id")).orElse(UUID.randomUUID().toString());
 
-    String responseBody =
-        restClient
-            .get()
-            .uri(INSTALLED_PATH, pluginId, tenantId)
-            .header("X-Request-Id", requestId)
-            .header("X-Correlation-Id", correlationId)
-            .retrieve()
-            .body(String.class);
+    String responseBody;
+    try {
+      responseBody =
+          restClient
+              .get()
+              .uri(INSTALLED_PATH, pluginId, tenantId)
+              .header("X-Request-Id", requestId)
+              .header("X-Correlation-Id", correlationId)
+              .retrieve()
+              .body(String.class);
+    } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+      // M-10: BC-02 returns 404 = plugin does not exist → treat as "not installed"
+      log.debug(
+          "BC-02 returned 404 for installed check (plugin not found): pluginId={}, tenantId={}",
+          pluginId,
+          tenantId);
+      return Optional.of(false);
+    }
 
     // H-6: null body is an unexpected/broken response → fail-open
     if (responseBody == null) {

@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -29,7 +28,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * без ожидания истечения JWT. При невозможности проверки — fail-closed (ADAP-SEC-0011).
  */
 @Component
-@Order(2)
+// M-7: Filter ordering is defined via SecurityConfig.addFilterAfter() chain, not @Order.
+// Removed @Order(2) to be consistent with other filters in the chain.
 public class PermissionEnforcementFilter extends OncePerRequestFilter {
 
   private static final Logger log = LoggerFactory.getLogger(PermissionEnforcementFilter.class);

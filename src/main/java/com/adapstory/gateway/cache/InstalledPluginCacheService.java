@@ -52,7 +52,24 @@ public class InstalledPluginCacheService {
    * @param tenantId идентификатор тенанта
    * @return Optional.of(true/false) при наличии данных, Optional.empty() при недоступности BC-02
    */
+  /**
+   * Проверяет, установлен ли плагин для тенанта. Использует Redis cache-aside.
+   *
+   * @param pluginId идентификатор плагина
+   * @param tenantId идентификатор тенанта
+   * @param cacheHit callback to increment cache-hit metric (nullable)
+   * @param cacheMiss callback to increment cache-miss metric (nullable)
+   * @return Optional.of(true/false) при наличии данных, Optional.empty() при недоступности BC-02
+   */
   public Optional<Boolean> isInstalled(String pluginId, String tenantId) {
+    return isInstalled(pluginId, tenantId, null, null);
+  }
+
+  /**
+   * Проверяет установку с callback-ами для метрик.
+   */
+  public Optional<Boolean> isInstalled(
+      String pluginId, String tenantId, Runnable onCacheHit, Runnable onCacheMiss) {
     String key = buildKey(pluginId, tenantId);
 
     try {
@@ -66,6 +83,7 @@ public class InstalledPluginCacheService {
           return Optional.empty();
         }
         log.debug("Cache hit for installed check: pluginId={}, tenantId={}", pluginId, tenantId);
+        if (onCacheHit != null) onCacheHit.run();
         return Optional.of("true".equals(cached));
       }
     } catch (Exception e) {
@@ -73,10 +91,13 @@ public class InstalledPluginCacheService {
     }
 
     // Cache miss — fetch from BC-02
+    if (onCacheMiss != null) onCacheMiss.run();
     Optional<Boolean> result = fetchClient.fetchInstalledStatus(pluginId, tenantId);
 
     if (result.isPresent()) {
-      cacheResult(key, result.get().toString(), result.get() ? cacheTtl : negativeCacheTtl);
+      // H-6: Both true and false from BC-02 are authoritative responses — use full cacheTtl.
+      // negativeCacheTtl is reserved only for __UNAVAILABLE__ sentinel (BC-02 unreachable).
+      cacheResult(key, result.get().toString(), cacheTtl);
     } else {
       // BC-02 unavailable — cache negative sentinel to prevent thundering herd
       cacheResult(key, NEGATIVE_CACHE_SENTINEL, negativeCacheTtl);
