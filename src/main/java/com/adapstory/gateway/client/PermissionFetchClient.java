@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -36,7 +37,7 @@ public class PermissionFetchClient {
 
   /** Допустимый формат pluginId: tri-part (vendor.category.name) или UUID. */
   private static final Pattern PLUGIN_ID_PATTERN =
-      Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9._-]{1,253}[a-zA-Z0-9]$");
+      Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9._-]{1,123}[a-zA-Z0-9]$");
 
   private static final int CONNECT_TIMEOUT_MS = 3000;
   private static final int READ_TIMEOUT_MS = 3000;
@@ -44,6 +45,7 @@ public class PermissionFetchClient {
   private final RestClient restClient;
   private final CircuitBreaker circuitBreaker;
 
+  @Autowired
   public PermissionFetchClient(
       GatewayProperties properties, CircuitBreakerRegistry circuitBreakerRegistry) {
     this(buildRestClient(properties.bc02().baseUrl()), createCircuitBreaker(circuitBreakerRegistry));

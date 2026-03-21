@@ -124,6 +124,14 @@ public class PermissionCacheService {
    * @return {@code Optional<List<String>>} со scope-именами; {@code empty()} при сбое BC-02
    */
   public Optional<List<String>> fetchAndCachePermissions(String pluginId) {
+    // Check negative cache sentinel first to prevent thundering herd (H-1 review fix).
+    // getCachedPermissions() returns Optional.empty() for both real miss and sentinel,
+    // so we must check Redis directly before hitting BC-02.
+    if (isNegativeCached(pluginId)) {
+      log.debug("Negative cache active for plugin '{}', skipping BC-02 call", pluginId);
+      return Optional.empty();
+    }
+
     Optional<List<String>> fetched = permissionFetchClient.fetchPermissions(pluginId);
     if (fetched.isPresent()) {
       cachePermissions(pluginId, fetched.get());
@@ -243,7 +251,29 @@ public class PermissionCacheService {
     if (pluginIdNode.isMissingNode()) {
       pluginIdNode = data.path("plugin_id");
     }
-    return pluginIdNode.isMissingNode() ? null : pluginIdNode.asText();
+    if (pluginIdNode.isMissingNode()) {
+      return null;
+    }
+    String value = pluginIdNode.asText();
+    try {
+      PermissionFetchClient.validatePluginId(value);
+    } catch (IllegalArgumentException | NullPointerException e) {
+      log.warn("Rejected PluginPermissionsRevoked event: invalid pluginId format '{}'", value);
+      return null;
+    }
+    return value;
+  }
+
+  /**
+   * Проверяет наличие negative cache sentinel для pluginId.
+   *
+   * @param pluginId идентификатор плагина
+   * @return {@code true} если в Redis хранится sentinel (BC-02 был недоступен)
+   */
+  boolean isNegativeCached(String pluginId) {
+    String key = buildCacheKey(pluginId);
+    String cached = redisTemplate.opsForValue().get(key);
+    return NEGATIVE_CACHE_SENTINEL.equals(cached);
   }
 
   private void cacheNegativeResult(String pluginId) {

@@ -298,4 +298,44 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
               assertThat(body).contains("ADAP-SEC-0010");
             });
   }
+
+  @Test
+  @DisplayName("L-2: Negative cache sentinel prevents repeated BC-02 calls (thundering herd)")
+  void negativeCacheSentinel_preventsBc02Calls() {
+    // Arrange: BC-02 returns 500 (first request stores negative sentinel)
+    BC02_WIREMOCK.resetMappings();
+    BC02_WIREMOCK.stubFor(
+        get(urlPathEqualTo(BC02_PERMISSIONS_PATH)).willReturn(aResponse().withStatus(500)));
+
+    String jwt = buildValidJwt(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
+
+    // Act 1: first request → cache miss → BC-02 fails → negative sentinel stored → 503
+    assertThatThrownBy(
+            () ->
+                testClient
+                    .get()
+                    .uri("/gateway/api/content/v1/materials/123")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                    .retrieve()
+                    .toEntity(String.class))
+        .isInstanceOf(HttpServerErrorException.ServiceUnavailable.class);
+
+    // Assert: negative sentinel in Redis
+    String cached = redisTemplate.opsForValue().get(CACHE_KEY);
+    assertThat(cached).isEqualTo("__UNAVAILABLE__");
+
+    // Act 2: second request → negative sentinel active → no BC-02 call → 503
+    assertThatThrownBy(
+            () ->
+                testClient
+                    .get()
+                    .uri("/gateway/api/content/v1/materials/123")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
+                    .retrieve()
+                    .toEntity(String.class))
+        .isInstanceOf(HttpServerErrorException.ServiceUnavailable.class);
+
+    // Assert: BC-02 called only once (negative cache prevented second call)
+    BC02_WIREMOCK.verify(1, getRequestedFor(urlPathEqualTo(BC02_PERMISSIONS_PATH)));
+  }
 }

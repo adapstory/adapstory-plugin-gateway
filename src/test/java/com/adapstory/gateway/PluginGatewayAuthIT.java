@@ -89,7 +89,7 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
               String body = hce.getResponseBodyAsString();
               assertThat(body).contains("pluginId");
               assertThat(body).contains("requiredPermission");
-              assertThat(body).contains("grantedPermissions");
+              // grantedPermissions removed per H-2 (information disclosure fix)
             });
   }
 

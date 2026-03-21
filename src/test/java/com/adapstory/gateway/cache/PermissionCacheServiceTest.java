@@ -160,6 +160,36 @@ class PermissionCacheServiceTest {
               eq("__UNAVAILABLE__"),
               eq(Duration.ofSeconds(30)));
     }
+
+    @Test
+    @DisplayName("should skip BC-02 call when negative cache sentinel is active (H-1 fix)")
+    void should_skipBc02_when_negativeCacheActive() {
+      // Arrange — negative sentinel in Redis
+      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn("__UNAVAILABLE__");
+
+      // Act
+      Optional<List<String>> result = cacheService.fetchAndCachePermissions("test-plugin");
+
+      // Assert — BC-02 NOT called, returns empty
+      assertThat(result).isEmpty();
+      verify(permissionFetchClient, never()).fetchPermissions(anyString());
+    }
+
+    @Test
+    @DisplayName("should call BC-02 when no negative sentinel exists")
+    void should_callBc02_when_noNegativeSentinel() {
+      // Arrange — no sentinel in Redis
+      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn(null);
+      when(permissionFetchClient.fetchPermissions("test-plugin"))
+          .thenReturn(Optional.of(List.of("content.read")));
+
+      // Act
+      Optional<List<String>> result = cacheService.fetchAndCachePermissions("test-plugin");
+
+      // Assert
+      assertThat(result).isPresent();
+      verify(permissionFetchClient).fetchPermissions("test-plugin");
+    }
   }
 
   @Nested
@@ -366,6 +396,26 @@ class PermissionCacheServiceTest {
     void extractPluginId_missing() throws Exception {
       // Arrange
       var data = mapper.readTree("{\"other\":\"value\"}");
+
+      // Act & Assert
+      assertThat(cacheService.extractPluginIdFromData(data)).isNull();
+    }
+
+    @Test
+    @DisplayName("returns null for invalid pluginId format (M-2 — path traversal)")
+    void extractPluginId_invalidFormat() throws Exception {
+      // Arrange
+      var data = mapper.readTree("{\"pluginId\":\"../../etc/passwd\"}");
+
+      // Act & Assert
+      assertThat(cacheService.extractPluginIdFromData(data)).isNull();
+    }
+
+    @Test
+    @DisplayName("returns null for blank pluginId value (M-2)")
+    void extractPluginId_blank() throws Exception {
+      // Arrange
+      var data = mapper.readTree("{\"pluginId\":\" \"}");
 
       // Act & Assert
       assertThat(cacheService.extractPluginIdFromData(data)).isNull();

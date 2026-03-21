@@ -3,6 +3,7 @@ package com.adapstory.gateway.config;
 import com.adapstory.gateway.filter.HeaderInjectionFilter;
 import com.adapstory.gateway.filter.PermissionEnforcementFilter;
 import com.adapstory.gateway.filter.PluginAuthFilter;
+import com.adapstory.gateway.filter.PluginInstalledCheckFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,6 +50,7 @@ public class SecurityConfig {
   SecurityFilterChain gatewayFilterChain(
       HttpSecurity http,
       PluginAuthFilter pluginAuthFilter,
+      PluginInstalledCheckFilter pluginInstalledCheckFilter,
       PermissionEnforcementFilter permissionEnforcementFilter,
       HeaderInjectionFilter headerInjectionFilter)
       throws Exception {
@@ -63,7 +65,8 @@ public class SecurityConfig {
             // depth.
             auth -> auth.requestMatchers("/internal/**").permitAll().anyRequest().authenticated())
         .addFilterBefore(pluginAuthFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterAfter(permissionEnforcementFilter, PluginAuthFilter.class)
+        .addFilterAfter(pluginInstalledCheckFilter, PluginAuthFilter.class)
+        .addFilterAfter(permissionEnforcementFilter, PluginInstalledCheckFilter.class)
         .addFilterAfter(headerInjectionFilter, PermissionEnforcementFilter.class)
         .formLogin(AbstractHttpConfigurer::disable)
         .httpBasic(AbstractHttpConfigurer::disable)
@@ -85,6 +88,14 @@ public class SecurityConfig {
   @Bean
   FilterRegistrationBean<PermissionEnforcementFilter> disablePermissionFilterAutoRegistration(
       PermissionEnforcementFilter filter) {
+    var registration = new FilterRegistrationBean<>(filter);
+    registration.setEnabled(false);
+    return registration;
+  }
+
+  @Bean
+  FilterRegistrationBean<PluginInstalledCheckFilter> disableInstalledCheckAutoRegistration(
+      PluginInstalledCheckFilter filter) {
     var registration = new FilterRegistrationBean<>(filter);
     registration.setEnabled(false);
     return registration;
