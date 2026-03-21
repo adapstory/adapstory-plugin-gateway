@@ -15,7 +15,6 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -45,11 +44,35 @@ public class PermissionFetchClient {
   private final RestClient restClient;
   private final CircuitBreaker circuitBreaker;
 
-  @Autowired
+  /**
+   * Создаёт клиент с RestClient + Circuit Breaker.
+   *
+   * @param properties конфигурация Gateway (содержит baseUrl BC-02)
+   * @param circuitBreakerRegistry реестр circuit breakers
+   */
   public PermissionFetchClient(
       GatewayProperties properties, CircuitBreakerRegistry circuitBreakerRegistry) {
-    this(
-        buildRestClient(properties.bc02().baseUrl()), createCircuitBreaker(circuitBreakerRegistry));
+    Objects.requireNonNull(properties, "properties must not be null");
+    Objects.requireNonNull(circuitBreakerRegistry, "circuitBreakerRegistry must not be null");
+
+    var factory = new SimpleClientHttpRequestFactory();
+    factory.setConnectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS));
+    factory.setReadTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
+
+    this.restClient =
+        RestClient.builder().baseUrl(properties.bc02().baseUrl()).requestFactory(factory).build();
+
+    this.circuitBreaker =
+        circuitBreakerRegistry.circuitBreaker(
+            CB_NAME,
+            CircuitBreakerConfig.custom()
+                .slidingWindowSize(20)
+                .failureRateThreshold(50)
+                .waitDurationInOpenState(Duration.ofSeconds(10))
+                .permittedNumberOfCallsInHalfOpenState(3)
+                .slowCallDurationThreshold(Duration.ofSeconds(5))
+                .minimumNumberOfCalls(5)
+                .build());
   }
 
   /** Конструктор для тестов — принимает готовые RestClient и CircuitBreaker. */
@@ -114,26 +137,5 @@ public class PermissionFetchClient {
       throw new IllegalArgumentException(
           "pluginId format invalid (expected tri-part or UUID): " + pluginId);
     }
-  }
-
-  private static RestClient buildRestClient(String baseUrl) {
-    var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS));
-    factory.setReadTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
-    return RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
-  }
-
-  private static CircuitBreaker createCircuitBreaker(CircuitBreakerRegistry registry) {
-    CircuitBreakerConfig cbConfig =
-        CircuitBreakerConfig.custom()
-            .slidingWindowSize(20)
-            .failureRateThreshold(50)
-            .waitDurationInOpenState(Duration.ofSeconds(10))
-            .permittedNumberOfCallsInHalfOpenState(3)
-            .slowCallDurationThreshold(Duration.ofSeconds(5))
-            .minimumNumberOfCalls(5)
-            .build();
-
-    return registry.circuitBreaker(CB_NAME, cbConfig);
   }
 }
