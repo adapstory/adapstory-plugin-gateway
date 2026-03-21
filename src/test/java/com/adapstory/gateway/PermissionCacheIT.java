@@ -158,7 +158,8 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
         .isInstanceOf(HttpServerErrorException.ServiceUnavailable.class)
         .satisfies(
             ex -> {
-              var body = ((HttpServerErrorException.ServiceUnavailable) ex).getResponseBodyAsString();
+              var body =
+                  ((HttpServerErrorException.ServiceUnavailable) ex).getResponseBodyAsString();
               assertThat(body).contains("ADAP-SEC-0011");
               assertThat(body).contains("Unable to verify plugin permissions");
             });

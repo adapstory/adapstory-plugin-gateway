@@ -1,6 +1,8 @@
 package com.adapstory.gateway.client;
 
 import com.adapstory.gateway.config.GatewayProperties;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -17,8 +19,6 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * REST-клиент для проверки установки плагина для тенанта через BC-02.
@@ -37,6 +37,10 @@ public class InstalledPluginFetchClient {
 
   private static final Pattern PLUGIN_ID_PATTERN =
       Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9._-]{1,123}[a-zA-Z0-9]$");
+
+  private static final Pattern UUID_PATTERN =
+      Pattern.compile(
+          "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
   private static final int CONNECT_TIMEOUT_MS = 3000;
   private static final int READ_TIMEOUT_MS = 3000;
@@ -65,10 +69,7 @@ public class InstalledPluginFetchClient {
     factory.setReadTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
 
     this.restClient =
-        RestClient.builder()
-            .baseUrl(properties.bc02().baseUrl())
-            .requestFactory(factory)
-            .build();
+        RestClient.builder().baseUrl(properties.bc02().baseUrl()).requestFactory(factory).build();
 
     this.circuitBreaker =
         circuitBreakerRegistry.circuitBreaker(
@@ -83,21 +84,36 @@ public class InstalledPluginFetchClient {
                 .build());
   }
 
+  /** Конструктор для тестов — принимает готовые RestClient и CircuitBreaker. */
+  InstalledPluginFetchClient(
+      RestClient restClient, CircuitBreaker circuitBreaker, ObjectMapper objectMapper) {
+    this.restClient = restClient;
+    this.circuitBreaker = circuitBreaker;
+    this.objectMapper = objectMapper;
+  }
+
   /**
    * Проверяет установку плагина для тенанта через BC-02.
    *
    * @param pluginId идентификатор плагина
-   * @param tenantId идентификатор тенанта
+   * @param tenantId идентификатор тенанта (UUID format)
    * @return Optional.of(true) если установлен, Optional.of(false) если нет, Optional.empty() при
    *     ошибке
+   * @throws IllegalArgumentException если pluginId не соответствует формату
    */
   public Optional<Boolean> fetchInstalledStatus(String pluginId, String tenantId) {
     Objects.requireNonNull(pluginId, "pluginId must not be null");
     Objects.requireNonNull(tenantId, "tenantId must not be null");
 
+    // H-5: throw on invalid pluginId (programming error, not "not installed")
     if (!PLUGIN_ID_PATTERN.matcher(pluginId).matches()) {
-      log.warn("Invalid pluginId format: {}", pluginId);
-      return Optional.of(false);
+      throw new IllegalArgumentException(
+          "pluginId format invalid (expected tri-part or UUID): " + pluginId);
+    }
+
+    // H-7: validate tenantId as UUID to prevent injection via URL/Redis key
+    if (!UUID_PATTERN.matcher(tenantId).matches()) {
+      throw new IllegalArgumentException("tenantId must be a valid UUID: " + tenantId);
     }
 
     try {
@@ -109,8 +125,8 @@ public class InstalledPluginFetchClient {
           pluginId,
           tenantId);
       return Optional.empty();
-    } catch (Exception e) {
-      log.error(
+    } catch (RestClientException e) {
+      log.warn(
           "Failed to check installed status: pluginId={}, tenantId={}, error={}",
           pluginId,
           tenantId,
@@ -120,24 +136,30 @@ public class InstalledPluginFetchClient {
   }
 
   private Optional<Boolean> doFetch(String pluginId, String tenantId) {
-    String requestId = Optional.ofNullable(MDC.get("request-id")).orElse(UUID.randomUUID().toString());
+    String requestId =
+        Optional.ofNullable(MDC.get("request-id")).orElse(UUID.randomUUID().toString());
     String correlationId =
         Optional.ofNullable(MDC.get("correlation-id")).orElse(UUID.randomUUID().toString());
 
+    String responseBody =
+        restClient
+            .get()
+            .uri(INSTALLED_PATH, pluginId, tenantId)
+            .header("X-Request-Id", requestId)
+            .header("X-Correlation-Id", correlationId)
+            .retrieve()
+            .body(String.class);
+
+    // H-6: null body is an unexpected/broken response → fail-open
+    if (responseBody == null) {
+      log.warn(
+          "BC-02 returned null body for installed check: pluginId={}, tenantId={}",
+          pluginId,
+          tenantId);
+      return Optional.empty();
+    }
+
     try {
-      String responseBody =
-          restClient
-              .get()
-              .uri(INSTALLED_PATH, pluginId, tenantId)
-              .header("X-Request-Id", requestId)
-              .header("X-Correlation-Id", correlationId)
-              .retrieve()
-              .body(String.class);
-
-      if (responseBody == null) {
-        return Optional.of(false);
-      }
-
       JsonNode root = objectMapper.readTree(responseBody);
       JsonNode data = root.get("data");
       if (data == null || data.isNull()) {
@@ -145,16 +167,10 @@ public class InstalledPluginFetchClient {
       }
       boolean installed = data.get("installed") != null && data.get("installed").booleanValue();
       return Optional.of(installed);
-    } catch (RestClientException e) {
-      log.warn(
-          "REST call to BC-02 installed check failed: pluginId={}, tenantId={}, error={}",
-          pluginId,
-          tenantId,
-          e.getMessage());
-      throw e;
     } catch (Exception e) {
+      // C-2: parse failure → fail-open (not "not installed")
       log.warn("Failed to parse BC-02 installed response: {}", e.getMessage());
-      return Optional.of(false);
+      return Optional.empty();
     }
   }
 }

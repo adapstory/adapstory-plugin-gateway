@@ -14,6 +14,7 @@ public record GatewayProperties(
     Map<String, String> routes,
     PermissionsConfig permissions,
     PermissionCacheConfig permissionCache,
+    InstalledCacheConfig installedCache,
     WebhookConfig webhook,
     Bc02Config bc02) {
 
@@ -26,6 +27,13 @@ public record GatewayProperties(
   public record PermissionsConfig(Map<String, Map<String, String>> routeMappings) {}
 
   public record PermissionCacheConfig(@Positive int ttlMinutes, @NotBlank String keyPrefix) {}
+
+  public record InstalledCacheConfig(@Positive int ttlMinutes, @Positive int negativeTtlSeconds) {
+    public InstalledCacheConfig {
+      if (ttlMinutes <= 0) ttlMinutes = 5;
+      if (negativeTtlSeconds <= 0) negativeTtlSeconds = 30;
+    }
+  }
 
   public record WebhookConfig(
       int retryMaxAttempts,

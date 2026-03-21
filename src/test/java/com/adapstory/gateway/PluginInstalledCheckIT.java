@@ -8,7 +8,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -248,6 +247,10 @@ class PluginInstalledCheckIT extends AbstractGatewayIntegrationTest {
 
     BC02_WIREMOCK.stubFor(
         get(urlPathEqualTo("/internal/api/v1/plugins/" + pluginId + "/installed"))
-            .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/json").withBody(body)));
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody(body)));
   }
 }

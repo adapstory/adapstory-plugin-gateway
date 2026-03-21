@@ -48,7 +48,8 @@ public class PermissionFetchClient {
   @Autowired
   public PermissionFetchClient(
       GatewayProperties properties, CircuitBreakerRegistry circuitBreakerRegistry) {
-    this(buildRestClient(properties.bc02().baseUrl()), createCircuitBreaker(circuitBreakerRegistry));
+    this(
+        buildRestClient(properties.bc02().baseUrl()), createCircuitBreaker(circuitBreakerRegistry));
   }
 
   /** Конструктор для тестов — принимает готовые RestClient и CircuitBreaker. */

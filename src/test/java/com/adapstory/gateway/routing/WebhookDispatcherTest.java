@@ -39,6 +39,7 @@ class WebhookDispatcherTest {
             Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
+            new GatewayProperties.InstalledCacheConfig(5, 30),
             new GatewayProperties.WebhookConfig(3, 100, 2.0, wireMockServer.port(), null, null),
             new GatewayProperties.Bc02Config("http://localhost:8081"));
 
@@ -174,6 +175,7 @@ class WebhookDispatcherTest {
             Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
+            new GatewayProperties.InstalledCacheConfig(5, 30),
             new GatewayProperties.WebhookConfig(3, 100, 2.0, 8000, null, null),
             new GatewayProperties.Bc02Config("http://localhost:8081"));
 

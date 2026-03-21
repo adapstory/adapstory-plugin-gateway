@@ -28,6 +28,10 @@ gateway:
     ttl-minutes: 5
     key-prefix: "plugin:permissions:"
 
+  installed-cache:
+    ttl-minutes: 5
+    negative-ttl-seconds: 30
+
   webhook:
     retry-max-attempts: 2
     retry-initial-interval-ms: 100

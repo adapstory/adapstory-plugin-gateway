@@ -16,8 +16,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.annotation.Order;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -25,14 +23,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Фильтр проверки установки плагина для тенанта перед маршрутизацией запроса.
  *
  * <p>Порядок выполнения: после PluginAuthFilter (-100), перед PermissionEnforcementFilter (-90).
- * Извлекает pluginId и tenantId из PluginSecurityContext (установленного PluginAuthFilter). Проверяет
- * Redis cache → BC-02 REST API при miss. Возвращает 404 PLUGIN_NOT_INSTALLED если плагин не
- * установлен для тенанта.
+ * Извлекает pluginId и tenantId из PluginSecurityContext (установленного PluginAuthFilter).
+ * Проверяет Redis cache → BC-02 REST API при miss. Возвращает 404 PLUGIN_NOT_INSTALLED если плагин
+ * не установлен для тенанта.
  *
  * <p>Resilience: при недоступности BC-02 и Redis — fail-open с warning log (не блокирует трафик).
  */
 @Component
-@Order(-95)
 public class PluginInstalledCheckFilter extends OncePerRequestFilter {
 
   private static final Logger log = LoggerFactory.getLogger(PluginInstalledCheckFilter.class);
@@ -66,14 +63,15 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
 
-    var authentication = SecurityContextHolder.getContext().getAuthentication();
-    if (!(authentication instanceof PluginAuthenticationToken authToken)) {
+    PluginSecurityContext ctx =
+        (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
+
+    if (ctx == null) {
       // No plugin auth context — skip check (will be caught by auth filter)
       filterChain.doFilter(request, response);
       return;
     }
 
-    PluginSecurityContext ctx = (PluginSecurityContext) authToken.getPrincipal();
     String pluginId = ctx.pluginId();
     String tenantId = ctx.tenantId();
 
