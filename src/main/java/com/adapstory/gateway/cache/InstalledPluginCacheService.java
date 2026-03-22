@@ -41,8 +41,9 @@ public class InstalledPluginCacheService {
     this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate must not be null");
     this.fetchClient = Objects.requireNonNull(fetchClient, "fetchClient must not be null");
     Objects.requireNonNull(properties, "properties must not be null");
-    this.cacheTtl = Duration.ofMinutes(properties.installedCache().ttlMinutes());
-    this.negativeCacheTtl = Duration.ofSeconds(properties.installedCache().negativeTtlSeconds());
+    var ic = properties.installedCache();
+    this.cacheTtl = Duration.ofMinutes(ic != null ? ic.ttlMinutes() : 5);
+    this.negativeCacheTtl = Duration.ofSeconds(ic != null ? ic.negativeTtlSeconds() : 30);
   }
 
   /**
