@@ -42,8 +42,8 @@ public class PermissionFetchClient {
   private static final int CONNECT_TIMEOUT_MS = 3000;
   private static final int READ_TIMEOUT_MS = 3000;
 
-  private final RestClient restClient;
-  private final CircuitBreaker circuitBreaker;
+  private RestClient restClient;
+  private CircuitBreaker circuitBreaker;
 
   /**
    * Создаёт клиент с RestClient + Circuit Breaker.
@@ -77,11 +77,15 @@ public class PermissionFetchClient {
                 .build());
   }
 
-  /** Конструктор для тестов — принимает готовые RestClient и CircuitBreaker. */
-  PermissionFetchClient(RestClient restClient, CircuitBreaker circuitBreaker) {
-    this.restClient = restClient;
-    this.circuitBreaker = circuitBreaker;
+  /** Package-private factory for unit tests — injects pre-built RestClient and CircuitBreaker. */
+  static PermissionFetchClient forTest(RestClient restClient, CircuitBreaker circuitBreaker) {
+    var client = new PermissionFetchClient();
+    client.restClient = restClient;
+    client.circuitBreaker = circuitBreaker;
+    return client;
   }
+
+  private PermissionFetchClient() {}
 
   /**
    * Запрашивает список manifest permissions плагина из BC-02.
