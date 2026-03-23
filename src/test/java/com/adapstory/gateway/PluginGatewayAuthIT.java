@@ -52,7 +52,7 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
     ResponseEntity<String> response =
         testClient
             .get()
-            .uri("/gateway/api/content/v1/materials/123")
+            .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
             .retrieve()
             .toEntity(String.class);
@@ -77,7 +77,7 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .retrieve()
                     .toEntity(String.class))
@@ -100,7 +100,7 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .retrieve()
                     .toEntity(String.class))
         .isInstanceOf(HttpClientErrorException.class)
@@ -117,7 +117,7 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .retrieve()
                     .toEntity(String.class))
@@ -135,7 +135,7 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .retrieve()
                     .toEntity(String.class))
@@ -153,7 +153,7 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
     // Act
     testClient
         .get()
-        .uri("/gateway/api/content/v1/materials/123")
+        .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
         .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
         .retrieve()
         .toEntity(String.class);
@@ -173,7 +173,7 @@ class PluginGatewayAuthIT extends AbstractGatewayIntegrationTest {
     // Act
     testClient
         .get()
-        .uri("/gateway/api/content/v1/materials/123")
+        .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
         .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
         .retrieve()
         .toEntity(String.class);

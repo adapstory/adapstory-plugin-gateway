@@ -57,7 +57,7 @@ class PluginGatewayE2eIT extends AbstractGatewayIntegrationTest {
     var response1 =
         testClient
             .get()
-            .uri("/gateway/api/content/v1/materials/123")
+            .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
             .retrieve()
             .toEntity(String.class);
@@ -107,7 +107,7 @@ class PluginGatewayE2eIT extends AbstractGatewayIntegrationTest {
     var response2 =
         testClient
             .get()
-            .uri("/gateway/api/content/v1/materials/123")
+            .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
             .retrieve()
             .toEntity(String.class);

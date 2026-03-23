@@ -136,7 +136,7 @@ public abstract class AbstractGatewayIntegrationTest {
             pluginId, permJson);
 
     BC02_WIREMOCK.stubFor(
-        WireMock.get("/internal/api/v1/plugins/" + pluginId + "/permissions")
+        WireMock.get("/api/bc-02/plugin-lifecycle/v1/plugins/" + pluginId + "/permissions")
             .willReturn(WireMock.okJson(body)));
   }
 

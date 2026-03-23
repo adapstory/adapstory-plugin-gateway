@@ -66,9 +66,7 @@ public class InstalledPluginCacheService {
     return isInstalled(pluginId, tenantId, null, null);
   }
 
-  /**
-   * Проверяет установку с callback-ами для метрик.
-   */
+  /** Проверяет установку с callback-ами для метрик. */
   public Optional<Boolean> isInstalled(
       String pluginId, String tenantId, Runnable onCacheHit, Runnable onCacheMiss) {
     String key = buildKey(pluginId, tenantId);

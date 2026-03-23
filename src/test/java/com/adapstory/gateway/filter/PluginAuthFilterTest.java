@@ -107,7 +107,7 @@ class PluginAuthFilterTest {
             "CORE");
 
     MockHttpServletRequest request =
-        new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+        new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
     request.addHeader("Authorization", "Bearer " + token);
     MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -149,7 +149,7 @@ class PluginAuthFilterTest {
     signedJWT.sign(signer);
 
     MockHttpServletRequest request =
-        new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+        new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
     request.addHeader("Authorization", "Bearer " + signedJWT.serialize());
     MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -168,7 +168,7 @@ class PluginAuthFilterTest {
   void missingAuthHeader_returns401() throws Exception {
     // Arrange
     MockHttpServletRequest request =
-        new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+        new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
     MockHttpServletResponse response = new MockHttpServletResponse();
 
     // Act
@@ -202,7 +202,7 @@ class PluginAuthFilterTest {
     signedJWT.sign(signer);
 
     MockHttpServletRequest request =
-        new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+        new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
     request.addHeader("Authorization", "Bearer " + signedJWT.serialize());
     MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -222,7 +222,7 @@ class PluginAuthFilterTest {
             "adapstory.education_module.ai-grader", "tenant-uuid", List.of("content.read"), "CORE");
 
     MockHttpServletRequest request =
-        new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+        new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
     request.addHeader("Authorization", "Bearer " + token);
     MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -256,7 +256,7 @@ class PluginAuthFilterTest {
   @DisplayName("Internal paths should not be filtered")
   void internalPath_shouldNotFilter() {
     MockHttpServletRequest request =
-        new MockHttpServletRequest("POST", "/internal/webhooks/ai-grader");
+        new MockHttpServletRequest("POST", "/api/bc-02/gateway/v1/webhooks/ai-grader");
     assertThat(filter.shouldNotFilter(request)).isTrue();
   }
 

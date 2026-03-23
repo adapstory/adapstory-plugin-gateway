@@ -32,7 +32,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
   private static final String TENANT_ID = "tenant-uuid";
   private static final String CACHE_KEY = "plugin:permissions:" + PLUGIN_ID;
   private static final String BC02_PERMISSIONS_PATH =
-      "/internal/api/v1/plugins/" + PLUGIN_ID + "/permissions";
+      "/api/bc-02/plugin-lifecycle/v1/plugins/" + PLUGIN_ID + "/permissions";
 
   @Autowired private KafkaTemplate<String, String> kafkaTemplate;
 
@@ -63,7 +63,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     var response1 =
         testClient
             .get()
-            .uri("/gateway/api/content/v1/materials/123")
+            .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
             .retrieve()
             .toEntity(String.class);
@@ -80,7 +80,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     var response2 =
         testClient
             .get()
-            .uri("/gateway/api/content/v1/materials/123")
+            .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
             .retrieve()
             .toEntity(String.class);
@@ -104,7 +104,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .retrieve()
                     .toEntity(String.class))
@@ -127,7 +127,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     var response =
         testClient
             .get()
-            .uri("/gateway/api/content/v1/materials/123")
+            .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
             .retrieve()
             .toEntity(String.class);
@@ -151,7 +151,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .retrieve()
                     .toEntity(String.class))
@@ -210,7 +210,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
       var response =
           testClient
               .get()
-              .uri("/gateway/api/content/v1/materials/123")
+              .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
               .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
               .retrieve()
               .toEntity(String.class);
@@ -262,7 +262,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
     // Act: trigger cache set via BC-02 fetch
     testClient
         .get()
-        .uri("/gateway/api/content/v1/materials/123")
+        .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
         .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
         .retrieve()
         .toEntity(String.class);
@@ -288,7 +288,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .retrieve()
                     .toEntity(String.class))
@@ -315,7 +315,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .retrieve()
                     .toEntity(String.class))
@@ -330,7 +330,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
             () ->
                 testClient
                     .get()
-                    .uri("/gateway/api/content/v1/materials/123")
+                    .uri("/api/bc-02/gateway/v1/api/content/v1/materials/123")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwt)
                     .retrieve()
                     .toEntity(String.class))

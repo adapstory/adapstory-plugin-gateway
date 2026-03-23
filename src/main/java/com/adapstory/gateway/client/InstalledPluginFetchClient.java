@@ -24,8 +24,9 @@ import org.springframework.web.client.RestClientException;
 /**
  * REST-клиент для проверки установки плагина для тенанта через BC-02.
  *
- * <p>Вызывает {@code GET /internal/api/v1/plugins/{pluginId}/installed?tenant_id={tenantId}}.
- * Обёрнут circuit breaker {@code bc02-installed-check} (ADR-4). При сбое BC-02 возвращает {@link
+ * <p>Вызывает {@code GET
+ * /api/bc-02/plugin-lifecycle/v1/plugins/{pluginId}/installed?tenant_id={tenantId}}. Обёрнут
+ * circuit breaker {@code bc02-installed-check} (ADR-4). При сбое BC-02 возвращает {@link
  * Optional#empty()} — вызывающий код реализует fail-open с warning log.
  */
 @Component
@@ -34,7 +35,7 @@ public class InstalledPluginFetchClient {
   private static final Logger log = LoggerFactory.getLogger(InstalledPluginFetchClient.class);
   private static final String CB_NAME = "bc02-installed-check";
   private static final String INSTALLED_PATH =
-      "/internal/api/v1/plugins/{pluginId}/installed?tenant_id={tenantId}";
+      "/api/bc-02/plugin-lifecycle/v1/plugins/{pluginId}/installed?tenant_id={tenantId}";
 
   private static final Pattern PLUGIN_ID_PATTERN =
       Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9._-]{1,123}[a-zA-Z0-9]$");

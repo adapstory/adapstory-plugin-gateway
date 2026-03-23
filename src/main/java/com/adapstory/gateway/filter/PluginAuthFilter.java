@@ -149,7 +149,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
-    return path.startsWith("/actuator/") || path.startsWith("/internal/");
+    return path.startsWith("/actuator/") || path.startsWith("/api/bc-02/gateway/v1/webhooks");
   }
 
   private void writeError(

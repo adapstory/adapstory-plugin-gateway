@@ -33,7 +33,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class PermissionEnforcementFilter extends OncePerRequestFilter {
 
   private static final Logger log = LoggerFactory.getLogger(PermissionEnforcementFilter.class);
-  private static final String GATEWAY_PREFIX = "/gateway/api/";
+  private static final String GATEWAY_PREFIX = "/api/bc-02/gateway/v1/api/";
 
   static final String ERROR_CODE_PERMISSION_REVOKED = "ADAP-SEC-0010";
   static final String ERROR_CODE_PERMISSION_UNAVAILABLE = "ADAP-SEC-0011";
@@ -187,7 +187,8 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
 
   /**
    * Resolve required permission from route mapping configuration. Path format:
-   * /gateway/api/{routeKey}/v1/... Extracts routeKey and maps HTTP method to permission.
+   * /api/bc-02/gateway/v1/api/{routeKey}/v1/... Extracts routeKey and maps HTTP method to
+   * permission.
    */
   String resolveRequiredPermission(String path, String httpMethod) {
     if (!path.startsWith(GATEWAY_PREFIX)) {

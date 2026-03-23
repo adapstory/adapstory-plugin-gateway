@@ -7,7 +7,7 @@ import java.util.List;
  *
  * <p>Зеркалит структуру {@code AdapstoryResponse<PluginPermissionScopeListResponse>} из BC-02 для
  * корректного маппинга JSON → Java при вызове {@code GET
- * /internal/api/v1/plugins/{pluginId}/permissions}.
+ * /api/bc-02/plugin-lifecycle/v1/plugins/{pluginId}/permissions}.
  *
  * @param data содержимое ответа с pluginId и списком scope-имён
  */

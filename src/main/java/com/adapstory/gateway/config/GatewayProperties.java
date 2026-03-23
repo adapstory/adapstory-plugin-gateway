@@ -29,8 +29,8 @@ public record GatewayProperties(
   public record PermissionCacheConfig(@Positive int ttlMinutes, @NotBlank String keyPrefix) {}
 
   /**
-   * L-4: Rely on @Positive for validation (fails fast on invalid config).
-   * Removed compact constructor defaults — invalid values should fail at startup, not silently default.
+   * L-4: Rely on @Positive for validation (fails fast on invalid config). Removed compact
+   * constructor defaults — invalid values should fail at startup, not silently default.
    */
   public record InstalledCacheConfig(@Positive int ttlMinutes, @Positive int negativeTtlSeconds) {}
 

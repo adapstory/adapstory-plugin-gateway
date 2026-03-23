@@ -81,7 +81,7 @@ class PermissionEnforcementFilterTest {
           .thenReturn(Optional.of(List.of("content.read", "submission.read")));
 
       MockHttpServletRequest request =
-          new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -108,7 +108,7 @@ class PermissionEnforcementFilterTest {
           .thenReturn(Optional.of(List.of("submission.read"))); // content.read revoked in manifest
 
       MockHttpServletRequest request =
-          new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -149,7 +149,7 @@ class PermissionEnforcementFilterTest {
               "CORE");
 
       MockHttpServletRequest request =
-          new MockHttpServletRequest("POST", "/gateway/api/submission/v1/grades");
+          new MockHttpServletRequest("POST", "/api/bc-02/gateway/v1/api/submission/v1/grades");
       request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -176,7 +176,7 @@ class PermissionEnforcementFilterTest {
           .thenReturn(Optional.of(List.of("content.read")));
 
       MockHttpServletRequest request =
-          new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -199,7 +199,7 @@ class PermissionEnforcementFilterTest {
       when(cacheService.fetchAndCachePermissions(ctx.pluginId())).thenReturn(Optional.empty());
 
       MockHttpServletRequest request =
-          new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -236,7 +236,7 @@ class PermissionEnforcementFilterTest {
       when(cacheService.getCachedPermissions(ctx.pluginId())).thenReturn(Optional.of(List.of()));
 
       MockHttpServletRequest request =
-          new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -261,7 +261,7 @@ class PermissionEnforcementFilterTest {
     @DisplayName("No plugin context — passes through (unauthenticated path)")
     void noPluginContext_passesThrough() throws Exception {
       MockHttpServletRequest request =
-          new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       filter.doFilterInternal(request, response, filterChain);
@@ -272,20 +272,76 @@ class PermissionEnforcementFilterTest {
     @Test
     @DisplayName("Non-gateway path should not be filtered")
     void nonGatewayPath_shouldNotFilter() {
-      MockHttpServletRequest request = new MockHttpServletRequest("GET", "/internal/webhooks/test");
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/webhooks/test");
       assertThat(filter.shouldNotFilter(request)).isTrue();
     }
 
     @Test
     @DisplayName("Route key extraction from path works correctly")
     void routeKeyExtraction() {
-      assertThat(filter.resolveRequiredPermission("/gateway/api/content/v1/materials", "GET"))
+      assertThat(
+              filter.resolveRequiredPermission(
+                  "/api/bc-02/gateway/v1/api/content/v1/materials", "GET"))
           .isEqualTo("content.read");
-      assertThat(filter.resolveRequiredPermission("/gateway/api/content/v1/materials", "POST"))
+      assertThat(
+              filter.resolveRequiredPermission(
+                  "/api/bc-02/gateway/v1/api/content/v1/materials", "POST"))
           .isEqualTo("content.write");
-      assertThat(filter.resolveRequiredPermission("/gateway/api/submission/v1/grades", "POST"))
+      assertThat(
+              filter.resolveRequiredPermission(
+                  "/api/bc-02/gateway/v1/api/submission/v1/grades", "POST"))
           .isEqualTo("submission.write");
-      assertThat(filter.resolveRequiredPermission("/gateway/api/unknown/v1/test", "GET")).isNull();
+      assertThat(
+              filter.resolveRequiredPermission("/api/bc-02/gateway/v1/api/unknown/v1/test", "GET"))
+          .isNull();
+    }
+
+    @Test
+    @DisplayName("No permission mapping for route — 403 with 'No permission mapping' message")
+    void noPermissionMapping_returns403() throws Exception {
+      // Arrange — plugin has permissions, but the route has no mapping in config
+      PluginSecurityContext ctx =
+          new PluginSecurityContext(
+              "adapstory.education_module.ai-grader", "tenant-1", List.of("content.read"), "CORE");
+
+      MockHttpServletRequest request =
+          new MockHttpServletRequest(
+              "DELETE", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
+      request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      // Act
+      filter.doFilterInternal(request, response, filterChain);
+
+      // Assert
+      verifyNoInteractions(filterChain);
+      assertThat(response.getStatus()).isEqualTo(403);
+      GatewayErrorResponse error =
+          objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
+      assertThat(error.message()).contains("No permission mapping configured");
+    }
+
+    @Test
+    @DisplayName("resolveRequiredPermission returns null for non-gateway path")
+    void resolveRequiredPermission_nonGatewayPath() {
+      assertThat(filter.resolveRequiredPermission("/api/content/v1/materials", "GET")).isNull();
+    }
+
+    @Test
+    @DisplayName("resolveRequiredPermission returns null for unmapped HTTP method")
+    void resolveRequiredPermission_unmappedMethod() {
+      assertThat(
+              filter.resolveRequiredPermission(
+                  "/api/bc-02/gateway/v1/api/content/v1/materials", "DELETE"))
+          .isNull();
+    }
+
+    @Test
+    @DisplayName("resolveRequiredPermission extracts route key without trailing path")
+    void resolveRequiredPermission_noTrailingPath() {
+      assertThat(filter.resolveRequiredPermission("/api/bc-02/gateway/v1/api/content", "GET"))
+          .isEqualTo("content.read");
     }
 
     @Test
@@ -300,7 +356,7 @@ class PermissionEnforcementFilterTest {
           .thenReturn(Optional.of(List.of("content.read")));
 
       MockHttpServletRequest request =
-          new MockHttpServletRequest("GET", "/gateway/api/content/v1/materials/123");
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
       MockHttpServletResponse response = new MockHttpServletResponse();
 

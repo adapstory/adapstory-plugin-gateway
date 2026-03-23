@@ -15,8 +15,8 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -24,16 +24,18 @@ import org.springframework.web.client.RestClientException;
 /**
  * REST-клиент для запроса manifest permissions плагина из BC-02.
  *
- * <p>Вызывает {@code GET /internal/api/v1/plugins/{pluginId}/permissions} с обязательными
- * заголовками трассировки. Обёрнут circuit breaker {@code bc02-permissions} (ADR-4). При сбое BC-02
- * или открытом CB возвращает {@link Optional#empty()} — вызывающий код реализует fail-closed.
+ * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/plugins/{pluginId}/permissions} с
+ * обязательными заголовками трассировки. Обёрнут circuit breaker {@code bc02-permissions} (ADR-4).
+ * При сбое BC-02 или открытом CB возвращает {@link Optional#empty()} — вызывающий код реализует
+ * fail-closed.
  */
 @Component
 public class PermissionFetchClient {
 
   private static final Logger log = LoggerFactory.getLogger(PermissionFetchClient.class);
   private static final String CB_NAME = "bc02-permissions";
-  private static final String PERMISSIONS_PATH = "/internal/api/v1/plugins/{pluginId}/permissions";
+  private static final String PERMISSIONS_PATH =
+      "/api/bc-02/plugin-lifecycle/v1/plugins/{pluginId}/permissions";
 
   /** Допустимый формат pluginId: tri-part (vendor.category.name) или UUID. */
   private static final Pattern PLUGIN_ID_PATTERN =

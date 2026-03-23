@@ -29,9 +29,21 @@
     </distributionManagement>
 
     <dependencies>
+
         <dependency>
             <groupId>com.adapstory</groupId>
             <artifactId>adapstory-starter-kafka</artifactId>
+        </dependency>
+        <!-- Structured logging (logback-base.xml, MDC filters) -->
+        <dependency>
+            <groupId>com.adapstory</groupId>
+            <artifactId>adapstory-starter-logging</artifactId>
+        </dependency>
+
+        <!-- Prometheus metrics, actuator auto-config -->
+        <dependency>
+            <groupId>com.adapstory</groupId>
+            <artifactId>adapstory-starter-monitoring</artifactId>
         </dependency>
         <dependency>
             <groupId>com.adapstory</groupId>

@@ -110,3 +110,6 @@ management:
   health:
     redis:
       enabled: true
+  opentelemetry:
+    resource-attributes:
+      "tenant.id": "${TENANT_ID:unknown}"

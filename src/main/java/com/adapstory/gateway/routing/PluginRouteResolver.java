@@ -28,15 +28,16 @@ import org.springframework.web.client.RestClient;
 /**
  * REST прокси-контроллер Plugin Gateway.
  *
- * <p>Разрешает /gateway/api/{bc}/... в целевой BC URL, стрипит /gateway prefix и проксирует запрос
- * с circuit breaker защитой. Pattern 4: Gateway path = /gateway/ prefix + exact core BC path.
+ * <p>Разрешает /api/bc-02/gateway/v1/api/{bc}/... в целевой BC URL, стрипит /api/bc-02/gateway/v1
+ * prefix и проксирует запрос с circuit breaker защитой. Pattern 4: Gateway path =
+ * /api/bc-02/gateway/v1/ prefix + exact core BC path.
  */
 @RestController
-@RequestMapping("/gateway")
+@RequestMapping("/api/bc-02/gateway/v1")
 public class PluginRouteResolver {
 
   private static final Logger log = LoggerFactory.getLogger(PluginRouteResolver.class);
-  private static final String GATEWAY_API_PREFIX = "/gateway/api/";
+  private static final String GATEWAY_API_PREFIX = "/api/bc-02/gateway/v1/api/";
   private static final Set<String> HOP_BY_HOP_HEADERS =
       Set.of(
           "connection",
@@ -94,8 +95,8 @@ public class PluginRouteResolver {
       return;
     }
 
-    // Pattern 4: strip /gateway prefix, forward exact remaining path
-    String targetPath = originalPath.substring("/gateway".length());
+    // Pattern 4: strip /api/bc-02/gateway/v1 prefix, forward exact remaining path
+    String targetPath = originalPath.substring("/api/bc-02/gateway/v1".length());
     String queryString = request.getQueryString();
     String targetUri = targetBaseUrl + targetPath + (queryString != null ? "?" + queryString : "");
 
@@ -210,7 +211,7 @@ public class PluginRouteResolver {
     }
   }
 
-  /** Extract route key from path. Path format: /gateway/api/{routeKey}/... */
+  /** Extract route key from path. Path format: /api/bc-02/gateway/v1/api/{routeKey}/... */
   String extractRouteKey(String path) {
     if (!path.startsWith(GATEWAY_API_PREFIX)) {
       return null;

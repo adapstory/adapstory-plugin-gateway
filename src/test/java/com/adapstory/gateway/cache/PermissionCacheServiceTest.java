@@ -109,6 +109,43 @@ class PermissionCacheServiceTest {
     }
 
     @Test
+    @DisplayName("Cache hit with empty value returns empty list")
+    void cacheHit_emptyValue_returnsEmptyList() {
+      // Arrange
+      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn("");
+
+      // Act
+      Optional<List<String>> result = cacheService.getCachedPermissions("test-plugin");
+
+      // Assert
+      assertThat(result).isPresent();
+      assertThat(result.get()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Negative cache sentinel returns empty Optional")
+    void negativeCacheSentinel_returnsEmpty() {
+      // Arrange
+      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn("__UNAVAILABLE__");
+
+      // Act
+      Optional<List<String>> result = cacheService.getCachedPermissions("test-plugin");
+
+      // Assert
+      assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("should throw when permission name contains separator")
+    void should_throw_when_permissionContainsSeparator() {
+      // Act & Assert
+      assertThatThrownBy(
+              () -> cacheService.cachePermissions("test-plugin", List.of("content,read")))
+          .isInstanceOf(IllegalArgumentException.class)
+          .hasMessageContaining("Permission name must not contain separator");
+    }
+
+    @Test
     @DisplayName("Invalidate deletes cache entry")
     void invalidate_deletesCacheEntry() {
       // Act
@@ -325,6 +362,60 @@ class PermissionCacheServiceTest {
 
         // Assert
         verify(redisTemplate, never()).delete(anyString());
+      }
+
+      @Test
+      @DisplayName("should reject scope exceeding max length (255 chars)")
+      void should_rejectScopeExceedingMaxLength() {
+        // Arrange
+        String longScope = "x".repeat(256);
+        String eventWithLongScope =
+            "{\"specversion\":\"1.0\",\"id\":\"ce-uuid-long\","
+                + "\"data\":{\"pluginId\":\"test-plugin\","
+                + "\"revokedPermissions\":[\""
+                + longScope
+                + "\"]}}";
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+            .thenReturn(true);
+
+        // Act
+        cacheService.onPluginPermissionsRevoked(eventWithLongScope, null, null);
+
+        // Assert — invalidate() NOT called
+        verify(redisTemplate, never()).delete(anyString());
+      }
+
+      @Test
+      @DisplayName("should use plugin_id key when pluginId key missing")
+      void should_useSnakeCasePluginId_when_camelCaseMissing() {
+        // Arrange
+        String eventWithSnakeCase =
+            """
+            {"specversion":"1.0","id":"ce-uuid-snake",\
+            "data":{"plugin_id":"adapstory.assessment.quiz",\
+            "revokedPermissions":["write:learner"]}}""";
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+            .thenReturn(true);
+
+        // Act
+        cacheService.onPluginPermissionsRevoked(eventWithSnakeCase, null, null);
+
+        // Assert
+        verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
+      }
+
+      @Test
+      @DisplayName("should propagate correlation-id and request-id from Kafka headers to MDC")
+      void should_propagateMdcHeaders() {
+        // Arrange
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+            .thenReturn(true);
+
+        // Act
+        cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, "corr-123", "req-456");
+
+        // Assert — verify invalidation still works with headers
+        verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
       }
 
       @Test

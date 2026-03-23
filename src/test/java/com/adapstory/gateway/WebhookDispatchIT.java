@@ -40,7 +40,8 @@ class WebhookDispatchIT extends AbstractGatewayIntegrationTest {
   }
 
   @Test
-  @DisplayName("AC#4: POST /internal/webhooks/{pluginShortId} → 202 → plugin pod receives payload")
+  @DisplayName(
+      "AC#4: POST /api/bc-02/gateway/v1/webhooks/{pluginShortId} → 202 → plugin pod receives payload")
   void webhookDispatch_forwardsToPluginPod() {
     // Arrange: WireMock plugin pod accepts webhook
     PLUGIN_POD_WIREMOCK.stubFor(
@@ -55,7 +56,7 @@ class WebhookDispatchIT extends AbstractGatewayIntegrationTest {
     ResponseEntity<Void> response =
         testClient
             .post()
-            .uri("/internal/webhooks/ai-grader")
+            .uri("/api/bc-02/gateway/v1/webhooks/ai-grader")
             .header("X-Correlation-Id", "test-corr-123")
             .contentType(MediaType.APPLICATION_JSON)
             .body(cloudEventsPayload.getBytes())
@@ -100,7 +101,7 @@ class WebhookDispatchIT extends AbstractGatewayIntegrationTest {
     ResponseEntity<Void> response =
         testClient
             .post()
-            .uri("/internal/webhooks/ai-grader")
+            .uri("/api/bc-02/gateway/v1/webhooks/ai-grader")
             .contentType(MediaType.APPLICATION_JSON)
             .body(payload.getBytes())
             .retrieve()

@@ -23,13 +23,13 @@ import org.springframework.web.client.RestClient;
 /**
  * Диспетчер webhook-ов: Core BC → Plugin Pod.
  *
- * <p>Принимает POST /internal/webhooks/{pluginShortId} от core BC, разрешает endpoint plugin pod из
- * registry и форвардит CloudEvents 1.0 payload. Dispatch выполняется асинхронно, endpoint
- * немедленно возвращает 202 Accepted. Retry с экспоненциальным backoff (3 попытки: 1s, 2s, 4s),
- * только для 5xx и connection errors (4xx не ретраится).
+ * <p>Принимает POST /api/bc-02/gateway/v1/webhooks/{pluginShortId} от core BC, разрешает endpoint
+ * plugin pod из registry и форвардит CloudEvents 1.0 payload. Dispatch выполняется асинхронно,
+ * endpoint немедленно возвращает 202 Accepted. Retry с экспоненциальным backoff (3 попытки: 1s, 2s,
+ * 4s), только для 5xx и connection errors (4xx не ретраится).
  */
 @RestController
-@RequestMapping("/internal/webhooks")
+@RequestMapping("/api/bc-02/gateway/v1/webhooks")
 public class WebhookDispatcher {
 
   private static final Logger log = LoggerFactory.getLogger(WebhookDispatcher.class);
