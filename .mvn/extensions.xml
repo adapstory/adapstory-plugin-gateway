@@ -4,4 +4,9 @@
     <artifactId>maven-buildtime-profiler</artifactId>
     <version>0.2.0</version>
   </extension>
+  <extension>
+    <groupId>io.opentelemetry.contrib</groupId>
+    <artifactId>opentelemetry-maven-extension</artifactId>
+    <version>1.54.0-alpha</version>
+  </extension>
 </extensions>
