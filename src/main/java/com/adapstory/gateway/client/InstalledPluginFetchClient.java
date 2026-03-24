@@ -1,5 +1,6 @@
 package com.adapstory.gateway.client;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -148,9 +149,9 @@ public class InstalledPluginFetchClient {
 
   private Optional<Boolean> doFetch(String pluginId, String tenantId) {
     String requestId =
-        Optional.ofNullable(MDC.get("request-id")).orElse(UUID.randomUUID().toString());
+        Optional.ofNullable(MDC.get(IntegrationHeaders.REQUEST_ID)).orElse(UUID.randomUUID().toString());
     String correlationId =
-        Optional.ofNullable(MDC.get("correlation-id")).orElse(UUID.randomUUID().toString());
+        Optional.ofNullable(MDC.get(IntegrationHeaders.CORRELATION_ID)).orElse(UUID.randomUUID().toString());
 
     String responseBody;
     try {
@@ -158,8 +159,8 @@ public class InstalledPluginFetchClient {
           restClient
               .get()
               .uri(INSTALLED_PATH, pluginId, tenantId)
-              .header("X-Request-Id", requestId)
-              .header("X-Correlation-Id", correlationId)
+              .header(IntegrationHeaders.HEADER_REQUEST_ID, requestId)
+              .header(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId)
               .retrieve()
               .body(String.class);
     } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {

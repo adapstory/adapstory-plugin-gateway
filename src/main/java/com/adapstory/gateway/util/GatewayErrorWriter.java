@@ -1,5 +1,6 @@
 package com.adapstory.gateway.util;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.dto.GatewayErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -60,7 +61,7 @@ public final class GatewayErrorWriter {
 
   /** Extract X-Request-Id header or generate a new UUID. */
   public static String getOrGenerateRequestId(HttpServletRequest request) {
-    String requestId = request.getHeader("X-Request-Id");
+    String requestId = request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID);
     return requestId != null ? requestId : UUID.randomUUID().toString();
   }
 }

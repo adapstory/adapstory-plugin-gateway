@@ -1,5 +1,6 @@
 package com.adapstory.gateway.cache;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.client.PermissionFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -155,10 +156,10 @@ public class PermissionCacheService {
       groupId = "plugin-gateway-permissions")
   public void onPluginPermissionsRevoked(
       @Payload String message,
-      @Header(name = "correlation-id", required = false) String correlationId,
-      @Header(name = "request-id", required = false) String requestId) {
-    String previousCorrelationId = MDC.get("correlation-id");
-    String previousRequestId = MDC.get("request-id");
+      @Header(name = IntegrationHeaders.CORRELATION_ID, required = false) String correlationId,
+      @Header(name = IntegrationHeaders.REQUEST_ID, required = false) String requestId) {
+    String previousCorrelationId = MDC.get(IntegrationHeaders.CORRELATION_ID);
+    String previousRequestId = MDC.get(IntegrationHeaders.REQUEST_ID);
     try {
       // Propagate tracing headers from Kafka into MDC (per monitoring-observability-regulation)
       setMdcFromHeaders(correlationId, requestId);
@@ -196,8 +197,8 @@ public class PermissionCacheService {
       // Deserialization error — skip (fail-safe, no DLQ needed for cache invalidation)
       log.warn("Malformed GLOBAL_PLUGIN_PERMISSIONS_REVOKED event: {}", ex.getMessage());
     } finally {
-      restoreMdc("correlation-id", previousCorrelationId);
-      restoreMdc("request-id", previousRequestId);
+      restoreMdc(IntegrationHeaders.CORRELATION_ID, previousCorrelationId);
+      restoreMdc(IntegrationHeaders.REQUEST_ID, previousRequestId);
     }
   }
 
@@ -293,10 +294,10 @@ public class PermissionCacheService {
 
   private static void setMdcFromHeaders(String correlationId, String requestId) {
     if (correlationId != null) {
-      MDC.put("correlation-id", correlationId);
+      MDC.put(IntegrationHeaders.CORRELATION_ID, correlationId);
     }
     if (requestId != null) {
-      MDC.put("request-id", requestId);
+      MDC.put(IntegrationHeaders.REQUEST_ID, requestId);
     }
   }
 

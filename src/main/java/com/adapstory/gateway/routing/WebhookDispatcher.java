@@ -1,5 +1,6 @@
 package com.adapstory.gateway.routing;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
@@ -116,9 +117,9 @@ public class WebhookDispatcher {
                   } else {
                     h.setContentType(MediaType.APPLICATION_JSON);
                   }
-                  String correlationId = headers.getFirst("X-Correlation-Id");
+                  String correlationId = headers.getFirst(IntegrationHeaders.HEADER_CORRELATION_ID);
                   if (correlationId != null) {
-                    h.set("X-Correlation-Id", correlationId);
+                    h.set(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
                   }
                 })
             .body(payload)

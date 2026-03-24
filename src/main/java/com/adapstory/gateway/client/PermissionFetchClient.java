@@ -1,5 +1,6 @@
 package com.adapstory.gateway.client;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.PluginPermissionsResponse;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -113,16 +114,16 @@ public class PermissionFetchClient {
 
   private Optional<List<String>> doFetch(String pluginId) {
     String requestId =
-        Optional.ofNullable(MDC.get("request-id")).orElse(UUID.randomUUID().toString());
+        Optional.ofNullable(MDC.get(IntegrationHeaders.REQUEST_ID)).orElse(UUID.randomUUID().toString());
     String correlationId =
-        Optional.ofNullable(MDC.get("correlation-id")).orElse(UUID.randomUUID().toString());
+        Optional.ofNullable(MDC.get(IntegrationHeaders.CORRELATION_ID)).orElse(UUID.randomUUID().toString());
 
     PluginPermissionsResponse response =
         restClient
             .get()
             .uri(PERMISSIONS_PATH, pluginId)
-            .header("X-Request-Id", requestId)
-            .header("X-Correlation-Id", correlationId)
+            .header(IntegrationHeaders.HEADER_REQUEST_ID, requestId)
+            .header(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId)
             .retrieve()
             .body(PluginPermissionsResponse.class);
 

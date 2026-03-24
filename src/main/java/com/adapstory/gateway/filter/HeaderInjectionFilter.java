@@ -1,5 +1,6 @@
 package com.adapstory.gateway.filter;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -28,39 +29,35 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(3)
 public class HeaderInjectionFilter extends OncePerRequestFilter {
 
-  static final String HEADER_REQUEST_ID = "X-Request-Id";
-  static final String HEADER_CORRELATION_ID = "X-Correlation-Id";
-  static final String HEADER_USER_ID = "X-User-Id";
-
   @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
     String requestId = UUID.randomUUID().toString();
 
-    String correlationId = request.getHeader(HEADER_CORRELATION_ID);
+    String correlationId = request.getHeader(IntegrationHeaders.HEADER_CORRELATION_ID);
     if (correlationId == null || correlationId.isBlank()) {
       correlationId = UUID.randomUUID().toString();
     }
 
     String userId = resolveUserId(request);
 
-    MDC.put("request-id", requestId);
-    MDC.put("correlation-id", correlationId);
-    MDC.put("user-id", userId);
+    MDC.put(IntegrationHeaders.REQUEST_ID, requestId);
+    MDC.put(IntegrationHeaders.CORRELATION_ID, correlationId);
+    MDC.put(IntegrationHeaders.USER_ID, userId);
 
     try {
       MandatoryHeadersRequestWrapper wrappedRequest =
           new MandatoryHeadersRequestWrapper(request, requestId, correlationId, userId);
 
-      response.setHeader(HEADER_REQUEST_ID, requestId);
-      response.setHeader(HEADER_CORRELATION_ID, correlationId);
+      response.setHeader(IntegrationHeaders.HEADER_REQUEST_ID, requestId);
+      response.setHeader(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
 
       filterChain.doFilter(wrappedRequest, response);
     } finally {
-      MDC.remove("request-id");
-      MDC.remove("correlation-id");
-      MDC.remove("user-id");
+      MDC.remove(IntegrationHeaders.REQUEST_ID);
+      MDC.remove(IntegrationHeaders.CORRELATION_ID);
+      MDC.remove(IntegrationHeaders.USER_ID);
     }
   }
 
@@ -87,9 +84,9 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
         HttpServletRequest request, String requestId, String correlationId, String userId) {
       super(request);
       this.injectedHeaders = new LinkedHashMap<>();
-      this.injectedHeaders.put(HEADER_REQUEST_ID, requestId);
-      this.injectedHeaders.put(HEADER_CORRELATION_ID, correlationId);
-      this.injectedHeaders.put(HEADER_USER_ID, userId);
+      this.injectedHeaders.put(IntegrationHeaders.HEADER_REQUEST_ID, requestId);
+      this.injectedHeaders.put(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
+      this.injectedHeaders.put(IntegrationHeaders.HEADER_USER_ID, userId);
     }
 
     @Override
