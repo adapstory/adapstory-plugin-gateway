@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<cache xmlns="http://maven.apache.org/BUILD-CACHE-CONFIG/1.0.0"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://maven.apache.org/BUILD-CACHE-CONFIG/1.0.0 https://maven.apache.org/xsd/build-cache-config-1.0.0.xsd">
+    <configuration>
+        <!-- Enable locally; Jenkins can disable with -Dmaven.build.cache.enabled=false -->
+        <enabled>true</enabled>
+        <hashAlgorithm>XX</hashAlgorithm>
+        <local>
+            <maxBuildsCached>5</maxBuildsCached>
+        </local>
+    </configuration>
+    <input>
+        <global>
+            <glob>{*.java,*.xml,*.yaml,*.yml,*.properties,*.sql}</glob>
+        </global>
+    </input>
+    <executionControl>
+        <runAlways>
+            <plugins>
+                <!-- Tests must always run — never cache test results -->
+                <plugin artifactId="maven-surefire-plugin"/>
+                <plugin artifactId="maven-failsafe-plugin"/>
+                <!-- Liquibase migrations must always execute -->
+                <plugin groupId="org.liquibase" artifactId="liquibase-maven-plugin"/>
+            </plugins>
+            <goalsLists>
+                <goalsList artifactId="maven-install-plugin">
+                    <goals><goal>install</goal></goals>
+                </goalsList>
+                <goalsList artifactId="maven-deploy-plugin">
+                    <goals><goal>deploy</goal></goals>
+                </goalsList>
+            </goalsLists>
+        </runAlways>
+        <reconcile>
+            <plugins>
+                <plugin artifactId="maven-surefire-plugin" goal="test">
+                    <reconciles>
+                        <reconcile propertyName="skipTests" skipValue="true"/>
+                    </reconciles>
+                </plugin>
+            </plugins>
+        </reconcile>
+    </executionControl>
+</cache>
