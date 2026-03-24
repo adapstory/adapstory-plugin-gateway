@@ -39,7 +39,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Фильтр аутентификации плагинов.
  *
  * <p>Валидирует JWT плагина через Keycloak JWKS endpoint (с кешированием 5 мин), извлекает claims:
- * plugin_id, tenant_id, permissions[], trust_level. Помещает PluginSecurityContext в
+ * plugin_id, adapstory_tenant_id, permissions[], trust_level. Помещает PluginSecurityContext в
  * SecurityContext и request attributes.
  */
 @Component
@@ -76,7 +76,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
                 .issuer(jwtConfig.issuer())
                 .audience(jwtConfig.audience())
                 .build(),
-            Set.of("sub", "iss", "aud", "exp", "plugin_id", "tenant_id", "permissions"));
+            Set.of("sub", "iss", "aud", "exp", "plugin_id", "adapstory_tenant_id", "permissions"));
 
     ConfigurableJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
     processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>());
@@ -109,7 +109,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
       JWTClaimsSet claims = jwtProcessor.process(token, null);
 
       String pluginId = claims.getStringClaim("plugin_id");
-      String tenantId = claims.getStringClaim("tenant_id");
+      String tenantId = claims.getStringClaim("adapstory_tenant_id");
       List<String> permissions = claims.getStringListClaim("permissions");
       String trustLevel = claims.getStringClaim("trust_level");
 

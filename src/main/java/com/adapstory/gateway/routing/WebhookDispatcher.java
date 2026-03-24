@@ -48,7 +48,6 @@ public class WebhookDispatcher {
     this.webhookExecutor = webhookExecutor;
   }
 
-  private static final String INTERNAL_SECRET_HEADER = "X-Internal-Secret";
   private static final Pattern PLUGIN_SHORT_ID_PATTERN =
       Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9-]*$");
 
@@ -64,7 +63,7 @@ public class WebhookDispatcher {
 
     String configuredSecret = properties.webhook().internalSecret();
     if (configuredSecret != null && !configuredSecret.isBlank()) {
-      String providedSecret = headers.getFirst(INTERNAL_SECRET_HEADER);
+      String providedSecret = headers.getFirst(IntegrationHeaders.HEADER_INTERNAL_SECRET);
       if (!java.security.MessageDigest.isEqual(
           configuredSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8),
           (providedSecret != null ? providedSecret : "")

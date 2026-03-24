@@ -32,6 +32,10 @@
 
         <dependency>
             <groupId>com.adapstory</groupId>
+            <artifactId>adapstory-commons</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.adapstory</groupId>
             <artifactId>adapstory-starter-kafka</artifactId>
         </dependency>
         <!-- Structured logging (logback-base.xml, MDC filters) -->

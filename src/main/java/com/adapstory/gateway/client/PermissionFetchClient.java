@@ -114,9 +114,11 @@ public class PermissionFetchClient {
 
   private Optional<List<String>> doFetch(String pluginId) {
     String requestId =
-        Optional.ofNullable(MDC.get(IntegrationHeaders.REQUEST_ID)).orElse(UUID.randomUUID().toString());
+        Optional.ofNullable(MDC.get(IntegrationHeaders.REQUEST_ID))
+            .orElse(UUID.randomUUID().toString());
     String correlationId =
-        Optional.ofNullable(MDC.get(IntegrationHeaders.CORRELATION_ID)).orElse(UUID.randomUUID().toString());
+        Optional.ofNullable(MDC.get(IntegrationHeaders.CORRELATION_ID))
+            .orElse(UUID.randomUUID().toString());
 
     PluginPermissionsResponse response =
         restClient

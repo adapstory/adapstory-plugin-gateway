@@ -149,9 +149,11 @@ public class InstalledPluginFetchClient {
 
   private Optional<Boolean> doFetch(String pluginId, String tenantId) {
     String requestId =
-        Optional.ofNullable(MDC.get(IntegrationHeaders.REQUEST_ID)).orElse(UUID.randomUUID().toString());
+        Optional.ofNullable(MDC.get(IntegrationHeaders.REQUEST_ID))
+            .orElse(UUID.randomUUID().toString());
     String correlationId =
-        Optional.ofNullable(MDC.get(IntegrationHeaders.CORRELATION_ID)).orElse(UUID.randomUUID().toString());
+        Optional.ofNullable(MDC.get(IntegrationHeaders.CORRELATION_ID))
+            .orElse(UUID.randomUUID().toString());
 
     String responseBody;
     try {

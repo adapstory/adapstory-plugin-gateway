@@ -2,6 +2,7 @@ package com.adapstory.gateway.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
@@ -103,7 +104,7 @@ class WebhookDispatcherAdditionalTest {
       byte[] payload = "{}".getBytes();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
-      headers.set("X-Internal-Secret", "wrong-secret");
+      headers.set(IntegrationHeaders.HEADER_INTERNAL_SECRET, "wrong-secret");
 
       // Act
       ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
@@ -120,7 +121,7 @@ class WebhookDispatcherAdditionalTest {
       byte[] payload = "{}".getBytes();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
-      headers.set("X-Internal-Secret", "my-secret-123");
+      headers.set(IntegrationHeaders.HEADER_INTERNAL_SECRET, "my-secret-123");
 
       // Act
       ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
