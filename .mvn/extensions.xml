@@ -9,9 +9,4 @@
     <artifactId>opentelemetry-maven-extension</artifactId>
     <version>1.54.0-alpha</version>
   </extension>
-  <extension>
-    <groupId>org.apache.maven.extensions</groupId>
-    <artifactId>maven-build-cache-extension</artifactId>
-    <version>1.2.0</version>
-  </extension>
 </extensions>
