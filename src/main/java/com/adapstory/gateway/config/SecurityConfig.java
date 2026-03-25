@@ -63,7 +63,12 @@ public class SecurityConfig {
             // L3: /internal/** is open — security relies on K8s NetworkPolicy restricting
             // access to core BCs only. Consider adding shared-secret header check for defense in
             // depth.
-            auth -> auth.requestMatchers("/internal/**").permitAll().anyRequest().authenticated())
+            auth ->
+                auth
+                    .requestMatchers("/internal/**", "/api/bc-02/gateway/v1/webhooks/**")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
         .addFilterBefore(pluginAuthFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterAfter(pluginInstalledCheckFilter, PluginAuthFilter.class)
         .addFilterAfter(permissionEnforcementFilter, PluginInstalledCheckFilter.class)
