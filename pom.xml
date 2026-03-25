@@ -15,10 +15,6 @@
     <name>Adapstory Plugin Gateway</name>
     <description>Lightweight REST proxy for plugin-to-core BC communication with JWT authentication and permission enforcement.</description>
 
-    <properties>
-        <jacoco.coverage.minimum>0</jacoco.coverage.minimum>
-    </properties>
-
     <distributionManagement>
         <repository>
             <id>nexus-releases</id>
@@ -31,6 +27,10 @@
             <url>https://nexus.adapstory.com/repository/maven-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
+
+    <properties>
+        <jacoco.coverage.minimum>0</jacoco.coverage.minimum>
+    </properties>
 
     <dependencies>
 

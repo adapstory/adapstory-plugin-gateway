@@ -25,10 +25,9 @@ import org.springframework.web.client.RestClientException;
 /**
  * REST-клиент для запроса manifest permissions плагина из BC-02.
  *
- * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/{pluginId}/permissions} с
- * обязательными заголовками трассировки. Обёрнут circuit breaker {@code bc02-permissions} (ADR-4).
- * При сбое BC-02 или открытом CB возвращает {@link Optional#empty()} — вызывающий код реализует
- * fail-closed.
+ * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/{pluginId}/permissions} с обязательными
+ * заголовками трассировки. Обёрнут circuit breaker {@code bc02-permissions} (ADR-4). При сбое BC-02
+ * или открытом CB возвращает {@link Optional#empty()} — вызывающий код реализует fail-closed.
  */
 @Component
 public class PermissionFetchClient {

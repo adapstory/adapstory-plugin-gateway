@@ -25,10 +25,9 @@ import org.springframework.web.client.RestClientException;
 /**
  * REST-клиент для проверки установки плагина для тенанта через BC-02.
  *
- * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/{pluginId}/installed} с {@code
- * X-Tenant-Id} header. Обёрнут
- * circuit breaker {@code bc02-installed-check} (ADR-4). При сбое BC-02 возвращает {@link
- * Optional#empty()} — вызывающий код реализует fail-open с warning log.
+ * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/{pluginId}/installed} с {@code X-Tenant-Id}
+ * header. Обёрнут circuit breaker {@code bc02-installed-check} (ADR-4). При сбое BC-02 возвращает
+ * {@link Optional#empty()} — вызывающий код реализует fail-open с warning log.
  */
 @Component
 public class InstalledPluginFetchClient {
