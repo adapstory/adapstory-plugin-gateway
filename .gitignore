@@ -6,3 +6,7 @@ target/
 *.war
 *.log
 .DS_Store
+
+# Test reports (generated locally)
+**/allure-results/
+.jqwik-database
