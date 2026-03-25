@@ -32,7 +32,7 @@ class PermissionCacheIT extends AbstractGatewayIntegrationTest {
   private static final String TENANT_ID = "tenant-uuid";
   private static final String CACHE_KEY = "plugin:permissions:" + PLUGIN_ID;
   private static final String BC02_PERMISSIONS_PATH =
-      "/api/bc-02/plugin-lifecycle/v1/plugins/" + PLUGIN_ID + "/permissions";
+      "/api/bc-02/plugin-lifecycle/v1/" + PLUGIN_ID + "/permissions";
 
   @Autowired private KafkaTemplate<String, String> kafkaTemplate;
 

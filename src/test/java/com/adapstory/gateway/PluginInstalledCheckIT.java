@@ -31,9 +31,9 @@ class PluginInstalledCheckIT extends AbstractGatewayIntegrationTest {
   private static final String PLUGIN_ID = "adapstory.education.course-catalog";
   private static final String TENANT_ID = "00000000-0000-0000-0000-700000000001";
   private static final String INSTALLED_CHECK_PATH =
-      "/api/bc-02/plugin-lifecycle/v1/plugins/" + PLUGIN_ID + "/installed";
+      "/api/bc-02/plugin-lifecycle/v1/" + PLUGIN_ID + "/installed";
   private static final String PERMISSIONS_PATH =
-      "/api/bc-02/plugin-lifecycle/v1/plugins/" + PLUGIN_ID + "/permissions";
+      "/api/bc-02/plugin-lifecycle/v1/" + PLUGIN_ID + "/permissions";
   private static final String INSTALLED_CACHE_KEY =
       "plugin-gateway:installed:" + PLUGIN_ID + ":" + TENANT_ID;
 
@@ -246,7 +246,7 @@ class PluginInstalledCheckIT extends AbstractGatewayIntegrationTest {
             installed, installed ? "\"1.0.0\"" : "null");
 
     BC02_WIREMOCK.stubFor(
-        get(urlPathEqualTo("/api/bc-02/plugin-lifecycle/v1/plugins/" + pluginId + "/installed"))
+        get(urlPathEqualTo("/api/bc-02/plugin-lifecycle/v1/" + pluginId + "/installed"))
             .willReturn(
                 aResponse()
                     .withStatus(200)

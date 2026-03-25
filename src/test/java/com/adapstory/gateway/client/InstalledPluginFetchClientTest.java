@@ -37,7 +37,7 @@ class InstalledPluginFetchClientTest {
   private static final String BASE_URL = "http://localhost:8081";
   private static final String INSTALLED_URI =
       BASE_URL
-          + "/api/bc-02/plugin-lifecycle/v1/plugins/"
+          + "/api/bc-02/plugin-lifecycle/v1/"
           + PLUGIN_ID
           + "/installed?tenant_id="
           + TENANT_ID;

@@ -29,7 +29,7 @@ class PermissionFetchClientTest {
   private static final String PLUGIN_ID = "adapstory.assessment.quiz";
   private static final String BASE_URL = "http://localhost:8081";
   private static final String PERMISSIONS_URI =
-      BASE_URL + "/api/bc-02/plugin-lifecycle/v1/plugins/" + PLUGIN_ID + "/permissions";
+      BASE_URL + "/api/bc-02/plugin-lifecycle/v1/" + PLUGIN_ID + "/permissions";
 
   private static final String RESPONSE_WITH_PERMISSIONS =
       """

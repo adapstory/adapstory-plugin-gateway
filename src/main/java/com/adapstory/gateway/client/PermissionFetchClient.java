@@ -25,7 +25,7 @@ import org.springframework.web.client.RestClientException;
 /**
  * REST-клиент для запроса manifest permissions плагина из BC-02.
  *
- * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/internal/plugins/{pluginId}/permissions} с
+ * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/{pluginId}/permissions} с
  * обязательными заголовками трассировки. Обёрнут circuit breaker {@code bc02-permissions} (ADR-4).
  * При сбое BC-02 или открытом CB возвращает {@link Optional#empty()} — вызывающий код реализует
  * fail-closed.
@@ -36,7 +36,7 @@ public class PermissionFetchClient {
   private static final Logger log = LoggerFactory.getLogger(PermissionFetchClient.class);
   private static final String CB_NAME = "bc02-permissions";
   private static final String PERMISSIONS_PATH =
-      "/api/bc-02/plugin-lifecycle/v1/internal/plugins/{pluginId}/permissions";
+      "/api/bc-02/plugin-lifecycle/v1/{pluginId}/permissions";
 
   /** Допустимый формат pluginId: tri-part (vendor.category.name) или UUID. */
   private static final Pattern PLUGIN_ID_PATTERN =
