@@ -1,6 +1,6 @@
 FROM eclipse-temurin:25-jre-alpine AS runtime
 
-RUN apk --no-cache upgrade
+RUN apk update && apk upgrade --no-cache --ignore alpine-baselayout --ignore alpine-baselayout-data && rm -rf /var/cache/apk/*
 
 WORKDIR /app
 COPY target/adapstory-plugin-gateway-*-exec.jar /app/app.jar
