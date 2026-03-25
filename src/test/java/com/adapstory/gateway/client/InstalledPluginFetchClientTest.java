@@ -36,11 +36,7 @@ class InstalledPluginFetchClientTest {
   private static final String TENANT_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
   private static final String BASE_URL = "http://localhost:8081";
   private static final String INSTALLED_URI =
-      BASE_URL
-          + "/api/bc-02/plugin-lifecycle/v1/"
-          + PLUGIN_ID
-          + "/installed?tenant_id="
-          + TENANT_ID;
+      BASE_URL + "/api/bc-02/plugin-lifecycle/v1/" + PLUGIN_ID + "/installed";
 
   private InstalledPluginFetchClient client;
   private MockRestServiceServer mockServer;

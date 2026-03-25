@@ -72,6 +72,8 @@ class PluginAuthFilterTest {
     objectMapper =
         com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     filterChain = mock(FilterChain.class);
+    // Reset OTel thread-local context to avoid cross-test contamination
+    io.opentelemetry.context.Context.root().makeCurrent();
     SecurityContextHolder.clearContext();
 
     GatewayProperties.JwtConfig jwtConfig =

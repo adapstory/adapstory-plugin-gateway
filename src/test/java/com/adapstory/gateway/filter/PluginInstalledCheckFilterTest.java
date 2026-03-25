@@ -237,13 +237,6 @@ class PluginInstalledCheckFilterTest {
     }
 
     @Test
-    @DisplayName("should not filter internal paths")
-    void should_notFilter_internalPaths() {
-      MockHttpServletRequest request = new MockHttpServletRequest("GET", "/internal/ready");
-      assertThat(filter.shouldNotFilter(request)).isTrue();
-    }
-
-    @Test
     @DisplayName("should filter gateway API paths")
     void should_filter_gatewayApiPaths() {
       MockHttpServletRequest request =

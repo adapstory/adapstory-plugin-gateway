@@ -19,7 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Конфигурация безопасности Plugin Gateway.
  *
  * <p>Использует Keycloak JWKS для валидации JWT токенов плагинов. Публичные эндпоинты: actuator
- * health, внутренние webhook-и.
+ * health, webhook-и.
  */
 @Configuration
 @EnableWebSecurity
@@ -60,12 +60,9 @@ public class SecurityConfig {
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
-            // L3: /internal/** is open — security relies on K8s NetworkPolicy restricting
-            // access to core BCs only. Consider adding shared-secret header check for defense in
-            // depth.
             auth ->
                 auth
-                    .requestMatchers("/internal/**", "/api/bc-02/gateway/v1/webhooks/**")
+                    .requestMatchers("/api/bc-02/gateway/v1/webhooks/**")
                     .permitAll()
                     .anyRequest()
                     .authenticated())

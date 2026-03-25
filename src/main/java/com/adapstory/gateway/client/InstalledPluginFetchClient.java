@@ -25,8 +25,8 @@ import org.springframework.web.client.RestClientException;
 /**
  * REST-клиент для проверки установки плагина для тенанта через BC-02.
  *
- * <p>Вызывает {@code GET
- * /api/bc-02/plugin-lifecycle/v1/{pluginId}/installed?tenant_id={tenantId}}. Обёрнут
+ * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/{pluginId}/installed} с {@code
+ * X-Tenant-Id} header. Обёрнут
  * circuit breaker {@code bc02-installed-check} (ADR-4). При сбое BC-02 возвращает {@link
  * Optional#empty()} — вызывающий код реализует fail-open с warning log.
  */
@@ -36,7 +36,7 @@ public class InstalledPluginFetchClient {
   private static final Logger log = LoggerFactory.getLogger(InstalledPluginFetchClient.class);
   private static final String CB_NAME = "bc02-installed-check";
   private static final String INSTALLED_PATH =
-      "/api/bc-02/plugin-lifecycle/v1/{pluginId}/installed?tenant_id={tenantId}";
+      "/api/bc-02/plugin-lifecycle/v1/{pluginId}/installed";
 
   private static final Pattern PLUGIN_ID_PATTERN =
       Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9._-]{1,123}[a-zA-Z0-9]$");
@@ -122,12 +122,13 @@ public class InstalledPluginFetchClient {
 
     try {
       return circuitBreaker.executeSupplier(() -> doFetch(pluginId, tenantId));
-    } catch (CallNotPermittedException e) {
+    } catch (CallNotPermittedException ex) {
       log.warn(
-          "Circuit breaker {} is OPEN, cannot check installed status: pluginId={}, tenantId={}",
+          "Circuit breaker {} is OPEN, cannot check installed status: pluginId={}, tenantId={}, reason={}",
           CB_NAME,
           pluginId,
-          tenantId);
+          tenantId,
+          ex.getMessage());
       return Optional.empty();
     } catch (RestClientException e) {
       log.warn(
@@ -160,17 +161,19 @@ public class InstalledPluginFetchClient {
       responseBody =
           restClient
               .get()
-              .uri(INSTALLED_PATH, pluginId, tenantId)
+              .uri(INSTALLED_PATH, pluginId)
+              .header(IntegrationHeaders.HEADER_TENANT_ID, tenantId)
               .header(IntegrationHeaders.HEADER_REQUEST_ID, requestId)
               .header(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId)
               .retrieve()
               .body(String.class);
-    } catch (org.springframework.web.client.HttpClientErrorException.NotFound e) {
+    } catch (org.springframework.web.client.HttpClientErrorException.NotFound ex) {
       // M-10: BC-02 returns 404 = plugin does not exist → treat as "not installed"
       log.debug(
-          "BC-02 returned 404 for installed check (plugin not found): pluginId={}, tenantId={}",
+          "BC-02 returned 404 for installed check (plugin not found): pluginId={}, tenantId={}, status={}",
           pluginId,
-          tenantId);
+          tenantId,
+          ex.getStatusCode());
       return Optional.of(false);
     }
 
