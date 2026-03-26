@@ -78,14 +78,6 @@ public class PermissionFetchClient {
   }
 
   /**
-   * Package-private constructor for unit tests — injects pre-built RestClient and CircuitBreaker.
-   */
-  PermissionFetchClient(RestClient restClient, CircuitBreaker circuitBreaker) {
-    this.restClient = restClient;
-    this.circuitBreaker = circuitBreaker;
-  }
-
-  /**
    * Запрашивает список manifest permissions плагина из BC-02.
    *
    * @param pluginId идентификатор плагина (tri-part или UUID)
