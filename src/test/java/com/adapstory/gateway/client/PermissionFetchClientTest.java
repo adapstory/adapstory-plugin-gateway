@@ -75,7 +75,7 @@ class PermissionFetchClientTest {
     CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(cbConfig);
     CircuitBreaker cb = registry.circuitBreaker("bc02-permissions", cbConfig);
 
-    client = PermissionFetchClient.forTest(builder.build(), cb);
+    client = new PermissionFetchClient(builder.build(), cb);
   }
 
   @Nested

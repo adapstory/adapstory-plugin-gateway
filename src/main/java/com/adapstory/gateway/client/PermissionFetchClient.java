@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -44,8 +43,8 @@ public class PermissionFetchClient {
   private static final int CONNECT_TIMEOUT_MS = 3000;
   private static final int READ_TIMEOUT_MS = 3000;
 
-  private RestClient restClient;
-  private CircuitBreaker circuitBreaker;
+  private final RestClient restClient;
+  private final CircuitBreaker circuitBreaker;
 
   /**
    * Создаёт клиент с RestClient + Circuit Breaker.
@@ -53,7 +52,6 @@ public class PermissionFetchClient {
    * @param properties конфигурация Gateway (содержит baseUrl BC-02)
    * @param circuitBreakerRegistry реестр circuit breakers
    */
-  @Autowired
   public PermissionFetchClient(
       GatewayProperties properties, CircuitBreakerRegistry circuitBreakerRegistry) {
     Objects.requireNonNull(properties, "properties must not be null");
@@ -79,15 +77,13 @@ public class PermissionFetchClient {
                 .build());
   }
 
-  /** Package-private factory for unit tests — injects pre-built RestClient and CircuitBreaker. */
-  static PermissionFetchClient forTest(RestClient restClient, CircuitBreaker circuitBreaker) {
-    var client = new PermissionFetchClient();
-    client.restClient = restClient;
-    client.circuitBreaker = circuitBreaker;
-    return client;
+  /**
+   * Package-private constructor for unit tests — injects pre-built RestClient and CircuitBreaker.
+   */
+  PermissionFetchClient(RestClient restClient, CircuitBreaker circuitBreaker) {
+    this.restClient = restClient;
+    this.circuitBreaker = circuitBreaker;
   }
-
-  private PermissionFetchClient() {}
 
   /**
    * Запрашивает список manifest permissions плагина из BC-02.

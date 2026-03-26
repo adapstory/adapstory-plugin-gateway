@@ -1,30 +1,24 @@
 package com.adapstory.gateway.cache;
 
-import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.client.PermissionFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.messaging.handler.annotation.Header;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 /**
- * Кеш разрешений плагинов в Redis с инвалидацией через Kafka.
+ * Кеш разрешений плагинов в Redis.
  *
- * <p>Ключ: plugin:permissions:{pluginId}, TTL = configurable (default 5 min). Kafka consumer:
- * PluginPermissionsRevoked event → инвалидация записи кеша (Story SEC-3.1). На промах кеша: fetch
- * из BC-02 REST API (Story SEC-3.2).
+ * <p>Ключ: plugin:permissions:{pluginId}, TTL = configurable (default 5 min). На промах кеша: fetch
+ * из BC-02 REST API (Story SEC-3.2). Инвалидация через Kafka делегирована в {@link
+ * com.adapstory.gateway.event.PermissionCacheInvalidationListener}.
  */
 @Service
 public class PermissionCacheService {
@@ -35,7 +29,6 @@ public class PermissionCacheService {
   private static final int MAX_SCOPE_LENGTH = 255;
   private static final Duration DEDUP_TTL = Duration.ofHours(24);
   private static final String DEDUP_KEY_PREFIX = "revoked-event-processed:";
-  private static final String COUNTER_NAME = "plugin.permissions.revoked.count";
 
   /** Negative cache TTL: prevents thundering herd when BC-02 is down (M-5). */
   private static final Duration NEGATIVE_CACHE_TTL = Duration.ofSeconds(30);
@@ -45,19 +38,16 @@ public class PermissionCacheService {
   private final StringRedisTemplate redisTemplate;
   private final GatewayProperties properties;
   private final ObjectMapper objectMapper;
-  private final MeterRegistry meterRegistry;
   private final PermissionFetchClient permissionFetchClient;
 
   public PermissionCacheService(
       StringRedisTemplate redisTemplate,
       GatewayProperties properties,
       ObjectMapper objectMapper,
-      MeterRegistry meterRegistry,
       PermissionFetchClient permissionFetchClient) {
     this.redisTemplate = redisTemplate;
     this.properties = properties;
     this.objectMapper = objectMapper;
-    this.meterRegistry = meterRegistry;
     this.permissionFetchClient = permissionFetchClient;
   }
 
@@ -125,9 +115,6 @@ public class PermissionCacheService {
    * @return {@code Optional<List<String>>} со scope-именами; {@code empty()} при сбое BC-02
    */
   public Optional<List<String>> fetchAndCachePermissions(String pluginId) {
-    // Check negative cache sentinel first to prevent thundering herd (H-1 review fix).
-    // getCachedPermissions() returns Optional.empty() for both real miss and sentinel,
-    // so we must check Redis directly before hitting BC-02.
     if (isNegativeCached(pluginId)) {
       log.debug("Negative cache active for plugin '{}', skipping BC-02 call", pluginId);
       return Optional.empty();
@@ -142,75 +129,21 @@ public class PermissionCacheService {
     return fetched;
   }
 
+  // ── Event processing helpers (used by PermissionCacheInvalidationListener) ──
+
   /**
-   * Kafka consumer: invalidates cache when plugin permissions are revoked (Story SEC-3.1). Event
-   * format: CloudEvents 1.0 with data containing pluginId and revokedPermissions fields. Idempotent
-   * via ce-id deduplication in Redis (24h TTL).
+   * Парсит JSON event.
    *
-   * <p>Error strategy (per integration-rules.md): deserialization/parsing errors are caught and
-   * skipped (fail-safe); transient infrastructure errors (Redis) are rethrown for Spring Kafka
-   * retry via DefaultErrorHandler.
+   * @param message raw JSON string
+   * @return parsed JsonNode tree
+   * @throws JsonProcessingException при ошибке парсинга
    */
-  @KafkaListener(
-      topics = "${gateway.kafka.topics.permission-revocation}",
-      groupId = "plugin-gateway-permissions")
-  public void onPluginPermissionsRevoked(
-      @Payload String message,
-      @Header(name = IntegrationHeaders.CORRELATION_ID, required = false) String correlationId,
-      @Header(name = IntegrationHeaders.REQUEST_ID, required = false) String requestId) {
-    String previousCorrelationId = MDC.get(IntegrationHeaders.CORRELATION_ID);
-    String previousRequestId = MDC.get(IntegrationHeaders.REQUEST_ID);
-    try {
-      // Propagate tracing headers from Kafka into MDC (per monitoring-observability-regulation)
-      setMdcFromHeaders(correlationId, requestId);
-
-      JsonNode tree = parseEvent(message);
-
-      // Idempotency: check ce-id deduplication
-      String ceId = extractCeId(tree);
-      if (ceId == null) {
-        log.warn(
-            "Received PluginPermissionsRevoked event without ce-id, idempotency check skipped");
-      } else if (isDuplicateEvent(ceId)) {
-        log.debug("Skipping duplicate revocation event ce-id={}", ceId);
-        return;
-      }
-
-      // Validate payload
-      JsonNode dataNode = tree.path("data");
-      if (!validatePayload(dataNode)) {
-        return;
-      }
-
-      String pluginId = extractPluginIdFromData(dataNode);
-      if (pluginId != null) {
-        invalidate(pluginId);
-        meterRegistry.counter(COUNTER_NAME, "pluginId", pluginId).increment();
-        log.info(
-            "Processed PluginPermissionsRevoked event for plugin '{}', revokedPermissions={}",
-            pluginId,
-            dataNode.path("revokedPermissions"));
-      } else {
-        log.warn("Could not extract pluginId from PluginPermissionsRevoked event");
-      }
-    } catch (JsonProcessingException ex) {
-      // Deserialization error — skip (fail-safe, no DLQ needed for cache invalidation)
-      log.warn("Malformed GLOBAL_PLUGIN_PERMISSIONS_REVOKED event: {}", ex.getMessage());
-    } finally {
-      restoreMdc(IntegrationHeaders.CORRELATION_ID, previousCorrelationId);
-      restoreMdc(IntegrationHeaders.REQUEST_ID, previousRequestId);
-    }
-  }
-
-  /**
-   * Парсит JSON event. Выделен в метод для разделения JsonProcessingException (parsing, skip) от
-   * runtime exceptions (transient, rethrow for retry).
-   */
-  JsonNode parseEvent(String message) throws JsonProcessingException {
+  public JsonNode parseEvent(String message) throws JsonProcessingException {
     return objectMapper.readTree(message);
   }
 
-  String extractCeId(JsonNode tree) {
+  /** Извлекает CloudEvents id из дерева. */
+  public String extractCeId(JsonNode tree) {
     JsonNode idNode = tree.path("id");
     if (idNode.isMissingNode() || idNode.isNull()) {
       return null;
@@ -218,13 +151,15 @@ public class PermissionCacheService {
     return idNode.asText();
   }
 
-  boolean isDuplicateEvent(String ceId) {
+  /** Проверяет, обработано ли событие ранее (idempotency via Redis dedup key). */
+  public boolean isDuplicateEvent(String ceId) {
     String dedupKey = DEDUP_KEY_PREFIX + ceId;
     Boolean isNew = redisTemplate.opsForValue().setIfAbsent(dedupKey, "1", DEDUP_TTL);
     return Boolean.FALSE.equals(isNew);
   }
 
-  boolean validatePayload(JsonNode dataNode) {
+  /** Валидирует payload события (revokedPermissions size и scope length). */
+  public boolean validatePayload(JsonNode dataNode) {
     JsonNode revokedNode = dataNode.path("revokedPermissions");
     if (revokedNode.isArray() && revokedNode.size() > MAX_REVOKED_PERMISSIONS) {
       log.warn(
@@ -247,7 +182,8 @@ public class PermissionCacheService {
     return true;
   }
 
-  String extractPluginIdFromData(JsonNode data) {
+  /** Извлекает pluginId из data-секции CloudEvent. */
+  public String extractPluginIdFromData(JsonNode data) {
     JsonNode pluginIdNode = data.path("pluginId");
     if (pluginIdNode.isMissingNode()) {
       pluginIdNode = data.path("plugin_id");
@@ -265,12 +201,8 @@ public class PermissionCacheService {
     return value;
   }
 
-  /**
-   * Проверяет наличие negative cache sentinel для pluginId.
-   *
-   * @param pluginId идентификатор плагина
-   * @return {@code true} если в Redis хранится sentinel (BC-02 был недоступен)
-   */
+  // ── Private helpers ──
+
   boolean isNegativeCached(String pluginId) {
     String key = buildCacheKey(pluginId);
     String cached = redisTemplate.opsForValue().get(key);
@@ -289,23 +221,6 @@ public class PermissionCacheService {
         throw new IllegalArgumentException(
             "Permission name must not contain separator '" + PERMISSIONS_SEPARATOR + "': " + perm);
       }
-    }
-  }
-
-  private static void setMdcFromHeaders(String correlationId, String requestId) {
-    if (correlationId != null) {
-      MDC.put(IntegrationHeaders.CORRELATION_ID, correlationId);
-    }
-    if (requestId != null) {
-      MDC.put(IntegrationHeaders.REQUEST_ID, requestId);
-    }
-  }
-
-  private static void restoreMdc(String key, String previousValue) {
-    if (previousValue != null) {
-      MDC.put(key, previousValue);
-    } else {
-      MDC.remove(key);
     }
   }
 

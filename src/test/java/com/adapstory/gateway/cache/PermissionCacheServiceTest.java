@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.adapstory.gateway.client.PermissionFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
+import com.adapstory.gateway.event.PermissionCacheInvalidationListener;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
@@ -32,6 +33,7 @@ import org.springframework.data.redis.core.ValueOperations;
 class PermissionCacheServiceTest {
 
   private PermissionCacheService cacheService;
+  private PermissionCacheInvalidationListener listener;
   private StringRedisTemplate redisTemplate;
   private ValueOperations<String, String> valueOperations;
   private SimpleMeterRegistry meterRegistry;
@@ -59,7 +61,9 @@ class PermissionCacheServiceTest {
 
     cacheService =
         new PermissionCacheService(
-            redisTemplate, properties, new ObjectMapper(), meterRegistry, permissionFetchClient);
+            redisTemplate, properties, new ObjectMapper(), permissionFetchClient);
+    listener =
+        new PermissionCacheInvalidationListener(cacheService, new ObjectMapper(), meterRegistry);
   }
 
   @Nested
@@ -251,7 +255,7 @@ class PermissionCacheServiceTest {
           .thenReturn(true);
 
       // Act
-      cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
+      listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
       // Assert
       verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
@@ -265,7 +269,7 @@ class PermissionCacheServiceTest {
           .thenReturn(true);
 
       // Act
-      cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
+      listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
       // Assert
       double count =
@@ -288,7 +292,7 @@ class PermissionCacheServiceTest {
             .thenReturn(false);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
+        listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
         // Assert — invalidate() NOT called
         verify(redisTemplate, never()).delete(anyString());
@@ -303,7 +307,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
+        listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
         // Assert
         verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
@@ -323,7 +327,7 @@ class PermissionCacheServiceTest {
             "currentPermissions":["read:data_model"]}}""";
 
         // Act
-        cacheService.onPluginPermissionsRevoked(eventWithoutCeId, null, null);
+        listener.onPluginPermissionsRevoked(eventWithoutCeId, null, null);
 
         // Assert — invalidation still happens (fail-open for cache invalidation)
         verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
@@ -340,7 +344,7 @@ class PermissionCacheServiceTest {
       @DisplayName("should not invalidate on malformed JSON")
       void should_notInvalidate_on_malformedJson() {
         // Act
-        cacheService.onPluginPermissionsRevoked("not-valid-json{{{", null, null);
+        listener.onPluginPermissionsRevoked("not-valid-json{{{", null, null);
 
         // Assert
         verify(redisTemplate, never()).delete(anyString());
@@ -358,7 +362,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(eventWithoutPluginId, null, null);
+        listener.onPluginPermissionsRevoked(eventWithoutPluginId, null, null);
 
         // Assert
         verify(redisTemplate, never()).delete(anyString());
@@ -379,7 +383,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(eventWithLongScope, null, null);
+        listener.onPluginPermissionsRevoked(eventWithLongScope, null, null);
 
         // Assert — invalidate() NOT called
         verify(redisTemplate, never()).delete(anyString());
@@ -398,7 +402,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(eventWithSnakeCase, null, null);
+        listener.onPluginPermissionsRevoked(eventWithSnakeCase, null, null);
 
         // Assert
         verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
@@ -412,7 +416,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, "corr-123", "req-456");
+        listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, "corr-123", "req-456");
 
         // Assert — verify invalidation still works with headers
         verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
@@ -436,7 +440,7 @@ class PermissionCacheServiceTest {
             .thenReturn(true);
 
         // Act
-        cacheService.onPluginPermissionsRevoked(oversizedEvent, null, null);
+        listener.onPluginPermissionsRevoked(oversizedEvent, null, null);
 
         // Assert — invalidate() NOT called
         verify(redisTemplate, never()).delete(anyString());
@@ -451,7 +455,7 @@ class PermissionCacheServiceTest {
 
         // Act & Assert — exception propagates to Spring Kafka error handler
         assertThatThrownBy(
-                () -> cacheService.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null))
+                () -> listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null))
             .isInstanceOf(RedisConnectionFailureException.class);
       }
     }
