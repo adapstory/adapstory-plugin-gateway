@@ -1,0 +1,30 @@
+# =============================================================================
+# Dev-Local override — K3s dev cluster via kubectl port-forward
+# Activate: --spring.profiles.active=dev-local   (auto-includes 'dev')
+#
+# Prerequisites (port-forward before starting):
+#   kubectl port-forward -n env-dev svc/dev-redis-master          16379:6379
+#   kubectl port-forward -n env-dev svc/dev-kafka-kafka0-headless 19092:9092
+#   kubectl port-forward -n env-dev svc/dev-keycloak-svc          18080:8080
+#   kubectl port-forward -n env-dev svc/dev-plugin-lifecycle-svc  18083:8083
+# =============================================================================
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 16379
+  kafka:
+    bootstrap-servers: localhost:19092
+
+gateway:
+  jwt:
+    jwks-uri: http://localhost:18080/realms/plugins/protocol/openid-connect/certs
+    issuer: https://auth.dev.adapstory.com/realms/plugins
+
+  bc02:
+    base-url: http://localhost:18083
+
+logging:
+  level:
+    com.adapstory.gateway: DEBUG

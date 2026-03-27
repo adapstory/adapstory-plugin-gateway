@@ -1,0 +1,51 @@
+# =============================================================================
+# Docker Compose profile — local infrastructure via docker-compose.yml
+# Activate: --spring.profiles.active=docker   (or SPRING_PROFILES_ACTIVE=docker)
+#
+# Prerequisites:
+#   docker compose up -d   (from project root — starts Redis, Kafka, Keycloak)
+#
+# Note: when running inside docker-compose.e2e.yml, all connection details
+# are supplied as env vars (SPRING_DATA_REDIS_HOST, GATEWAY_JWT_JWKS_URI, etc.)
+# and override these values automatically.
+# =============================================================================
+
+server:
+  port: 8086
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  kafka:
+    bootstrap-servers: localhost:9092
+
+gateway:
+  jwt:
+    jwks-uri: http://localhost:8180/realms/plugins/protocol/openid-connect/certs
+    issuer: http://localhost:8180/realms/plugins
+
+  bc02:
+    base-url: http://localhost:8083
+
+  routes:
+    content: http://localhost:8081
+    submission: http://localhost:8084
+    identity: http://localhost:8082
+    plugin: http://localhost:8083
+    tenant: http://localhost:8080
+
+adapstory:
+  tracing:
+    enabled: false
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    com.adapstory.gateway: DEBUG

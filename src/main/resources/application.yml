@@ -7,6 +7,10 @@ spring:
     name: adapstory-plugin-gateway
   lifecycle:
     timeout-per-shutdown-phase: 30s
+  profiles:
+    group:
+      dev-local: dev    # --spring.profiles.active=dev-local → includes dev (K8s URLs)
+      dev-remote: dev   # --spring.profiles.active=dev-remote → includes dev (K8s URLs)
 
   data:
     redis:

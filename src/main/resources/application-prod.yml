@@ -1,0 +1,28 @@
+# Production profile — Kubernetes deployment
+# JSON logging is activated automatically by logback-base.xml
+# (profile "prod" is not in exclusion list: dev-local | dev-remote | docker)
+gateway:
+  jwt:
+    # Mandatory: set via env vars in Helm values — no defaults in prod
+    jwks-uri: ${GATEWAY_JWT_JWKS_URI}
+    issuer: ${GATEWAY_JWT_ISSUER}
+
+# Logging levels (prod — INFO and above only)
+# monitoring-observability-regulation.md §5.1: DEBUG forbidden in prod
+logging:
+  level:
+    com.adapstory.gateway: INFO
+    org.springframework.web: INFO
+    reactor.netty.http.server: WARN
+    reactor.netty.http.client: WARN
+
+# Management: health + prometheus only (monitoring-observability-regulation.md §4)
+# Overrides application.yml which exposes health,info,metrics,prometheus
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,prometheus"
+  endpoint:
+    health:
+      show-details: when-authorized
