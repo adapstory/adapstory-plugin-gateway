@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# ────────────────────────────────────────────────────────────
+# Adapstory pre-commit hook — secret scan + dep validation + auto-format
+# Step 1: Gitleaks (scan staged changes for secrets)
+# Step 2: Maven POM validation (catch non-existent artifact versions)
+# Step 3: Spotless (auto-format staged .java/.xml/.sql files)
+# Installed via: ./scripts/install-hooks.sh
+# ────────────────────────────────────────────────────────────
+set -euo pipefail
+
+# ── Step 1: Gitleaks secret scanning ──────────────────────
+if command -v gitleaks &>/dev/null; then
+  REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+  GITLEAKS_CONFIG=""
+  if [ -f "$REPO_ROOT/.gitleaks.toml" ]; then
+    GITLEAKS_CONFIG="--config=$REPO_ROOT/.gitleaks.toml"
+  fi
+
+  echo "[pre-commit] Scanning staged changes for secrets (Gitleaks)..."
+  if ! gitleaks protect --staged $GITLEAKS_CONFIG --verbose; then
+    echo "[pre-commit] ERROR: Gitleaks found potential secrets in staged changes!"
+    echo "[pre-commit] Fix: remove secrets, use env vars, or update .gitleaks.toml allowlist."
+    exit 1
+  fi
+  echo "[pre-commit] No secrets detected."
+else
+  echo "[pre-commit] WARN: gitleaks not installed. Skipping secret scan."
+  echo "[pre-commit]   Install: brew install gitleaks"
+fi
+
+# ── Step 2: Maven POM validation ─────────────────────────
+# Catches non-existent artifact versions BEFORE they reach CI and cause
+# 20+ minute hangs (e.g., jackson-bom:2.21.1 which doesn't exist).
+# Uses help:effective-pom which resolves all BOM imports from Maven Central.
+# Skip with: SKIP_MVN_VALIDATE=1 git commit
+STAGED_POMS=$(git diff --cached --name-only --diff-filter=ACM -- 'pom.xml' '*/pom.xml' || true)
+if [ -n "$STAGED_POMS" ] && command -v mvn &>/dev/null && [ "${SKIP_MVN_VALIDATE:-0}" != "1" ]; then
+  echo "[pre-commit] pom.xml changed — validating Maven BOM imports..."
+  if ! mvn -q help:effective-pom -B 2>/tmp/mvn-validate-error.txt; then
+    echo "[pre-commit] ERROR: Maven POM validation FAILED."
+    echo "[pre-commit] This usually means a version in <dependencyManagement> doesn't exist."
+    echo "[pre-commit] Details:"
+    grep -E "ERROR|Could not|Failed|Cannot|missing" /tmp/mvn-validate-error.txt | head -10
+    echo ""
+    echo "[pre-commit] Check versions exist on Maven Central:"
+    echo "  curl -o /dev/null -w '%{http_code}' 'https://search.maven.org/remotecontent?filepath=GROUP/ARTIFACT/VERSION/ARTIFACT-VERSION.pom'"
+    echo ""
+    echo "[pre-commit] To skip this check: SKIP_MVN_VALIDATE=1 git commit"
+    exit 1
+  fi
+  echo "[pre-commit] Maven BOM imports OK."
+fi
+
+# ── Step 3: Spotless auto-formatting ─────────────────────
+# Only run if there are staged files that Spotless handles
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM -- '*.java' '*.xml' '*.sql' || true)
+if [ -z "$STAGED_FILES" ]; then
+  exit 0
+fi
+
+echo "[pre-commit] Formatting staged files with Spotless..."
+
+# Determine which modules were changed
+CHANGED_MODULES=$(echo "$STAGED_FILES" | awk -F/ '{print $1}' | sort -u)
+MODULE_LIST=""
+for mod in $CHANGED_MODULES; do
+  if [ -f "$mod/pom.xml" ]; then
+    MODULE_LIST="${MODULE_LIST:+$MODULE_LIST,}$mod"
+  fi
+done
+
+if [ -n "$MODULE_LIST" ]; then
+  mvn spotless:apply -pl "$MODULE_LIST" -q -B 2>/dev/null || {
+    echo "[pre-commit] Module-level spotless failed. Running on root..."
+    mvn spotless:apply -q -B
+  }
+else
+  # Root-level pom.xml or unknown structure — run on everything
+  mvn spotless:apply -q -B
+fi
+
+# Re-stage any files that were reformatted
+echo "$STAGED_FILES" | xargs git add
+
+echo "[pre-commit] Spotless formatting applied."
