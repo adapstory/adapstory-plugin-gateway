@@ -2,6 +2,9 @@ package com.adapstory.gateway.routing;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
+import io.github.resilience4j.retry.RetryRegistry;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -38,6 +41,7 @@ public class WebhookDispatcher {
   private final GatewayProperties properties;
   private final RestClient restClient;
   private final Executor webhookExecutor;
+  private final Retry webhookRetry;
 
   public WebhookDispatcher(
       GatewayProperties properties,
@@ -46,6 +50,17 @@ public class WebhookDispatcher {
     this.properties = properties;
     this.restClient = restClientBuilder.build();
     this.webhookExecutor = webhookExecutor;
+
+    GatewayProperties.WebhookConfig cfg = properties.webhook();
+    RetryConfig retryConfig =
+        RetryConfig.custom()
+            .maxAttempts(cfg.retryMaxAttempts())
+            .intervalFunction(
+                io.github.resilience4j.core.IntervalFunction.ofExponentialBackoff(
+                    cfg.retryInitialIntervalMs(), cfg.retryMultiplier()))
+            .ignoreExceptions(HttpClientErrorException.class)
+            .build();
+    this.webhookRetry = RetryRegistry.of(retryConfig).retry("webhook-dispatch");
   }
 
   private static final Pattern PLUGIN_SHORT_ID_PATTERN =
@@ -93,72 +108,50 @@ public class WebhookDispatcher {
   }
 
   /**
-   * Execute webhook dispatch with retry logic. Package-private for testability.
+   * Execute webhook dispatch with Resilience4j Retry. Package-private for testability.
    *
-   * <p>Retries only on 5xx / connection errors. 4xx client errors are NOT retried.
+   * <p>Retries only on 5xx / connection errors. 4xx client errors are ignored by Retry (not
+   * retried) and caught here.
    */
   void executeWithRetry(
       String pluginShortId, String pluginPodUrl, byte[] payload, HttpHeaders headers) {
-    GatewayProperties.WebhookConfig webhookConfig = properties.webhook();
-    int maxAttempts = webhookConfig.retryMaxAttempts();
-    long intervalMs = webhookConfig.retryInitialIntervalMs();
-    double multiplier = webhookConfig.retryMultiplier();
-
-    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        restClient
-            .post()
-            .uri(URI.create(pluginPodUrl))
-            .headers(
-                h -> {
-                  if (headers.getContentType() != null) {
-                    h.setContentType(headers.getContentType());
-                  } else {
-                    h.setContentType(MediaType.APPLICATION_JSON);
-                  }
-                  String correlationId = headers.getFirst(IntegrationHeaders.HEADER_CORRELATION_ID);
-                  if (correlationId != null) {
-                    h.set(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
-                  }
-                })
-            .body(payload)
-            .retrieve()
-            .toBodilessEntity();
-
-        log.info(
-            "Webhook dispatched successfully to plugin '{}' on attempt {}", pluginShortId, attempt);
-        return;
-      } catch (HttpClientErrorException ex) {
-        // 4xx — client error, do NOT retry
-        log.warn(
-            "Webhook dispatch to plugin '{}' got client error (not retrying): {} {}",
-            pluginShortId,
-            ex.getStatusCode(),
-            ex.getMessage());
-        return;
-      } catch (Exception ex) {
-        log.warn(
-            "Webhook dispatch to plugin '{}' failed on attempt {}/{}: {}",
-            pluginShortId,
-            attempt,
-            maxAttempts,
-            ex.getMessage());
-
-        if (attempt < maxAttempts) {
-          try {
-            Thread.sleep(intervalMs);
-          } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            log.warn("Webhook dispatch interrupted for plugin '{}'", pluginShortId);
-            return;
-          }
-          intervalMs = (long) (intervalMs * multiplier);
-        }
-      }
+    try {
+      webhookRetry.executeRunnable(() -> sendWebhook(pluginPodUrl, payload, headers));
+      log.info("Webhook dispatched successfully to plugin '{}'", pluginShortId);
+    } catch (HttpClientErrorException ex) {
+      log.warn(
+          "Webhook dispatch to plugin '{}' got client error (not retrying): {} {}",
+          pluginShortId,
+          ex.getStatusCode(),
+          ex.getMessage());
+    } catch (Exception ex) {
+      log.error(
+          "Webhook dispatch to plugin '{}' failed after {} attempts: {}",
+          pluginShortId,
+          properties.webhook().retryMaxAttempts(),
+          ex.getMessage());
     }
+  }
 
-    log.error(
-        "Webhook dispatch to plugin '{}' failed after {} attempts", pluginShortId, maxAttempts);
+  private void sendWebhook(String pluginPodUrl, byte[] payload, HttpHeaders headers) {
+    restClient
+        .post()
+        .uri(URI.create(pluginPodUrl))
+        .headers(
+            h -> {
+              if (headers.getContentType() != null) {
+                h.setContentType(headers.getContentType());
+              } else {
+                h.setContentType(MediaType.APPLICATION_JSON);
+              }
+              String correlationId = headers.getFirst(IntegrationHeaders.HEADER_CORRELATION_ID);
+              if (correlationId != null) {
+                h.set(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
+              }
+            })
+        .body(payload)
+        .retrieve()
+        .toBodilessEntity();
   }
 
   /**
