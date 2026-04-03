@@ -30,7 +30,7 @@ gateway:
     jwks-uri: http://localhost:8080/realms/plugins/protocol/openid-connect/certs
     issuer: https://auth.adapstory.com/realms/plugins
     audience: adapstory-core
-    jwks-cache-ttl-minutes: 5
+    jwks-cache-ttl-minutes: 60  # ARCH-1: Keycloak SPOF mitigation — 60 min cache
 
   # Route-to-BC mapping (overridden by GATEWAY_ROUTES_* env vars in cluster)
   routes:
