@@ -32,6 +32,11 @@ gateway:
     ttl-minutes: 5
     negative-ttl-seconds: 30
 
+  mcp:
+    plugin-pod-port: 8000
+    plugin-host-template: "plugin-%s.plugins.svc.cluster.local"
+    connect-timeout-ms: 5000
+
   webhook:
     retry-max-attempts: 2
     retry-initial-interval-ms: 100

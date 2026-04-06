@@ -180,7 +180,8 @@ class WebhookDispatcherAdditionalTest {
               new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
               new GatewayProperties.InstalledCacheConfig(5, 30),
               new GatewayProperties.WebhookConfig(3, 100, 2.0, 9000, "custom-plugin-%s", null),
-              new GatewayProperties.Bc02Config("http://localhost:8081"));
+              new GatewayProperties.Bc02Config("http://localhost:8081"),
+              null);
 
       WebhookDispatcher dispatcher =
           new WebhookDispatcher(properties, RestClient.builder(), Runnable::run);
@@ -205,7 +206,8 @@ class WebhookDispatcherAdditionalTest {
               new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
               new GatewayProperties.InstalledCacheConfig(5, 30),
               new GatewayProperties.WebhookConfig(3, 100, 2.0, 8080, null, null),
-              new GatewayProperties.Bc02Config("http://localhost:8081"));
+              new GatewayProperties.Bc02Config("http://localhost:8081"),
+              null);
 
       WebhookDispatcher dispatcher =
           new WebhookDispatcher(properties, RestClient.builder(), Runnable::run);
@@ -228,7 +230,8 @@ class WebhookDispatcherAdditionalTest {
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
             new GatewayProperties.InstalledCacheConfig(5, 30),
             new GatewayProperties.WebhookConfig(3, 100, 2.0, 8000, null, internalSecret),
-            new GatewayProperties.Bc02Config("http://localhost:8081"));
+            new GatewayProperties.Bc02Config("http://localhost:8081"),
+            null);
 
     return new WebhookDispatcher(properties, RestClient.builder(), Runnable::run);
   }

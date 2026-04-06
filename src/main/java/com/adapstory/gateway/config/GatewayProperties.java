@@ -16,7 +16,8 @@ public record GatewayProperties(
     PermissionCacheConfig permissionCache,
     InstalledCacheConfig installedCache,
     WebhookConfig webhook,
-    Bc02Config bc02) {
+    Bc02Config bc02,
+    McpConfig mcp) {
 
   public record JwtConfig(
       @NotBlank String jwksUri,
@@ -51,4 +52,24 @@ public record GatewayProperties(
 
   /** Конфигурация подключения к BC-02 (Plugin Lifecycle) для запроса manifest permissions. */
   public record Bc02Config(@NotBlank String baseUrl) {}
+
+  /**
+   * Конфигурация MCP-маршрутизации к plugin backend.
+   *
+   * @param pluginPodPort порт plugin pod (e.g., 8000)
+   * @param pluginHostTemplate шаблон DNS-имени plugin pod (e.g.,
+   *     "plugin-%s.plugins.svc.cluster.local")
+   * @param connectTimeoutMs таймаут подключения к plugin backend (ms)
+   */
+  public record McpConfig(
+      @Positive int pluginPodPort,
+      @NotBlank String pluginHostTemplate,
+      @Positive int connectTimeoutMs) {
+
+    public McpConfig {
+      if (pluginHostTemplate == null || pluginHostTemplate.isBlank()) {
+        pluginHostTemplate = "plugin-%s.plugins.svc.cluster.local";
+      }
+    }
+  }
 }

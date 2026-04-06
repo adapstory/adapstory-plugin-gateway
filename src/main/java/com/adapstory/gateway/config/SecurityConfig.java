@@ -4,6 +4,7 @@ import com.adapstory.gateway.filter.HeaderInjectionFilter;
 import com.adapstory.gateway.filter.PermissionEnforcementFilter;
 import com.adapstory.gateway.filter.PluginAuthFilter;
 import com.adapstory.gateway.filter.PluginInstalledCheckFilter;
+import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,6 +48,29 @@ public class SecurityConfig {
 
   @Bean
   @Order(1)
+  SecurityFilterChain mcpFilterChain(
+      HttpSecurity http,
+      PluginAuthFilter pluginAuthFilter,
+      PluginMcpJwtClaimFilter pluginMcpJwtClaimFilter,
+      HeaderInjectionFilter headerInjectionFilter)
+      throws Exception {
+    return http.securityMatcher("/internal/plugins/*/mcp")
+        .csrf(AbstractHttpConfigurer::disable)
+        .cors(AbstractHttpConfigurer::disable)
+        .sessionManagement(
+            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+        .addFilterBefore(pluginAuthFilter, UsernamePasswordAuthenticationFilter.class)
+        .addFilterAfter(pluginMcpJwtClaimFilter, PluginAuthFilter.class)
+        .addFilterAfter(headerInjectionFilter, PluginMcpJwtClaimFilter.class)
+        .formLogin(AbstractHttpConfigurer::disable)
+        .httpBasic(AbstractHttpConfigurer::disable)
+        .logout(AbstractHttpConfigurer::disable)
+        .build();
+  }
+
+  @Bean
+  @Order(2)
   SecurityFilterChain gatewayFilterChain(
       HttpSecurity http,
       PluginAuthFilter pluginAuthFilter,
@@ -105,6 +129,14 @@ public class SecurityConfig {
   @Bean
   FilterRegistrationBean<HeaderInjectionFilter> disableHeaderFilterAutoRegistration(
       HeaderInjectionFilter filter) {
+    var registration = new FilterRegistrationBean<>(filter);
+    registration.setEnabled(false);
+    return registration;
+  }
+
+  @Bean
+  FilterRegistrationBean<PluginMcpJwtClaimFilter> disableMcpFilterAutoRegistration(
+      PluginMcpJwtClaimFilter filter) {
     var registration = new FilterRegistrationBean<>(filter);
     registration.setEnabled(false);
     return registration;

@@ -88,6 +88,12 @@ gateway:
     ttl-minutes: 5
     negative-ttl-seconds: 30
 
+  # MCP route configuration (POST /internal/plugins/{slug}/mcp → plugin backend /mcp)
+  mcp:
+    plugin-pod-port: 8000
+    plugin-host-template: "plugin-%s.plugins.svc.cluster.local"
+    connect-timeout-ms: 30000
+
   # Webhook dispatch
   webhook:
     retry-max-attempts: 3

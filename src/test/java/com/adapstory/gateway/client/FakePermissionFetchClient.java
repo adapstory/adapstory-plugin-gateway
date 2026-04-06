@@ -23,6 +23,13 @@ class FakePermissionFetchClient extends PermissionFetchClient {
 
   private static GatewayProperties stubProperties() {
     return new GatewayProperties(
-        null, null, null, null, null, null, new GatewayProperties.Bc02Config("http://stub-bc02"));
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        new GatewayProperties.Bc02Config("http://stub-bc02"),
+        null);
   }
 }
