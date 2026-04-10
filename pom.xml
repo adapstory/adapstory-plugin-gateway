@@ -5,12 +5,12 @@
     <parent>
         <groupId>com.adapstory</groupId>
         <artifactId>adapstory-master-pom</artifactId>
-        <version>2026.03.1-SNAPSHOT</version>
+        <version>2026.04.1-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
     <artifactId>adapstory-plugin-gateway</artifactId>
-    <version>2026.03.1-SNAPSHOT</version>
+    <version>2026.04.1-SNAPSHOT</version>
 
     <name>Adapstory Plugin Gateway</name>
     <description>Lightweight REST proxy for plugin-to-core BC communication with JWT authentication and permission enforcement.</description>
