@@ -1,6 +1,14 @@
 # Production profile — Kubernetes deployment
 # JSON logging is activated automatically by logback-base.xml
 # (profile "prod" is not in exclusion list: dev-local | dev-remote | docker)
+
+# Swagger/OpenAPI disabled in prod — security risk (leaks full API surface)
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 gateway:
   jwt:
     # Mandatory: set via env vars in Helm values — no defaults in prod
