@@ -7,6 +7,8 @@ import com.adapstory.gateway.util.GatewayErrorWriter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -67,6 +69,15 @@ public class PluginRouteResolver {
     this.objectMapper = objectMapper;
   }
 
+  @Operation(
+      summary = "Proxy REST request to target BC service",
+      description =
+          "Resolves the target BC from the URL path and proxies the request with "
+              + "circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.")
+  @ApiResponse(responseCode = "200", description = "Response proxied from target BC")
+  @ApiResponse(responseCode = "404", description = "Route not configured for the target BC")
+  @ApiResponse(responseCode = "502", description = "Target BC returned an error")
+  @ApiResponse(responseCode = "503", description = "Circuit breaker open — target BC unavailable")
   @RequestMapping("/api/**")
   public void proxy(HttpServletRequest request, HttpServletResponse response) throws IOException {
     String originalPath = request.getRequestURI();

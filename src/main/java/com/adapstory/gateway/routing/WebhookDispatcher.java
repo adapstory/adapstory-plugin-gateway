@@ -5,6 +5,9 @@ import com.adapstory.gateway.config.GatewayProperties;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -66,9 +69,17 @@ public class WebhookDispatcher {
   private static final Pattern PLUGIN_SHORT_ID_PATTERN =
       Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9-]*$");
 
+  @Operation(
+      summary = "Dispatch webhook to plugin pod",
+      description =
+          "Forwards CloudEvents 1.0 payload from core BC to the target plugin pod. "
+              + "Dispatch is async (returns 202 immediately). Retries with exponential backoff.")
+  @ApiResponse(responseCode = "202", description = "Webhook accepted for async delivery")
+  @ApiResponse(responseCode = "400", description = "Invalid plugin short ID")
+  @ApiResponse(responseCode = "403", description = "Invalid internal secret")
   @PostMapping("/{pluginShortId}")
   public ResponseEntity<Void> dispatchWebhook(
-      @PathVariable String pluginShortId,
+      @Parameter(description = "Plugin short identifier") @PathVariable String pluginShortId,
       @RequestBody byte[] payload,
       @RequestHeader HttpHeaders headers) {
     if (!PLUGIN_SHORT_ID_PATTERN.matcher(pluginShortId).matches()) {

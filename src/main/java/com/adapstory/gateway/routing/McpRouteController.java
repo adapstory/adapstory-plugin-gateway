@@ -7,6 +7,9 @@ import com.adapstory.gateway.util.GatewayErrorWriter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -86,9 +89,20 @@ public class McpRouteController {
    * @param request входящий HTTP запрос
    * @param response исходящий HTTP ответ
    */
+  @Operation(
+      summary = "Proxy MCP JSON-RPC call to plugin backend",
+      description =
+          "Routes a JSON-RPC 2.0 MCP request to the plugin pod identified by slug. "
+              + "Injects X-Tenant-Id, X-Request-Id, X-Correlation-Id headers.")
+  @ApiResponse(responseCode = "200", description = "MCP response proxied from plugin backend")
+  @ApiResponse(responseCode = "400", description = "Invalid plugin slug format")
+  @ApiResponse(responseCode = "502", description = "Plugin pod unreachable or returned error")
   @PostMapping("/{slug}/mcp")
   public void proxyMcp(
-      @PathVariable String slug, HttpServletRequest request, HttpServletResponse response)
+      @Parameter(description = "Plugin slug identifier (e.g. 'course-builder')") @PathVariable
+          String slug,
+      HttpServletRequest request,
+      HttpServletResponse response)
       throws IOException {
 
     if (!SLUG_PATTERN.matcher(slug).matches()) {

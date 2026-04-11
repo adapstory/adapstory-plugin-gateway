@@ -123,3 +123,11 @@ management:
   opentelemetry:
     resource-attributes:
       "tenant.id": "${TENANT_ID:unknown}"
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:true}
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:true}
+    path: /swagger-ui.html
