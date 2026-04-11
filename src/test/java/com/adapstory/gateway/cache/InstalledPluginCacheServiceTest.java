@@ -27,7 +27,7 @@ import org.springframework.data.redis.core.ValueOperations;
  * Тесты InstalledPluginCacheService: Redis cache-aside для проверки установки плагинов.
  *
  * <p>Покрывает: cache hit/miss, negative cache sentinel, BC-02 fetch + cache store, eviction,
- * metric callbacks, Redis failures (fail-open), input validation.
+ * metric callbacks, Redis failures (graceful cache degradation), input validation.
  */
 @DisplayName("InstalledPluginCacheService")
 class InstalledPluginCacheServiceTest {
@@ -191,7 +191,7 @@ class InstalledPluginCacheServiceTest {
   }
 
   @Nested
-  @DisplayName("Redis failure — fail-open")
+  @DisplayName("Redis failure — graceful cache degradation")
   class RedisFailure {
 
     @Test

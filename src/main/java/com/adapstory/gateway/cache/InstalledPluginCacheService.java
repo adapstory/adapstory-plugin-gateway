@@ -17,7 +17,8 @@ import org.springframework.stereotype.Service;
  * <p>Ключ: {@code plugin-gateway:installed:{pluginId}:{tenantId}} → "true" | "false" |
  * "__UNAVAILABLE__". TTL конфигурируется через {@code gateway.installed-cache.*}. При cache miss
  * вызывает {@link InstalledPluginFetchClient} и кеширует результат. Negative cache sentinel
- * предотвращает thundering herd при недоступности BC-02.
+ * предотвращает thundering herd при недоступности BC-02. Вызывающий код обязан fail-close, если
+ * получает sentinel как Optional.empty().
  */
 @Service
 public class InstalledPluginCacheService {
@@ -51,7 +52,8 @@ public class InstalledPluginCacheService {
    *
    * @param pluginId идентификатор плагина
    * @param tenantId идентификатор тенанта
-   * @return Optional.of(true/false) при наличии данных, Optional.empty() при недоступности BC-02
+   * @return Optional.of(true/false) при наличии данных, Optional.empty() если verification
+   *     unavailable и вызывающий код должен fail-close
    */
   /**
    * Проверяет, установлен ли плагин для тенанта. Использует Redis cache-aside.
@@ -60,7 +62,8 @@ public class InstalledPluginCacheService {
    * @param tenantId идентификатор тенанта
    * @param cacheHit callback to increment cache-hit metric (nullable)
    * @param cacheMiss callback to increment cache-miss metric (nullable)
-   * @return Optional.of(true/false) при наличии данных, Optional.empty() при недоступности BC-02
+   * @return Optional.of(true/false) при наличии данных, Optional.empty() если verification
+   *     unavailable и вызывающий код должен fail-close
    */
   public Optional<Boolean> isInstalled(String pluginId, String tenantId) {
     return isInstalled(pluginId, tenantId, null, null);

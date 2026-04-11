@@ -11,6 +11,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,17 +28,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Проверяет Redis cache → BC-02 REST API при miss. Возвращает 404 PLUGIN_NOT_INSTALLED если плагин
  * не установлен для тенанта.
  *
- * <p>Resilience: при недоступности BC-02 и Redis — fail-open с warning log (не блокирует трафик).
+ * <p>Resilience: при недоступности BC-02, Redis или повреждённом verification state — fail-closed с
+ * 503, чтобы gateway не пропускал трафик к неустановленным или непроверенным плагинам.
  */
 @Component
 public class PluginInstalledCheckFilter extends OncePerRequestFilter {
 
   private static final Logger log = LoggerFactory.getLogger(PluginInstalledCheckFilter.class);
-  private static final String ERROR_CODE = "PLUGIN_NOT_INSTALLED";
+  private static final String ERROR_CODE_NOT_INSTALLED = "PLUGIN_NOT_INSTALLED";
+  private static final String ERROR_CODE_INSTALLATION_UNAVAILABLE = "ADAP-SEC-0011";
 
   private final InstalledPluginCacheService cacheService;
   private final ObjectMapper objectMapper;
   private final Counter notInstalledCounter;
+  private final Counter unavailableCounter;
   private final Counter cacheHitCounter;
   private final Counter cacheMissCounter;
 
@@ -58,6 +62,11 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
     this.notInstalledCounter =
         Counter.builder("plugin_gateway_not_installed_total")
             .description("Number of requests rejected due to plugin not installed for tenant")
+            .register(meterRegistry);
+    this.unavailableCounter =
+        Counter.builder("plugin_gateway_installed_unavailable_total")
+            .description(
+                "Number of requests rejected because plugin installation could not be verified")
             .register(meterRegistry);
     this.cacheHitCounter =
         Counter.builder("plugin_gateway_installed_cache_hit_total")
@@ -87,7 +96,11 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
     String tenantId = ctx.tenantId();
 
     if (pluginId == null || tenantId == null) {
-      filterChain.doFilter(request, response);
+      log.warn(
+          "Plugin security context is incomplete, rejecting installed check: pluginId={}, tenantId={}",
+          pluginId,
+          tenantId);
+      writeInstallationUnavailable(request, response, pluginId, tenantId);
       return;
     }
 
@@ -97,23 +110,21 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
           cacheService.isInstalled(
               pluginId, tenantId, cacheHitCounter::increment, cacheMissCounter::increment);
     } catch (IllegalArgumentException e) {
-      // H-7: Invalid pluginId/tenantId format in cache key — fail-open with warning
       log.warn(
-          "Invalid key format for installed check, allowing request: pluginId={}, tenantId={}, error={}",
+          "Invalid key format for installed check, rejecting request: pluginId={}, tenantId={}, error={}",
           pluginId,
           tenantId,
           e.getMessage());
-      filterChain.doFilter(request, response);
+      writeInstallationUnavailable(request, response, pluginId, tenantId);
       return;
     }
 
     if (installed.isEmpty()) {
-      // BC-02 unavailable — fail-open with warning
       log.warn(
-          "Cannot verify plugin installation (BC-02 unavailable), allowing request: pluginId={}, tenantId={}",
+          "Cannot verify plugin installation, rejecting request: pluginId={}, tenantId={}",
           pluginId,
           tenantId);
-      filterChain.doFilter(request, response);
+      writeInstallationUnavailable(request, response, pluginId, tenantId);
       return;
     }
 
@@ -130,11 +141,35 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
           404,
           "Not Found",
           "Plugin is not installed for this tenant",
-          Map.of("plugin_id", pluginId, "tenant_id", tenantId, "error_code", ERROR_CODE));
+          Map.of(
+              "plugin_id",
+              pluginId,
+              "tenant_id",
+              tenantId,
+              "error_code",
+              ERROR_CODE_NOT_INSTALLED));
       return;
     }
 
     filterChain.doFilter(request, response);
+  }
+
+  private void writeInstallationUnavailable(
+      HttpServletRequest request, HttpServletResponse response, String pluginId, String tenantId)
+      throws IOException {
+    unavailableCounter.increment();
+    Map<String, Object> details = new LinkedHashMap<>();
+    details.put("plugin_id", pluginId);
+    details.put("tenant_id", tenantId);
+    details.put("error_code", ERROR_CODE_INSTALLATION_UNAVAILABLE);
+    GatewayErrorWriter.writeError(
+        objectMapper,
+        response,
+        request,
+        503,
+        "Service Unavailable",
+        "Unable to verify plugin installation",
+        details);
   }
 
   @Override

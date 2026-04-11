@@ -191,7 +191,7 @@ class InstalledPluginFetchClientTest {
       // Act
       Optional<Boolean> result = client.fetchInstalledStatus(PLUGIN_ID, TENANT_ID);
 
-      // Assert — null/empty body → fail-open
+      // Assert — null/empty body → verification unavailable
       assertThat(result).isEmpty();
       mockServer.verify();
     }
@@ -224,7 +224,7 @@ class InstalledPluginFetchClientTest {
       // Act
       Optional<Boolean> result = client.fetchInstalledStatus(PLUGIN_ID, TENANT_ID);
 
-      // Assert — parse failure → fail-open
+      // Assert — parse failure → verification unavailable
       assertThat(result).isEmpty();
       mockServer.verify();
     }

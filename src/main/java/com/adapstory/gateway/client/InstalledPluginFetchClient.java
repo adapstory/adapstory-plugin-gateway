@@ -27,7 +27,8 @@ import org.springframework.web.client.RestClientException;
  *
  * <p>Вызывает {@code GET /api/bc-02/plugin-lifecycle/v1/{pluginId}/installed} с {@code X-Tenant-Id}
  * header. Обёрнут circuit breaker {@code bc02-installed-check} (ADR-4). При сбое BC-02 возвращает
- * {@link Optional#empty()} — вызывающий код реализует fail-open с warning log.
+ * {@link Optional#empty()} — вызывающий код обязан трактовать это как installation-verification
+ * unavailable и fail-close на gateway edge.
  */
 @Component
 public class InstalledPluginFetchClient {
@@ -100,8 +101,8 @@ public class InstalledPluginFetchClient {
    *
    * @param pluginId идентификатор плагина
    * @param tenantId идентификатор тенанта (UUID format)
-   * @return Optional.of(true) если установлен, Optional.of(false) если нет, Optional.empty() при
-   *     ошибке
+   * @return Optional.of(true) если установлен, Optional.of(false) если нет, Optional.empty() если
+   *     verification недоступна и вызывающий код должен fail-close
    * @throws IllegalArgumentException если pluginId не соответствует формату
    */
   public Optional<Boolean> fetchInstalledStatus(String pluginId, String tenantId) {
@@ -176,7 +177,7 @@ public class InstalledPluginFetchClient {
       return Optional.of(false);
     }
 
-    // H-6: null body is an unexpected/broken response → fail-open
+    // H-6: null body is an unexpected/broken response → verification unavailable
     if (responseBody == null) {
       log.warn(
           "BC-02 returned null body for installed check: pluginId={}, tenantId={}",
@@ -194,7 +195,7 @@ public class InstalledPluginFetchClient {
       boolean installed = data.get("installed") != null && data.get("installed").booleanValue();
       return Optional.of(installed);
     } catch (Exception e) {
-      // C-2: parse failure → fail-open (not "not installed")
+      // C-2: parse failure → verification unavailable (not "not installed")
       log.warn("Failed to parse BC-02 installed response: {}", e.getMessage());
       return Optional.empty();
     }

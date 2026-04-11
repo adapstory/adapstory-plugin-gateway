@@ -26,8 +26,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
  * Тесты PluginInstalledCheckFilter: проверка установки плагина перед маршрутизацией.
  *
  * <p>Покрывает: pass-through без контекста, installed=true, installed=false (404), BC-02
- * unavailable (fail-open), null pluginId/tenantId, shouldNotFilter, IllegalArgumentException
- * (fail-open), метрики.
+ * unavailable (503 fail-closed), incomplete context, shouldNotFilter, IllegalArgumentException (503
+ * fail-closed), метрики.
  */
 @DisplayName("PluginInstalledCheckFilter")
 class PluginInstalledCheckFilterTest {
@@ -70,8 +70,8 @@ class PluginInstalledCheckFilterTest {
     }
 
     @Test
-    @DisplayName("should pass through when pluginId is null in context")
-    void should_passThrough_when_pluginIdNull() throws Exception {
+    @DisplayName("should return 503 when pluginId is null in context")
+    void should_return503_when_pluginIdNull() throws Exception {
       // Arrange
       PluginSecurityContext ctx = new PluginSecurityContext(null, "tenant-1", List.of(), "CORE");
       MockHttpServletRequest request =
@@ -83,13 +83,14 @@ class PluginInstalledCheckFilterTest {
       filter.doFilterInternal(request, response, filterChain);
 
       // Assert
-      verify(filterChain).doFilter(request, response);
+      verifyNoInteractions(filterChain);
+      assertThat(response.getStatus()).isEqualTo(503);
       verifyNoInteractions(cacheService);
     }
 
     @Test
-    @DisplayName("should pass through when tenantId is null in context")
-    void should_passThrough_when_tenantIdNull() throws Exception {
+    @DisplayName("should return 503 when tenantId is null in context")
+    void should_return503_when_tenantIdNull() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext("adapstory.assessment.quiz", null, List.of(), "CORE");
@@ -102,7 +103,8 @@ class PluginInstalledCheckFilterTest {
       filter.doFilterInternal(request, response, filterChain);
 
       // Assert
-      verify(filterChain).doFilter(request, response);
+      verifyNoInteractions(filterChain);
+      assertThat(response.getStatus()).isEqualTo(503);
       verifyNoInteractions(cacheService);
     }
   }
@@ -184,8 +186,8 @@ class PluginInstalledCheckFilterTest {
     }
 
     @Test
-    @DisplayName("should pass through (fail-open) when BC-02 unavailable")
-    void should_passThrough_when_bc02Unavailable() throws Exception {
+    @DisplayName("should return 503 (fail-closed) when BC-02 unavailable")
+    void should_return503_when_bc02Unavailable() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
@@ -200,12 +202,17 @@ class PluginInstalledCheckFilterTest {
       filter.doFilterInternal(request, response, filterChain);
 
       // Assert
-      verify(filterChain).doFilter(request, response);
+      verifyNoInteractions(filterChain);
+      assertThat(response.getStatus()).isEqualTo(503);
+      GatewayErrorResponse error =
+          objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
+      assertThat(error.message()).isEqualTo("Unable to verify plugin installation");
+      assertThat(error.details().get("error_code")).isEqualTo("ADAP-SEC-0011");
     }
 
     @Test
-    @DisplayName("should pass through (fail-open) when IllegalArgumentException from cache (H-7)")
-    void should_passThrough_when_illegalArgumentException() throws Exception {
+    @DisplayName("should return 503 when IllegalArgumentException from cache (H-7)")
+    void should_return503_when_illegalArgumentException() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
@@ -221,7 +228,33 @@ class PluginInstalledCheckFilterTest {
       filter.doFilterInternal(request, response, filterChain);
 
       // Assert
-      verify(filterChain).doFilter(request, response);
+      verifyNoInteractions(filterChain);
+      assertThat(response.getStatus()).isEqualTo(503);
+      GatewayErrorResponse error =
+          objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
+      assertThat(error.message()).isEqualTo("Unable to verify plugin installation");
+      assertThat(error.details().get("error_code")).isEqualTo("ADAP-SEC-0011");
+    }
+
+    @Test
+    @DisplayName("should increment unavailable metric when verification is unavailable")
+    void should_incrementUnavailableMetric_when_verificationUnavailable() throws Exception {
+      // Arrange
+      PluginSecurityContext ctx =
+          new PluginSecurityContext(PLUGIN_ID, TENANT_ID, List.of("content.read"), "CORE");
+      when(cacheService.isInstalled(any(), any(), any(), any())).thenReturn(Optional.empty());
+
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
+      request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      // Act
+      filter.doFilterInternal(request, response, filterChain);
+
+      // Assert
+      assertThat(meterRegistry.counter("plugin_gateway_installed_unavailable_total").count())
+          .isEqualTo(1.0);
     }
   }
 
