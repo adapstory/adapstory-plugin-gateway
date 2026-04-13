@@ -60,11 +60,11 @@ class PermissionCacheServiceTest {
             new GatewayProperties.Bc02Config("http://localhost:8081"),
             null);
 
-    cacheService =
-        new PermissionCacheService(
-            redisTemplate, properties, new ObjectMapper(), permissionFetchClient);
-    listener =
-        new PermissionCacheInvalidationListener(cacheService, new ObjectMapper(), meterRegistry);
+    ObjectMapper objectMapper = new ObjectMapper();
+    cacheService = new PermissionCacheService(redisTemplate, properties, permissionFetchClient);
+    PermissionRevocationEventParser eventParser =
+        new PermissionRevocationEventParser(redisTemplate, objectMapper);
+    listener = new PermissionCacheInvalidationListener(cacheService, eventParser, meterRegistry);
   }
 
   @Nested
@@ -241,12 +241,12 @@ class PermissionCacheServiceTest {
 
     private static final String VALID_REVOCATION_EVENT =
         """
-        {"specversion":"1.0","id":"ce-uuid-123",\
-        "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
-        "source":"/bc02/plugins/adapstory.assessment.quiz",\
-        "data":{"pluginId":"adapstory.assessment.quiz",\
-        "revokedPermissions":["write:learner","read:analytics"],\
-        "currentPermissions":["read:data_model"]}}""";
+      {"specversion":"1.0","id":"ce-uuid-123",\
+      "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
+      "source":"/bc02/plugins/adapstory.assessment.quiz",\
+      "data":{"pluginId":"adapstory.assessment.quiz",\
+      "revokedPermissions":["write:learner","read:analytics"],\
+      "currentPermissions":["read:data_model"]}}""";
 
     @Test
     @DisplayName("should invalidate cache on valid revocation event (AC #2)")
@@ -320,12 +320,12 @@ class PermissionCacheServiceTest {
         // Arrange — event without "id" field
         String eventWithoutCeId =
             """
-            {"specversion":"1.0",\
-            "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
-            "source":"/bc02/plugins/adapstory.assessment.quiz",\
-            "data":{"pluginId":"adapstory.assessment.quiz",\
-            "revokedPermissions":["write:learner"],\
-            "currentPermissions":["read:data_model"]}}""";
+          {"specversion":"1.0",\
+          "type":"com.adapstory.plugin.domain.event.PluginPermissionsRevoked.v1",\
+          "source":"/bc02/plugins/adapstory.assessment.quiz",\
+          "data":{"pluginId":"adapstory.assessment.quiz",\
+          "revokedPermissions":["write:learner"],\
+          "currentPermissions":["read:data_model"]}}""";
 
         // Act
         listener.onPluginPermissionsRevoked(eventWithoutCeId, null, null);
@@ -357,8 +357,8 @@ class PermissionCacheServiceTest {
         // Arrange
         String eventWithoutPluginId =
             """
-            {"specversion":"1.0","id":"ce-uuid-456",\
-            "data":{"revokedPermissions":["read:analytics"]}}""";
+          {"specversion":"1.0","id":"ce-uuid-456",\
+          "data":{"revokedPermissions":["read:analytics"]}}""";
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
             .thenReturn(true);
 
@@ -396,9 +396,9 @@ class PermissionCacheServiceTest {
         // Arrange
         String eventWithSnakeCase =
             """
-            {"specversion":"1.0","id":"ce-uuid-snake",\
-            "data":{"plugin_id":"adapstory.assessment.quiz",\
-            "revokedPermissions":["write:learner"]}}""";
+          {"specversion":"1.0","id":"ce-uuid-snake",\
+          "data":{"plugin_id":"adapstory.assessment.quiz",\
+          "revokedPermissions":["write:learner"]}}""";
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
             .thenReturn(true);
 
@@ -459,63 +459,6 @@ class PermissionCacheServiceTest {
                 () -> listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null))
             .isInstanceOf(RedisConnectionFailureException.class);
       }
-    }
-  }
-
-  @Nested
-  @DisplayName("pluginId extraction")
-  class PluginIdExtraction {
-
-    private final ObjectMapper mapper = new ObjectMapper();
-
-    @Test
-    @DisplayName("extracts pluginId from camelCase key")
-    void extractPluginId_camelCase() throws Exception {
-      // Arrange
-      var data = mapper.readTree("{\"pluginId\":\"test-plugin\"}");
-
-      // Act & Assert
-      assertThat(cacheService.extractPluginIdFromData(data)).isEqualTo("test-plugin");
-    }
-
-    @Test
-    @DisplayName("extracts pluginId from snake_case key")
-    void extractPluginId_snakeCase() throws Exception {
-      // Arrange
-      var data = mapper.readTree("{\"plugin_id\":\"test-plugin\"}");
-
-      // Act & Assert
-      assertThat(cacheService.extractPluginIdFromData(data)).isEqualTo("test-plugin");
-    }
-
-    @Test
-    @DisplayName("returns null when pluginId missing")
-    void extractPluginId_missing() throws Exception {
-      // Arrange
-      var data = mapper.readTree("{\"other\":\"value\"}");
-
-      // Act & Assert
-      assertThat(cacheService.extractPluginIdFromData(data)).isNull();
-    }
-
-    @Test
-    @DisplayName("returns null for invalid pluginId format (M-2 — path traversal)")
-    void extractPluginId_invalidFormat() throws Exception {
-      // Arrange
-      var data = mapper.readTree("{\"pluginId\":\"../../etc/passwd\"}");
-
-      // Act & Assert
-      assertThat(cacheService.extractPluginIdFromData(data)).isNull();
-    }
-
-    @Test
-    @DisplayName("returns null for blank pluginId value (M-2)")
-    void extractPluginId_blank() throws Exception {
-      // Arrange
-      var data = mapper.readTree("{\"pluginId\":\" \"}");
-
-      // Act & Assert
-      assertThat(cacheService.extractPluginIdFromData(data)).isNull();
     }
   }
 }

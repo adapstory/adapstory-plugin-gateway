@@ -2,9 +2,9 @@ package com.adapstory.gateway.event;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.cache.PermissionCacheService;
+import com.adapstory.gateway.cache.PermissionRevocationEventParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>Принимает CloudEvents 1.0 с типом {@code PluginPermissionsRevoked}, выполняет idempotency
  * check через ce-id в Redis, валидирует payload и делегирует инвалидацию в {@link
- * PermissionCacheService}.
+ * PermissionCacheService}. Event-parsing делегирован в {@link PermissionRevocationEventParser}.
  */
 @Component
 public class PermissionCacheInvalidationListener {
@@ -29,13 +29,15 @@ public class PermissionCacheInvalidationListener {
   private static final String COUNTER_NAME = "plugin.permissions.revoked.count";
 
   private final PermissionCacheService cacheService;
-  private final ObjectMapper objectMapper;
+  private final PermissionRevocationEventParser eventParser;
   private final MeterRegistry meterRegistry;
 
   public PermissionCacheInvalidationListener(
-      PermissionCacheService cacheService, ObjectMapper objectMapper, MeterRegistry meterRegistry) {
+      PermissionCacheService cacheService,
+      PermissionRevocationEventParser eventParser,
+      MeterRegistry meterRegistry) {
     this.cacheService = cacheService;
-    this.objectMapper = objectMapper;
+    this.eventParser = eventParser;
     this.meterRegistry = meterRegistry;
   }
 
@@ -57,23 +59,23 @@ public class PermissionCacheInvalidationListener {
     try {
       setMdcFromHeaders(correlationId, requestId);
 
-      JsonNode tree = objectMapper.readTree(message);
+      JsonNode tree = eventParser.parseEvent(message);
 
-      String ceId = cacheService.extractCeId(tree);
+      String ceId = eventParser.extractCeId(tree);
       if (ceId == null) {
         log.warn(
             "Received PluginPermissionsRevoked event without ce-id, idempotency check skipped");
-      } else if (cacheService.isDuplicateEvent(ceId)) {
+      } else if (eventParser.isDuplicateEvent(ceId)) {
         log.debug("Skipping duplicate revocation event ce-id={}", ceId);
         return;
       }
 
       JsonNode dataNode = tree.path("data");
-      if (!cacheService.validatePayload(dataNode)) {
+      if (!eventParser.validatePayload(dataNode)) {
         return;
       }
 
-      String pluginId = cacheService.extractPluginIdFromData(dataNode);
+      String pluginId = eventParser.extractPluginIdFromData(dataNode);
       if (pluginId != null) {
         cacheService.invalidate(pluginId);
         meterRegistry.counter(COUNTER_NAME, "pluginId", pluginId).increment();
