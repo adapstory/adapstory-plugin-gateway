@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -59,7 +58,6 @@ public class InstalledPluginFetchClient {
    * @param circuitBreakerRegistry реестр circuit breakers
    * @param objectMapper Jackson ObjectMapper для парсинга ответа
    */
-  @Autowired
   public InstalledPluginFetchClient(
       GatewayProperties properties,
       CircuitBreakerRegistry circuitBreakerRegistry,
