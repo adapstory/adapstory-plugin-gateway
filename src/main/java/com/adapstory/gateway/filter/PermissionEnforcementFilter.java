@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -26,6 +25,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * <p>Разрешение выдаётся ТОЛЬКО если требуемая permission присутствует в JWT claims И в текущем
  * манифесте плагина (из Redis/BC-02). Отозванная permission отклоняется немедленно (ADAP-SEC-0010),
  * без ожидания истечения JWT. При невозможности проверки — fail-closed (ADAP-SEC-0011).
+ *
+ * <p>Delegates permission intersection computation to {@link PermissionIntersectionService} (P3-23
+ * SOLID refactoring).
  */
 @Component
 // M-7: Filter ordering is defined via SecurityConfig.addFilterAfter() chain, not @Order.
@@ -42,9 +44,8 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
   private static final String METRIC_DENIED = "plugin_gateway_permission_denied_total";
   private static final String METRIC_UNAVAILABLE = "plugin_gateway_permission_unavailable_total";
 
-  private final GatewayProperties properties;
+  private final PermissionIntersectionService intersectionService;
   private final ObjectMapper objectMapper;
-  private final PermissionCacheService permissionCacheService;
   private final MeterRegistry meterRegistry;
 
   public PermissionEnforcementFilter(
@@ -52,9 +53,9 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       ObjectMapper objectMapper,
       PermissionCacheService permissionCacheService,
       MeterRegistry meterRegistry) {
-    this.properties = properties;
+    this.intersectionService =
+        new PermissionIntersectionService(properties, permissionCacheService);
     this.objectMapper = objectMapper;
-    this.permissionCacheService = permissionCacheService;
     this.meterRegistry = meterRegistry;
   }
 
@@ -74,7 +75,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
     String method = request.getMethod();
     String pluginId = pluginContext.pluginId();
 
-    String requiredPermission = resolveRequiredPermission(path, method);
+    String requiredPermission = intersectionService.resolveRequiredPermission(path, method);
     if (requiredPermission == null) {
       log.warn("No permission mapping found for path={} method={}", path, method);
       GatewayErrorWriter.writeError(
@@ -90,7 +91,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
 
     // Step 1: Check JWT claims first — if JWT itself lacks the permission, reject immediately
     List<String> jwtPermissions = pluginContext.permissions();
-    if (!jwtPermissions.contains(requiredPermission)) {
+    if (!intersectionService.hasJwtPermission(jwtPermissions, requiredPermission)) {
       log.warn(
           "Permission denied for plugin {}: required={}, jwt={}",
           pluginId,
@@ -113,49 +114,38 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       return;
     }
 
-    // Step 2: Get manifest permissions from Redis cache or BC-02 REST
-    Optional<List<String>> cached = permissionCacheService.getCachedPermissions(pluginId);
-    List<String> manifestPermissions;
+    // Step 2 & 3: Compute full intersection (manifest fetch + intersection check)
+    PermissionIntersectionService.IntersectionResult result =
+        intersectionService.computeIntersection(pluginId, jwtPermissions, requiredPermission);
 
-    if (cached.isPresent()) {
-      meterRegistry.counter(METRIC_CACHE_HIT, "pluginId", pluginId).increment();
-      manifestPermissions = cached.get();
-    } else {
-      // Cache miss — fetch from BC-02 REST API (NOT JWT fallback)
-      Optional<List<String>> fetched = permissionCacheService.fetchAndCachePermissions(pluginId);
+    if (result.isUnavailable()) {
+      // Fail-closed: cannot verify permissions (ADAP-SEC-0011)
+      log.warn(
+          "Permission verification unavailable for plugin {}: Redis miss and BC-02 fetch failed",
+          pluginId);
+      meterRegistry.counter(METRIC_UNAVAILABLE, "pluginId", pluginId).increment();
 
-      if (fetched.isEmpty()) {
-        // Fail-closed: cannot verify permissions (ADAP-SEC-0011)
-        log.warn(
-            "Permission verification unavailable for plugin {}: Redis miss and BC-02 fetch failed",
-            pluginId);
-        meterRegistry.counter(METRIC_UNAVAILABLE, "pluginId", pluginId).increment();
+      Map<String, Object> details = new LinkedHashMap<>();
+      details.put("pluginId", pluginId);
+      details.put("errorCode", ERROR_CODE_PERMISSION_UNAVAILABLE);
 
-        Map<String, Object> details = new LinkedHashMap<>();
-        details.put("pluginId", pluginId);
-        details.put("errorCode", ERROR_CODE_PERMISSION_UNAVAILABLE);
-
-        GatewayErrorWriter.writeError(
-            objectMapper,
-            response,
-            request,
-            503,
-            "Service Unavailable",
-            "Unable to verify plugin permissions",
-            details);
-        return;
-      }
-      manifestPermissions = fetched.get();
+      GatewayErrorWriter.writeError(
+          objectMapper,
+          response,
+          request,
+          503,
+          "Service Unavailable",
+          "Unable to verify plugin permissions",
+          details);
+      return;
     }
 
-    // Step 3: Intersection check — requiredPermission must be in BOTH JWT AND manifest
-    if (!manifestPermissions.contains(requiredPermission)) {
+    if (!result.isGranted()) {
       // Permission was in JWT but NOT in manifest → revoked (ADAP-SEC-0010)
       log.warn(
-          "Permission denied for plugin {}: required={}, manifest={}",
+          "Permission denied for plugin {}: required={}, manifest check failed",
           pluginId,
-          requiredPermission,
-          manifestPermissions);
+          requiredPermission);
       meterRegistry
           .counter(METRIC_DENIED, "pluginId", pluginId, "errorCode", ERROR_CODE_PERMISSION_REVOKED)
           .increment();
@@ -176,6 +166,9 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       return;
     }
 
+    // Cache hit metric — if we got here via cache, the service handled it
+    meterRegistry.counter(METRIC_CACHE_HIT, "pluginId", pluginId).increment();
+
     filterChain.doFilter(request, response);
   }
 
@@ -186,26 +179,11 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
   }
 
   /**
-   * Resolve required permission from route mapping configuration. Path format:
-   * /api/bc-02/gateway/v1/api/{routeKey}/v1/... Extracts routeKey and maps HTTP method to
-   * permission.
+   * Resolve required permission from route mapping configuration — delegates to {@link
+   * PermissionIntersectionService}.
    */
   String resolveRequiredPermission(String path, String httpMethod) {
-    if (!path.startsWith(GATEWAY_PREFIX)) {
-      return null;
-    }
-
-    String afterPrefix = path.substring(GATEWAY_PREFIX.length());
-    int slashIndex = afterPrefix.indexOf('/');
-    String routeKey = slashIndex > 0 ? afterPrefix.substring(0, slashIndex) : afterPrefix;
-
-    Map<String, Map<String, String>> routeMappings = properties.permissions().routeMappings();
-    Map<String, String> methodMapping = routeMappings.get(routeKey);
-    if (methodMapping == null) {
-      return null;
-    }
-
-    return methodMapping.get(httpMethod.toUpperCase());
+    return intersectionService.resolveRequiredPermission(path, httpMethod);
   }
 
   private String extractShortPluginId(String fullPluginId) {

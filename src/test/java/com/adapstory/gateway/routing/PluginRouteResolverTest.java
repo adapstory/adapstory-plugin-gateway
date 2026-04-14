@@ -64,9 +64,12 @@ class PluginRouteResolverTest {
             new GatewayProperties.JwtConfig(
                 "http://localhost/certs", "test-issuer", "test-audience", 5),
             Map.of(
-                "content", wireMockServer.baseUrl(),
-                "submission", wireMockServer.baseUrl(),
-                "identity", wireMockServer.baseUrl()),
+                "content",
+                wireMockServer.baseUrl(),
+                "submission",
+                wireMockServer.baseUrl(),
+                "identity",
+                wireMockServer.baseUrl()),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
             new GatewayProperties.InstalledCacheConfig(5, 30),
@@ -74,9 +77,12 @@ class PluginRouteResolverTest {
             new GatewayProperties.Bc02Config("http://localhost:8081"),
             null);
 
+    RouteResolutionService routeResolutionService = new RouteResolutionService(properties);
+    ProxyExecutionService proxyExecutionService = new ProxyExecutionService(RestClient.builder());
+
     resolver =
         new PluginRouteResolver(
-            properties, RestClient.builder(), circuitBreakerRegistry, objectMapper);
+            routeResolutionService, proxyExecutionService, circuitBreakerRegistry, objectMapper);
   }
 
   @AfterEach

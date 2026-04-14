@@ -1,6 +1,5 @@
 package com.adapstory.gateway.routing;
 
-import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.filter.PluginAuthFilter;
 import com.adapstory.gateway.util.GatewayErrorWriter;
@@ -12,20 +11,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.util.Enumeration;
 import java.util.Map;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.StreamingHttpOutputMessage;
-import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestClient;
 
 /**
  * REST прокси-контроллер Plugin Gateway.
@@ -33,38 +23,28 @@ import org.springframework.web.client.RestClient;
  * <p>Разрешает /api/bc-02/gateway/v1/api/{bc}/... в целевой BC URL, стрипит /api/bc-02/gateway/v1
  * prefix и проксирует запрос с circuit breaker защитой. Pattern 4: Gateway path =
  * /api/bc-02/gateway/v1/ prefix + exact core BC path.
+ *
+ * <p>Delegates route resolution to {@link RouteResolutionService} and proxy execution to {@link
+ * ProxyExecutionService} (P3-22 SOLID refactoring).
  */
 @RestController
 @RequestMapping("/api/bc-02/gateway/v1")
 public class PluginRouteResolver {
 
   private static final Logger log = LoggerFactory.getLogger(PluginRouteResolver.class);
-  private static final String GATEWAY_API_PREFIX = "/api/bc-02/gateway/v1/api/";
-  private static final Set<String> HOP_BY_HOP_HEADERS =
-      Set.of(
-          "connection",
-          "content-length",
-          "keep-alive",
-          "proxy-authenticate",
-          "proxy-authorization",
-          "te",
-          "trailers",
-          "transfer-encoding",
-          "upgrade",
-          "host");
 
-  private final GatewayProperties properties;
-  private final RestClient restClient;
+  private final RouteResolutionService routeResolutionService;
+  private final ProxyExecutionService proxyExecutionService;
   private final CircuitBreakerRegistry circuitBreakerRegistry;
   private final ObjectMapper objectMapper;
 
   public PluginRouteResolver(
-      GatewayProperties properties,
-      RestClient.Builder restClientBuilder,
+      RouteResolutionService routeResolutionService,
+      ProxyExecutionService proxyExecutionService,
       CircuitBreakerRegistry circuitBreakerRegistry,
       ObjectMapper objectMapper) {
-    this.properties = properties;
-    this.restClient = restClientBuilder.build();
+    this.routeResolutionService = routeResolutionService;
+    this.proxyExecutionService = proxyExecutionService;
     this.circuitBreakerRegistry = circuitBreakerRegistry;
     this.objectMapper = objectMapper;
   }
@@ -81,7 +61,7 @@ public class PluginRouteResolver {
   @RequestMapping("/api/**")
   public void proxy(HttpServletRequest request, HttpServletResponse response) throws IOException {
     String originalPath = request.getRequestURI();
-    String routeKey = extractRouteKey(originalPath);
+    String routeKey = routeResolutionService.extractRouteKey(originalPath);
 
     if (routeKey == null) {
       writeError(
@@ -94,7 +74,7 @@ public class PluginRouteResolver {
       return;
     }
 
-    String targetBaseUrl = properties.routes().get(routeKey);
+    String targetBaseUrl = routeResolutionService.resolveTargetBaseUrl(routeKey);
     if (targetBaseUrl == null) {
       writeError(
           response,
@@ -106,10 +86,9 @@ public class PluginRouteResolver {
       return;
     }
 
-    // Pattern 4: strip /api/bc-02/gateway/v1 prefix, forward exact remaining path
-    String targetPath = originalPath.substring("/api/bc-02/gateway/v1".length());
-    String queryString = request.getQueryString();
-    String targetUri = targetBaseUrl + targetPath + (queryString != null ? "?" + queryString : "");
+    String targetUri =
+        routeResolutionService.buildTargetUri(
+            targetBaseUrl, originalPath, request.getQueryString());
 
     CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker(routeKey);
 
@@ -117,7 +96,7 @@ public class PluginRouteResolver {
       circuitBreaker.executeRunnable(
           () -> {
             try {
-              executeProxy(request, response, targetUri);
+              proxyExecutionService.executeProxy(request, response, targetUri);
             } catch (IOException ex) {
               throw new RuntimeException("Proxy IO error", ex);
             }
@@ -148,88 +127,9 @@ public class PluginRouteResolver {
     }
   }
 
-  private void executeProxy(
-      HttpServletRequest request, HttpServletResponse response, String targetUri)
-      throws IOException {
-    HttpMethod method = HttpMethod.valueOf(request.getMethod());
-    boolean hasBody =
-        method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH;
-
-    if (hasBody) {
-      restClient
-          .method(method)
-          .uri(URI.create(targetUri))
-          .headers(headers -> copyRequestHeaders(request, headers))
-          .body(
-              (StreamingHttpOutputMessage.Body)
-                  outputStream -> {
-                    try (InputStream is = request.getInputStream()) {
-                      is.transferTo(outputStream);
-                    }
-                  })
-          .exchange(
-              (req, clientResponse) -> {
-                copyResponse(clientResponse, response);
-                return null;
-              });
-    } else {
-      restClient
-          .method(method)
-          .uri(URI.create(targetUri))
-          .headers(headers -> copyRequestHeaders(request, headers))
-          .exchange(
-              (req, clientResponse) -> {
-                copyResponse(clientResponse, response);
-                return null;
-              });
-    }
-  }
-
-  private void copyRequestHeaders(HttpServletRequest request, HttpHeaders headers) {
-    Enumeration<String> headerNames = request.getHeaderNames();
-    while (headerNames.hasMoreElements()) {
-      String headerName = headerNames.nextElement();
-      if (HOP_BY_HOP_HEADERS.contains(headerName.toLowerCase())) {
-        continue;
-      }
-      if (headerName.equalsIgnoreCase(HttpHeaders.AUTHORIZATION)) {
-        continue; // Don't forward plugin JWT to target BC
-      }
-      Enumeration<String> values = request.getHeaders(headerName);
-      while (values.hasMoreElements()) {
-        headers.add(headerName, values.nextElement());
-      }
-    }
-  }
-
-  private void copyResponse(ClientHttpResponse clientResponse, HttpServletResponse response)
-      throws IOException {
-    response.setStatus(clientResponse.getStatusCode().value());
-
-    clientResponse
-        .getHeaders()
-        .forEach(
-            (name, values) -> {
-              if (!HOP_BY_HOP_HEADERS.contains(name.toLowerCase())) {
-                for (String value : values) {
-                  response.addHeader(name, value);
-                }
-              }
-            });
-
-    try (InputStream body = clientResponse.getBody()) {
-      body.transferTo(response.getOutputStream());
-    }
-  }
-
-  /** Extract route key from path. Path format: /api/bc-02/gateway/v1/api/{routeKey}/... */
+  /** Extract route key from path — delegates to {@link RouteResolutionService}. */
   String extractRouteKey(String path) {
-    if (!path.startsWith(GATEWAY_API_PREFIX)) {
-      return null;
-    }
-    String afterPrefix = path.substring(GATEWAY_API_PREFIX.length());
-    int slashIndex = afterPrefix.indexOf('/');
-    return slashIndex > 0 ? afterPrefix.substring(0, slashIndex) : afterPrefix;
+    return routeResolutionService.extractRouteKey(path);
   }
 
   private void writeError(
