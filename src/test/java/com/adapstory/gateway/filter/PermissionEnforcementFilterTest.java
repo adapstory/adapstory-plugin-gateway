@@ -20,6 +20,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -45,8 +47,10 @@ class PermissionEnforcementFilterTest {
 
     Map<String, Map<String, String>> routeMappings =
         Map.of(
-            "content", Map.of("GET", "content.read", "POST", "content.write"),
-            "submission", Map.of("GET", "submission.read", "POST", "submission.write"));
+            "content",
+            Map.of("GET", "content.read", "POST", "content.write"),
+            "submission",
+            Map.of("GET", "submission.read", "POST", "submission.write"));
 
     GatewayProperties properties =
         new GatewayProperties(
@@ -278,24 +282,37 @@ class PermissionEnforcementFilterTest {
       assertThat(filter.shouldNotFilter(request)).isTrue();
     }
 
-    @Test
-    @DisplayName("Route key extraction from path works correctly")
-    void routeKeyExtraction() {
-      assertThat(
-              filter.resolveRequiredPermission(
-                  "/api/bc-02/gateway/v1/api/content/v1/materials", "GET"))
-          .isEqualTo("content.read");
-      assertThat(
-              filter.resolveRequiredPermission(
-                  "/api/bc-02/gateway/v1/api/content/v1/materials", "POST"))
-          .isEqualTo("content.write");
-      assertThat(
-              filter.resolveRequiredPermission(
-                  "/api/bc-02/gateway/v1/api/submission/v1/grades", "POST"))
-          .isEqualTo("submission.write");
-      assertThat(
-              filter.resolveRequiredPermission("/api/bc-02/gateway/v1/api/unknown/v1/test", "GET"))
-          .isNull();
+    @ParameterizedTest(name = "[{index}] {0} {1} → {2}")
+    @CsvSource(
+        delimiter = '|',
+        quoteCharacter = '"',
+        nullValues = {"NULL"},
+        textBlock =
+            """
+      /api/bc-02/gateway/v1/api/content/v1/materials|GET|content.read
+      /api/bc-02/gateway/v1/api/content/v1/materials|POST|content.write
+      /api/bc-02/gateway/v1/api/submission/v1/grades|POST|submission.write
+      /api/bc-02/gateway/v1/api/content|GET|content.read
+      /api/bc-02/gateway/v1/api/unknown/v1/test|GET|NULL
+      /api/content/v1/materials|GET|NULL
+      /api/bc-02/gateway/v1/api/content/v1/materials|DELETE|NULL
+      """)
+    @DisplayName("resolveRequiredPermission maps path + method to expected permission")
+    void resolveRequiredPermission_variousPaths_returnsExpected(
+        String path, String method, String expectedPermission) {
+      String actual = filter.resolveRequiredPermission(path, method);
+
+      if (expectedPermission == null) {
+        assertThat(actual)
+            .as("resolveRequiredPermission('%s', '%s') should return null", path, method)
+            .isNull();
+      } else {
+        assertThat(actual)
+            .as(
+                "resolveRequiredPermission('%s', '%s') should return %s",
+                path, method, expectedPermission)
+            .isEqualTo(expectedPermission);
+      }
     }
 
     @Test
@@ -321,28 +338,6 @@ class PermissionEnforcementFilterTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.message()).contains("No permission mapping configured");
-    }
-
-    @Test
-    @DisplayName("resolveRequiredPermission returns null for non-gateway path")
-    void resolveRequiredPermission_nonGatewayPath() {
-      assertThat(filter.resolveRequiredPermission("/api/content/v1/materials", "GET")).isNull();
-    }
-
-    @Test
-    @DisplayName("resolveRequiredPermission returns null for unmapped HTTP method")
-    void resolveRequiredPermission_unmappedMethod() {
-      assertThat(
-              filter.resolveRequiredPermission(
-                  "/api/bc-02/gateway/v1/api/content/v1/materials", "DELETE"))
-          .isNull();
-    }
-
-    @Test
-    @DisplayName("resolveRequiredPermission extracts route key without trailing path")
-    void resolveRequiredPermission_noTrailingPath() {
-      assertThat(filter.resolveRequiredPermission("/api/bc-02/gateway/v1/api/content", "GET"))
-          .isEqualTo("content.read");
     }
 
     @Test
