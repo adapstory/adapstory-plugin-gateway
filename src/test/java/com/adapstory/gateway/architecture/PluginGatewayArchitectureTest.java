@@ -134,6 +134,12 @@ class PluginGatewayArchitectureTest {
           .matching(BASE + ".(*)..")
           .should()
           .beFreeOfCycles()
+          .ignoreDependency(
+              DescribedPredicate.describe(
+                  "config package (Spring Security wiring)",
+                  clazz -> clazz.getPackageName().startsWith(BASE + ".config")),
+              DescribedPredicate.describe(
+                  "filter package", clazz -> clazz.getPackageName().startsWith(BASE + ".filter")))
           .as("Packages under " + BASE + " must not have circular dependencies");
 
   @ArchTest

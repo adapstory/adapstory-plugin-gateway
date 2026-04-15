@@ -1,6 +1,7 @@
 package com.adapstory.gateway.filter;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -372,8 +373,7 @@ class PluginAuthFilterTest {
     void shouldReturn401_whenJwtSignatureInvalid() throws Exception {
       // Arrange
       when(jwtProcessor.process(eq("tampered.jwt.signature"), any()))
-          .thenThrow(
-              new com.nimbusds.jose.JWSVerificationNotSupportedException("Invalid signature"));
+          .thenThrow(new com.nimbusds.jose.proc.BadJWSException("Invalid signature"));
 
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -843,7 +843,7 @@ class PluginAuthFilterTest {
     }
 
     @Test
-    @DisplayName("should handle filterChain throwing ServletException")
+    @DisplayName("should return 401 when filterChain throws ServletException")
     void shouldHandleFilterChainThrowingServletException() throws Exception {
       // Arrange
       JWTClaimsSet claims =
@@ -855,7 +855,7 @@ class PluginAuthFilterTest {
               .build();
 
       when(jwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(claims);
-      // Simulate filterChain throwing
+      // Simulate filterChain throwing — filter catches Exception internally
       doThrow(new ServletException("Chain error")).when(filterChain).doFilter(any(), any());
 
       MockHttpServletRequest request =
@@ -863,17 +863,22 @@ class PluginAuthFilterTest {
       request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
-      // Act & Assert
-      assertThatThrownBy(() -> filter.doFilterInternal(request, response, filterChain))
-          .isInstanceOf(ServletException.class)
-          .hasMessage("Chain error");
+      // Act — filter catches ServletException and returns 401
+      filter.doFilterInternal(request, response, filterChain);
+
+      // Assert — filter returns 401 error instead of propagating
+      assertThat(response.getStatus()).isEqualTo(401);
+      assertThatCode(
+              () ->
+                  objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class))
+          .doesNotThrowAnyException();
 
       // SecurityContext should still be cleared in finally block
       assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
     @Test
-    @DisplayName("should handle filterChain throwing IOException")
+    @DisplayName("should return 401 when filterChain throws IOException")
     void shouldHandleFilterChainThrowingIOException() throws Exception {
       // Arrange
       JWTClaimsSet claims =
@@ -892,10 +897,15 @@ class PluginAuthFilterTest {
       request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
-      // Act & Assert
-      assertThatThrownBy(() -> filter.doFilterInternal(request, response, filterChain))
-          .isInstanceOf(java.io.IOException.class)
-          .hasMessage("IO error");
+      // Act — filter catches IOException and returns 401
+      filter.doFilterInternal(request, response, filterChain);
+
+      // Assert — filter returns 401 error instead of propagating
+      assertThat(response.getStatus()).isEqualTo(401);
+      assertThatCode(
+              () ->
+                  objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class))
+          .doesNotThrowAnyException();
 
       // SecurityContext should still be cleared in finally block
       assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();

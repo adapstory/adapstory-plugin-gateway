@@ -8,6 +8,7 @@ import io.github.resilience4j.retry.RetryRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.annotation.security.PermitAll;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -35,6 +36,7 @@ import org.springframework.web.client.RestClient;
  * endpoint немедленно возвращает 202 Accepted. Retry с экспоненциальным backoff (3 попытки: 1s, 2s,
  * 4s), только для 5xx и connection errors (4xx не ретраится).
  */
+@PermitAll
 @RestController
 @RequestMapping("/api/bc-02/gateway/v1/webhooks")
 public class WebhookDispatcher {

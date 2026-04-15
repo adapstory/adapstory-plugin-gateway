@@ -8,6 +8,7 @@ import io.opentelemetry.api.trace.Span;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  * observability.
  */
 @RestController
+@PermitAll
 @RequestMapping("/internal/plugins")
 public class McpRouteController {
 

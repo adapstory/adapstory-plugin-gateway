@@ -8,6 +8,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>Delegates route resolution to {@link RouteResolutionService} and proxy execution to {@link
  * ProxyExecutionService} (P3-22 SOLID refactoring).
  */
+@PermitAll
 @RestController
 @RequestMapping("/api/bc-02/gateway/v1")
 public class PluginRouteResolver {
