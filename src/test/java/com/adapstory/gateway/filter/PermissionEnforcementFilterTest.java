@@ -297,8 +297,8 @@ class PermissionEnforcementFilterTest {
       /api/content/v1/materials|GET|NULL
       /api/bc-02/gateway/v1/api/content/v1/materials|DELETE|NULL
       """)
-    @DisplayName("resolveRequiredPermission maps path + method to expected permission")
-    void resolveRequiredPermission_variousPaths_returnsExpected(
+    @DisplayName("should return expected permission when resolving path and method")
+    void should_returnExpectedPermission_when_resolvingPathAndMethod(
         String path, String method, String expectedPermission) {
       String actual = filter.resolveRequiredPermission(path, method);
 

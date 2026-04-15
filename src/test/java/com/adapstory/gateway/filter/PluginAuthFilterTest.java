@@ -345,7 +345,7 @@ class PluginAuthFilterTest {
     @Test
     @DisplayName(
         "should return 401 with 'Invalid or expired plugin token' when JWT processing fails")
-    void shouldReturn401_whenJwtProcessingFails() throws Exception {
+    void should_return401_when_jwtProcessingFails() throws Exception {
       // Arrange
       when(jwtProcessor.process(eq("invalid.token"), any()))
           .thenThrow(new RuntimeException("JWT expired"));
