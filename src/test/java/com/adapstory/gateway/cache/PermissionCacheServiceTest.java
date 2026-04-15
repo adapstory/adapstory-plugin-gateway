@@ -68,12 +68,12 @@ class PermissionCacheServiceTest {
   }
 
   @Nested
-  @DisplayName("Cache operations")
+  @DisplayName("should returnCachedPermissions when cacheHit")
   class CacheOperations {
 
     @Test
     @DisplayName("Cache hit returns cached permissions")
-    void cacheHit_returnsCachedPermissions() {
+    void should_returnCachedPermissions_when_cacheHit() {
       // Arrange
       when(valueOperations.get("plugin:permissions:test-plugin"))
           .thenReturn("content.read,submission.read");
@@ -88,7 +88,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Cache miss returns empty Optional")
-    void cacheMiss_returnsEmpty() {
+    void should_returnEmpty_when_cacheMiss() {
       // Arrange
       when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn(null);
 
@@ -101,7 +101,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Cache permissions stores with correct TTL")
-    void cachePermissions_storesWithTtl() {
+    void should_storeWithTtl_when_cachePermissions() {
       // Act
       cacheService.cachePermissions("test-plugin", List.of("content.read", "grade.write"));
 
@@ -115,7 +115,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Cache hit with empty value returns empty list")
-    void cacheHit_emptyValue_returnsEmptyList() {
+    void should_returnEmptyList_when_emptyValue() {
       // Arrange
       when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn("");
 
@@ -129,7 +129,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Negative cache sentinel returns empty Optional")
-    void negativeCacheSentinel_returnsEmpty() {
+    void should_returnEmpty_when_negativeCacheSentinel() {
       // Arrange
       when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn("__UNAVAILABLE__");
 
@@ -152,7 +152,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Invalidate deletes cache entry")
-    void invalidate_deletesCacheEntry() {
+    void should_deleteCacheEntry_when_invalidate() {
       // Act
       cacheService.invalidate("test-plugin");
 

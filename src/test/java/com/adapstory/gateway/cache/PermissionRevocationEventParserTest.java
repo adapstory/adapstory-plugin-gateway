@@ -40,12 +40,12 @@ class PermissionRevocationEventParserTest {
   }
 
   @Nested
-  @DisplayName("parseEvent")
+  @DisplayName("should returnTree when validJson")
   class ParseEvent {
 
     @Test
     @DisplayName("Valid JSON returns parsed JsonNode tree")
-    void validJson_returnsTree() throws JsonProcessingException {
+    void should_returnTree_when_validJson() throws JsonProcessingException {
       // Arrange
       String json = "{\"specversion\":\"1.0\",\"id\":\"ce-123\",\"data\":{}}";
 
@@ -59,7 +59,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Invalid JSON throws JsonProcessingException")
-    void invalidJson_throwsException() {
+    void should_throwException_when_invalidJson() {
       // Act & Assert
       assertThatThrownBy(() -> eventParser.parseEvent("not-valid-json{{{"))
           .isInstanceOf(JsonProcessingException.class);
@@ -67,12 +67,12 @@ class PermissionRevocationEventParserTest {
   }
 
   @Nested
-  @DisplayName("extractCeId")
+  @DisplayName("should returnValue when presentId")
   class ExtractCeId {
 
     @Test
     @DisplayName("Returns ce-id when present")
-    void presentId_returnsValue() throws JsonProcessingException {
+    void should_returnValue_when_presentId() throws JsonProcessingException {
       // Arrange
       JsonNode tree = objectMapper.readTree("{\"id\":\"ce-uuid-123\"}");
 
@@ -85,7 +85,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Returns null when id field is missing")
-    void missingId_returnsNull() throws JsonProcessingException {
+    void should_returnNull_when_missingId() throws JsonProcessingException {
       // Arrange
       JsonNode tree = objectMapper.readTree("{\"specversion\":\"1.0\"}");
 
@@ -98,7 +98,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Returns null when id field is null")
-    void nullId_returnsNull() throws JsonProcessingException {
+    void should_returnNull_when_nullId() throws JsonProcessingException {
       // Arrange
       JsonNode tree = objectMapper.readTree("{\"id\":null}");
 
@@ -111,12 +111,12 @@ class PermissionRevocationEventParserTest {
   }
 
   @Nested
-  @DisplayName("isDuplicateEvent")
+  @DisplayName("should beNotDuplicate when firstEvent")
   class IsDuplicateEvent {
 
     @Test
     @DisplayName("First event (setIfAbsent returns true) is not a duplicate")
-    void firstEvent_isNotDuplicate() {
+    void should_beNotDuplicate_when_firstEvent() {
       // Arrange
       when(valueOperations.setIfAbsent(
               eq("revoked-event-processed:ce-123"), eq("1"), eq(Duration.ofHours(24))))
@@ -133,7 +133,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Already-processed event (setIfAbsent returns false) is a duplicate")
-    void alreadyProcessed_isDuplicate() {
+    void should_beDuplicate_when_alreadyProcessed() {
       // Arrange — key already exists
       when(valueOperations.setIfAbsent(
               eq("revoked-event-processed:ce-123"), eq("1"), eq(Duration.ofHours(24))))
@@ -148,12 +148,12 @@ class PermissionRevocationEventParserTest {
   }
 
   @Nested
-  @DisplayName("validatePayload")
+  @DisplayName("should returnTrue when validPayload")
   class ValidatePayload {
 
     @Test
     @DisplayName("Valid payload with reasonable permissions returns true")
-    void validPayload_returnsTrue() throws JsonProcessingException {
+    void should_returnTrue_when_validPayload() throws JsonProcessingException {
       // Arrange
       JsonNode dataNode =
           objectMapper.readTree(
@@ -168,7 +168,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Rejects oversized payload with >100 permissions")
-    void rejectsOversizedPayload() throws JsonProcessingException {
+    void should_reject_oversized_payload_when_invoked() throws JsonProcessingException {
       // Arrange
       String permissions =
           IntStream.range(0, 101)
@@ -187,7 +187,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Rejects scope exceeding max length (255 chars)")
-    void rejectsScopeExceedingMaxLength() throws JsonProcessingException {
+    void should_reject_scope_exceeding_max_length_when_invoked() throws JsonProcessingException {
       // Arrange
       String longScope = "x".repeat(256);
       JsonNode dataNode =
@@ -203,7 +203,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Returns true when revokedPermissions is missing")
-    void missingRevokedPermissions_returnsTrue() throws JsonProcessingException {
+    void should_returnTrue_when_missingRevokedPermissions() throws JsonProcessingException {
       // Arrange
       JsonNode dataNode = objectMapper.readTree("{\"pluginId\":\"test-plugin\"}");
 
@@ -216,7 +216,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Accepts payload with exactly 100 permissions (at limit)")
-    void exactlyAtLimit_returnsTrue() throws JsonProcessingException {
+    void should_returnTrue_when_exactlyAtLimit() throws JsonProcessingException {
       // Arrange
       String permissions =
           IntStream.range(0, 100)
@@ -235,7 +235,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Accepts scope at exactly 255 chars (at limit)")
-    void scopeAtMaxLength_returnsTrue() throws JsonProcessingException {
+    void should_returnTrue_when_scopeAtMaxLength() throws JsonProcessingException {
       // Arrange
       String scopeAtLimit = "x".repeat(255);
       JsonNode dataNode =
@@ -251,14 +251,14 @@ class PermissionRevocationEventParserTest {
   }
 
   @Nested
-  @DisplayName("pluginId extraction")
+  @DisplayName("should camelCase when extractPluginId")
   class PluginIdExtraction {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Test
     @DisplayName("extracts pluginId from camelCase key")
-    void extractPluginId_camelCase() throws Exception {
+    void should_camelCase_when_extractPluginId() throws Exception {
       // Arrange
       var data = mapper.readTree("{\"pluginId\":\"test-plugin\"}");
 
@@ -268,7 +268,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("extracts pluginId from snake_case key")
-    void extractPluginId_snakeCase() throws Exception {
+    void should_snakeCase_when_extractPluginId() throws Exception {
       // Arrange
       var data = mapper.readTree("{\"plugin_id\":\"test-plugin\"}");
 
@@ -278,7 +278,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("returns null when pluginId missing")
-    void extractPluginId_missing() throws Exception {
+    void should_missing_when_extractPluginId() throws Exception {
       // Arrange
       var data = mapper.readTree("{\"other\":\"value\"}");
 
@@ -288,7 +288,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("returns null for invalid pluginId format (M-2 — path traversal)")
-    void extractPluginId_invalidFormat() throws Exception {
+    void should_invalidFormat_when_extractPluginId() throws Exception {
       // Arrange
       var data = mapper.readTree("{\"pluginId\":\"../../etc/passwd\"}");
 
@@ -298,7 +298,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("returns null for blank pluginId value (M-2)")
-    void extractPluginId_blank() throws Exception {
+    void should_blank_when_extractPluginId() throws Exception {
       // Arrange
       var data = mapper.readTree("{\"pluginId\":\" \"}");
 

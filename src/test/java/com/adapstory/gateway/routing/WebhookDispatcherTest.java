@@ -60,7 +60,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("Dispatch returns 202 Accepted immediately (async)")
-  void dispatchWebhook_returns202() {
+  void should_return202_when_dispatchWebhook() {
     // Arrange
     wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(200)));
 
@@ -77,7 +77,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("Successful dispatch on first attempt")
-  void executeWithRetry_successOnFirstAttempt() {
+  void should_succesOnFirstAttempt_when_executeWithRetry() {
     // Arrange
     wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(200)));
 
@@ -95,7 +95,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("Retry on 5xx — retries configured number of times")
-  void executeWithRetry_retriesOn5xx() {
+  void should_retryOn5xx_when_executeWithRetry() {
     // Arrange — first 2 calls fail with 500, 3rd succeeds
     wireMockServer.stubFor(
         post("/webhook")
@@ -131,7 +131,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("4xx client error — does NOT retry (H4 fix)")
-  void executeWithRetry_doesNotRetryOn4xx() {
+  void should_doNotRetryOn4xx_when_executeWithRetry() {
     // Arrange — plugin pod returns 400 Bad Request
     wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(400)));
 
@@ -149,7 +149,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("All retries exhausted on 5xx — logs error")
-  void executeWithRetry_allRetriesExhausted() {
+  void should_allRetriesExhausted_when_executeWithRetry() {
     // Arrange — all calls fail with 500
     wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(500)));
 
@@ -167,7 +167,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("Plugin pod endpoint resolution follows naming convention")
-  void pluginPodEndpointResolution() {
+  void should_plugin_pod_endpoint_resolution_when_invoked() {
     // Need a fresh instance without the override
     GatewayProperties properties =
         new GatewayProperties(

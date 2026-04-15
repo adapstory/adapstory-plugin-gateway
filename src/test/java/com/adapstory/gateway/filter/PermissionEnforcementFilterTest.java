@@ -68,12 +68,12 @@ class PermissionEnforcementFilterTest {
   }
 
   @Nested
-  @DisplayName("Intersection model (SEC-3.2)")
+  @DisplayName("should passThrough when permissionInBoth")
   class IntersectionModel {
 
     @Test
     @DisplayName("Permission in JWT AND manifest — request passes through")
-    void permissionInBoth_passesThrough() throws Exception {
+    void should_passThrough_when_permissionInBoth() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -100,7 +100,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Permission in JWT but NOT in manifest — 403 ADAP-SEC-0010 (revoked)")
-    void permissionInJwtNotManifest_returns403_revoked() throws Exception {
+    void should_revoked_when_returns403() throws Exception {
       // Arrange — JWT has content.read, but manifest does NOT
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -144,7 +144,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Permission NOT in JWT — 403 (existing behavior, no manifest check needed)")
-    void permissionNotInJwt_returns403() throws Exception {
+    void should_return403_when_permissionNotInJwt() throws Exception {
       // Arrange — JWT doesn't have submission.write at all
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -170,7 +170,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Cache miss → BC-02 fetch success → allowed")
-    void cacheMiss_bc02Success_allowed() throws Exception {
+    void should_allowed_when_bc02Success() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -194,7 +194,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Cache miss → BC-02 unavailable → 503 ADAP-SEC-0011 (fail-closed)")
-    void cacheMiss_bc02Unavailable_returns503() throws Exception {
+    void should_return503_when_bc02Unavailable() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -232,7 +232,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Empty manifest permissions — 403 for any permission (AC #7)")
-    void emptyManifestPermissions_returns403() throws Exception {
+    void should_return403_when_emptyManifestPermissions() throws Exception {
       // Arrange — JWT has content.read, but manifest is empty
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -259,12 +259,12 @@ class PermissionEnforcementFilterTest {
   }
 
   @Nested
-  @DisplayName("Non-intersection behavior")
+  @DisplayName("should passThrough when noPluginContext")
   class NonIntersection {
 
     @Test
     @DisplayName("No plugin context — passes through (unauthenticated path)")
-    void noPluginContext_passesThrough() throws Exception {
+    void should_passThrough_when_noPluginContext() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       MockHttpServletResponse response = new MockHttpServletResponse();
@@ -276,7 +276,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Non-gateway path should not be filtered")
-    void nonGatewayPath_shouldNotFilter() {
+    void should_not_filter_when_nonGatewayPath() {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/webhooks/test");
       assertThat(filter.shouldNotFilter(request)).isTrue();
@@ -317,7 +317,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("No permission mapping for route — 403 with 'No permission mapping' message")
-    void noPermissionMapping_returns403() throws Exception {
+    void should_return403_when_noPermissionMapping() throws Exception {
       // Arrange — plugin has permissions, but the route has no mapping in config
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -342,7 +342,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Cache hit increments cache_hit metric")
-    void cacheHit_incrementsMetric() throws Exception {
+    void should_incrementMetric_when_cacheHit() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(
