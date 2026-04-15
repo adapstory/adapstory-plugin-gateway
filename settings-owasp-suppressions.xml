@@ -26,64 +26,6 @@
         <cve>CVE-2025-15104</cve>
     </suppress>
 
-    <!-- Accepted risk: CVE-2025-15599 — XSS in DOMPurify <= 3.2.6 (missing textarea rawtext
-         element validation). Fix: DOMPurify 3.2.7. However, swagger-ui 5.31.0+ still bundles
-         DOMPurify 3.2.6 (upstream issue swagger-api/swagger-ui#10478). No fixed swagger-ui
-         release available. springdoc-openapi 3.0.1 depends on swagger-ui transitively.
-         Risk: XSS in Swagger UI. Mitigation: Swagger UI is disabled in production profile
-         (springdoc.api-docs.enabled=false). Revisit when swagger-ui upgrades DOMPurify. -->
-    <suppress>
-        <notes>Accepted: DOMPurify 3.2.6 XSS. No fixed swagger-ui release yet. Swagger UI disabled in prod.</notes>
-        <packageUrl regex="true">^pkg:javascript/dompurify@.*$</packageUrl>
-        <cve>CVE-2025-15599</cve>
-    </suppress>
-
-    <!-- Accepted risk: CVE-2026-0540 — XSS in DOMPurify <= 3.3.1 (missing rawtext elements
-         noscript/xmp/noembed/noframes/iframe). Fix: DOMPurify 3.3.2. Same root cause as above:
-         swagger-ui has not upgraded DOMPurify. Same mitigation: Swagger UI disabled in prod. -->
-    <suppress>
-        <notes>Accepted: DOMPurify 3.3.1 XSS. No fixed swagger-ui release yet. Swagger UI disabled in prod.</notes>
-        <packageUrl regex="true">^pkg:javascript/dompurify@.*$</packageUrl>
-        <cve>CVE-2026-0540</cve>
-    </suppress>
-
-    <!-- Accepted risk: CVE-2026-29062 affects tools.jackson.core:jackson-core 3.0.x (StackOverflow
-         via nesting depth bypass). Fix requires jackson-core 3.1.0, but Spring Boot 4.0.3 BOM pins
-         all Jackson 3 modules to 3.0.4 as a coherent set. Upgrading only jackson-core to 3.1.0
-         causes binary incompatibilities with jackson-databind and other modules at 3.0.4.
-         Accepted until Spring Boot ships a BOM update that upgrades the entire Jackson 3.x set.
-         Risk: DoS via crafted deeply-nested JSON payload (CVSS 7.5). Mitigation: enforce request
-         size limits and JSON nesting depth at API gateway level. -->
-    <suppress>
-        <notes>Accepted: fix (3.1.0) breaks Spring Boot 4.0.3 Jackson module coherence. Mitigate via gateway nesting limits. Revisit when Spring Boot BOM includes jackson-core 3.1.0.</notes>
-        <packageUrl regex="true">^pkg:maven/tools\.jackson\.core/.*@.*$</packageUrl>
-        <cve>CVE-2026-29062</cve>
-    </suppress>
-
-    <!-- vertx-core 4.5.14: CVE-2025-11965 (CVSS 6.3) + CVE-2025-11966
-         Transitive via Spring Cloud Gateway / Keycloak client.
-         Risk: HTTP request smuggling via crafted headers. Mitigated by Traefik reverse proxy.
-         Revisit when vertx-core 4.5.15+ available in Spring BOM. -->
-    <suppress>
-        <notes>Accepted: vertx-core CVEs mitigated by Traefik. Revisit with next Spring BOM update.</notes>
-        <packageUrl regex="true">^pkg:maven/io\.vertx/vertx-core@.*$</packageUrl>
-        <cve>CVE-2025-11965</cve>
-    </suppress>
-    <suppress>
-        <notes>Accepted: vertx-core CVEs mitigated by Traefik. Revisit with next Spring BOM update.</notes>
-        <packageUrl regex="true">^pkg:maven/io\.vertx/vertx-core@.*$</packageUrl>
-        <cve>CVE-2025-11966</cve>
-    </suppress>
-
-    <!-- jgit 7.2.0: CVE-2025-4949
-         Transitive via plugin-lifecycle GitOps adapter.
-         Risk: path traversal in JGit. Mitigated by validated input paths in GitOps adapter. -->
-    <suppress>
-        <notes>Accepted: JGit CVE mitigated by input validation. Revisit with jgit 7.3.0+.</notes>
-        <packageUrl regex="true">^pkg:maven/org\.eclipse\.jgit/.*@.*$</packageUrl>
-        <cve>CVE-2025-4949</cve>
-    </suppress>
-
     <!-- json-schema-validator 1.5.9: CVE-2025-15104
          Used by Keycloak/Hibernate validator dependency chain.
          False positive: validator is used on trusted schemas, not user input. -->
