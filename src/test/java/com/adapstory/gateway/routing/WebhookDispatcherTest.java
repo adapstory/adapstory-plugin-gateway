@@ -77,7 +77,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("Successful dispatch on first attempt")
-  void should_succesOnFirstAttempt_when_executeWithRetry() {
+  void should_succeedOnFirstAttempt_when_executeWithRetry() {
     // Arrange
     wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(200)));
 
