@@ -2,7 +2,6 @@ package com.adapstory.gateway.filter;
 
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Фильтр валидации JWT claims для MCP маршрутов.
@@ -58,7 +58,6 @@ public class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
-
     // Step 1: Verify authentication context exists
     PluginSecurityContext ctx =
         (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
@@ -104,10 +103,7 @@ public class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
           403,
           "Forbidden",
           String.format("Plugin tool '%s' is not authorized for this session", slug),
-          Map.of(
-              "slug", slug,
-              "pluginId", ctx.pluginId(),
-              "error_code", ERROR_CODE));
+          Map.of("slug", slug, "pluginId", ctx.pluginId(), "error_code", ERROR_CODE));
       return;
     }
 

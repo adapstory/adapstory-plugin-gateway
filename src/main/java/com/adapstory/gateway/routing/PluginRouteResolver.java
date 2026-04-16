@@ -3,7 +3,6 @@ package com.adapstory.gateway.routing;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.filter.PluginAuthFilter;
 import com.adapstory.gateway.util.GatewayErrorWriter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * REST прокси-контроллер Plugin Gateway.

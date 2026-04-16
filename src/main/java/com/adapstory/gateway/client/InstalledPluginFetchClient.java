@@ -2,8 +2,6 @@ package com.adapstory.gateway.client;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -16,10 +14,13 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * REST-клиент для проверки установки плагина для тенанта через BC-02.
@@ -58,6 +59,7 @@ public class InstalledPluginFetchClient {
    * @param circuitBreakerRegistry реестр circuit breakers
    * @param objectMapper Jackson ObjectMapper для парсинга ответа
    */
+  @Autowired
   public InstalledPluginFetchClient(
       GatewayProperties properties,
       CircuitBreakerRegistry circuitBreakerRegistry,

@@ -3,7 +3,6 @@ package com.adapstory.gateway.filter;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.jwk.source.JWKSourceBuilder;
@@ -34,6 +33,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Фильтр аутентификации плагинов.
@@ -149,7 +149,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
-    return path.startsWith("/actuator/") || path.startsWith("/api/bc-02/gateway/v1/webhooks");
+    return (path.startsWith("/actuator/") || path.startsWith("/api/bc-02/gateway/v1/webhooks"));
   }
 
   private void writeError(

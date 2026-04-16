@@ -3,7 +3,6 @@ package com.adapstory.gateway.util;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.adapstory.gateway.dto.GatewayErrorResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,6 +10,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Тесты GatewayErrorWriter: стандартизированные ошибки Gateway в формате Pattern 8.
@@ -25,8 +25,7 @@ class GatewayErrorWriterTest {
 
   @BeforeEach
   void setUp() {
-    objectMapper =
-        com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
+    objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
   }
 
   @Nested

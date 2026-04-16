@@ -3,8 +3,6 @@ package com.adapstory.gateway.event;
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.cache.PermissionCacheService;
 import com.adapstory.gateway.cache.PermissionRevocationEventParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +11,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Kafka consumer: инвалидирует кеш permissions плагина при отзыве (Story SEC-3.1).
@@ -86,7 +86,7 @@ public class PermissionCacheInvalidationListener {
       } else {
         log.warn("Could not extract pluginId from PluginPermissionsRevoked event");
       }
-    } catch (JsonProcessingException ex) {
+    } catch (JacksonException ex) {
       log.warn("Malformed GLOBAL_PLUGIN_PERMISSIONS_REVOKED event: {}", ex.getMessage());
     } finally {
       restoreMdc(IntegrationHeaders.CORRELATION_ID, previousCorrelationId);
