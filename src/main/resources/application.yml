@@ -27,18 +27,18 @@ spring:
 # Keycloak JWKS configuration
 gateway:
   jwt:
-    jwks-uri: http://localhost:8080/realms/plugins/protocol/openid-connect/certs
-    issuer: https://auth.adapstory.com/realms/plugins
-    audience: adapstory-core
+    jwks-uri: http://localhost:8180/realms/adapstory/protocol/openid-connect/certs
+    issuer: http://localhost:8180/realms/adapstory
+    audience: adapstory-plugin-gateway
     jwks-cache-ttl-minutes: 60  # ARCH-1: Keycloak SPOF mitigation — 60 min cache
 
   # Route-to-BC mapping (overridden by GATEWAY_ROUTES_* env vars in cluster)
   routes:
-    content: http://localhost:8081
+    content: http://localhost:8080
     submission: http://localhost:8080
     identity: http://localhost:8082
-    plugin: http://localhost:8080
-    tenant: http://localhost:8080
+    plugin: http://localhost:8083
+    tenant: http://localhost:8081
 
   # Route-to-permission mapping (HTTP method -> required permission suffix)
   permissions:
@@ -71,7 +71,7 @@ gateway:
 
   # BC-02 (Plugin Lifecycle) connection for manifest-based permission checks (SEC-3.2)
   bc02:
-    base-url: http://localhost:8081
+    base-url: http://localhost:8083
 
   # Kafka topic configuration
   kafka:
@@ -131,3 +131,11 @@ springdoc:
   swagger-ui:
     enabled: ${SPRINGDOC_ENABLED:true}
     path: /swagger-ui.html
+
+adapstory:
+  service-auth:
+    enabled: ${SERVICE_AUTH_ENABLED:true}
+    token-endpoint: ${KEYCLOAK_TOKEN_URI:http://localhost:8180/realms/adapstory/protocol/openid-connect/token}
+    client-id: ${KEYCLOAK_CLIENT_ID:adapstory-plugin-gateway}
+    client-secret: ${KEYCLOAK_CLIENT_SECRET:}
+    refresh-buffer-seconds: 60

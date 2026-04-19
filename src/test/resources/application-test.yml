@@ -10,8 +10,8 @@ spring:
 gateway:
   jwt:
     jwks-uri: http://placeholder:0/certs
-    issuer: https://auth.adapstory.com/realms/plugins
-    audience: adapstory-core
+    issuer: https://auth.adapstory.com/realms/adapstory
+    audience: adapstory-plugin-gateway
     jwks-cache-ttl-minutes: 5
 
   bc02:

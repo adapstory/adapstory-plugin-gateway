@@ -3,6 +3,8 @@ package com.adapstory.gateway.client;
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.PluginPermissionsResponse;
+import com.adapstory.starter.web.auth.ServiceHeaderInterceptor;
+import com.adapstory.starter.web.auth.ServiceTokenPort;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -16,6 +18,10 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -42,6 +48,9 @@ public class PermissionFetchClient {
 
   private static final int CONNECT_TIMEOUT_MS = 3000;
   private static final int READ_TIMEOUT_MS = 3000;
+  private static final String TARGET_AUDIENCE = "adapstory-bc02-service";
+  private static final String SOURCE_SERVICE = "plugin-gateway";
+  private static final String DEFAULT_CLIENT_ID = "adapstory-plugin-gateway";
 
   private final RestClient restClient;
   private final CircuitBreaker circuitBreaker;
@@ -52,8 +61,14 @@ public class PermissionFetchClient {
    * @param properties конфигурация Gateway (содержит baseUrl BC-02)
    * @param circuitBreakerRegistry реестр circuit breakers
    */
+  @Autowired
   public PermissionFetchClient(
-      GatewayProperties properties, CircuitBreakerRegistry circuitBreakerRegistry) {
+      RestClient.Builder restClientBuilder,
+      GatewayProperties properties,
+      CircuitBreakerRegistry circuitBreakerRegistry,
+      ObjectProvider<ServiceTokenPort> serviceTokenPort,
+      @Value("${adapstory.service-auth.client-id:" + DEFAULT_CLIENT_ID + "}") String clientId) {
+    Objects.requireNonNull(restClientBuilder, "restClientBuilder must not be null");
     Objects.requireNonNull(properties, "properties must not be null");
     Objects.requireNonNull(circuitBreakerRegistry, "circuitBreakerRegistry must not be null");
 
@@ -61,8 +76,32 @@ public class PermissionFetchClient {
     factory.setConnectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS));
     factory.setReadTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
 
-    this.restClient =
-        RestClient.builder().baseUrl(properties.bc02().baseUrl()).requestFactory(factory).build();
+    RestClient.Builder builder =
+        restClientBuilder.baseUrl(properties.bc02().baseUrl()).requestFactory(factory);
+    ServiceTokenPort tokenPort = serviceTokenPort.getIfAvailable();
+    if (tokenPort != null) {
+      builder.requestInterceptor(
+          new ServiceHeaderInterceptor(tokenPort, TARGET_AUDIENCE, SOURCE_SERVICE, clientId));
+    } else {
+      builder.requestInterceptor(
+          (request, body, execution) -> {
+            propagateHeader(
+                request,
+                IntegrationHeaders.HEADER_REQUEST_ID,
+                MDC.get(IntegrationHeaders.REQUEST_ID),
+                UUID.randomUUID().toString());
+            propagateHeader(
+                request,
+                IntegrationHeaders.HEADER_CORRELATION_ID,
+                MDC.get(IntegrationHeaders.CORRELATION_ID),
+                UUID.randomUUID().toString());
+            request.getHeaders().set(IntegrationHeaders.HEADER_USER_ID, "system");
+            request.getHeaders().set(IntegrationHeaders.HEADER_SOURCE_SERVICE, SOURCE_SERVICE);
+            return execution.execute(request, body);
+          });
+    }
+
+    this.restClient = builder.build();
 
     this.circuitBreaker =
         circuitBreakerRegistry.circuitBreaker(
@@ -75,6 +114,11 @@ public class PermissionFetchClient {
                 .slowCallDurationThreshold(Duration.ofSeconds(5))
                 .minimumNumberOfCalls(5)
                 .build());
+  }
+
+  PermissionFetchClient(RestClient restClient, CircuitBreaker circuitBreaker) {
+    this.restClient = restClient;
+    this.circuitBreaker = circuitBreaker;
   }
 
   /**
@@ -135,5 +179,11 @@ public class PermissionFetchClient {
       throw new IllegalArgumentException(
           "pluginId format invalid (expected tri-part or UUID): " + pluginId);
     }
+  }
+
+  private static void propagateHeader(
+      HttpRequest request, String headerName, String currentValue, String defaultValue) {
+    String value = currentValue != null && !currentValue.isBlank() ? currentValue : defaultValue;
+    request.getHeaders().set(headerName, value);
   }
 }

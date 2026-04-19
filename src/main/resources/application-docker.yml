@@ -23,20 +23,25 @@ spring:
 
 gateway:
   jwt:
-    jwks-uri: http://localhost:8180/realms/plugins/protocol/openid-connect/certs
-    issuer: http://localhost:8180/realms/plugins
+    jwks-uri: http://localhost:8180/realms/adapstory/protocol/openid-connect/certs
+    issuer: http://localhost:8180/realms/adapstory
+    audience: adapstory-plugin-gateway
 
   bc02:
     base-url: http://localhost:8083
 
   routes:
-    content: http://localhost:8081
+    content: http://localhost:8080
     submission: http://localhost:8084
     identity: http://localhost:8082
     plugin: http://localhost:8083
-    tenant: http://localhost:8080
+    tenant: http://localhost:8081
 
 adapstory:
+  service-auth:
+    token-endpoint: ${ADAPSTORY_SERVICE_AUTH_TOKEN_ENDPOINT:http://localhost:8180/realms/adapstory/protocol/openid-connect/token}
+    client-id: ${KEYCLOAK_CLIENT_ID:adapstory-plugin-gateway}
+    client-secret: ${KEYCLOAK_CLIENT_SECRET:}
   tracing:
     enabled: false
 

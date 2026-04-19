@@ -9,8 +9,9 @@ spring:
 
 gateway:
   jwt:
-    jwks-uri: http://dev-keycloak-svc:8080/realms/plugins/protocol/openid-connect/certs
-    issuer: https://auth.dev.adapstory.com/realms/plugins
+    jwks-uri: http://dev-keycloak-svc:8080/realms/adapstory/protocol/openid-connect/certs
+    issuer: https://auth.dev.adapstory.com/realms/adapstory
+    audience: adapstory-plugin-gateway
 
   bc02:
     base-url: http://dev-plugin-lifecycle-svc.env-dev.svc.cluster.local:8080

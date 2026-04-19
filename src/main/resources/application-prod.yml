@@ -14,6 +14,7 @@ gateway:
     # Mandatory: set via env vars in Helm values — no defaults in prod
     jwks-uri: ${GATEWAY_JWT_JWKS_URI}
     issuer: ${GATEWAY_JWT_ISSUER}
+    audience: ${GATEWAY_JWT_AUDIENCE:adapstory-plugin-gateway}
 
 # Logging levels (prod — INFO and above only)
 # monitoring-observability-regulation.md §5.1: DEBUG forbidden in prod
