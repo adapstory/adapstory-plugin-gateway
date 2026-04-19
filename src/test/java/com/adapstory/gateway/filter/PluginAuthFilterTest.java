@@ -13,7 +13,11 @@ import static org.mockito.Mockito.when;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.GatewayErrorResponse;
 import com.adapstory.gateway.dto.PluginSecurityContext;
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
+import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import java.util.List;
@@ -49,13 +53,14 @@ class PluginAuthFilterTest {
       jwtProcessor;
 
   private PluginAuthFilter filter;
+  private GatewayProperties properties;
   private ObjectMapper objectMapper;
 
   @BeforeEach
   void setUp() throws Exception {
     objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
 
-    GatewayProperties properties =
+    properties =
         new GatewayProperties(
             new GatewayProperties.JwtConfig(
                 "http://localhost:8080/realms/adapstory/protocol/openid-connect/certs",
@@ -76,6 +81,33 @@ class PluginAuthFilterTest {
 
     // Clear SecurityContextHolder before each test
     SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  @DisplayName("should accept JWT JOSE type during processor initialization")
+  void should_acceptJwtJoseType_when_initialized() throws Exception {
+    // Arrange
+    PluginAuthFilter initializedFilter = new PluginAuthFilter(properties, objectMapper);
+
+    // Act
+    initializedFilter.init();
+
+    // Assert
+    Object configuredProcessor = ReflectionTestUtils.getField(initializedFilter, "jwtProcessor");
+    assertThat(configuredProcessor).isInstanceOf(DefaultJWTProcessor.class);
+
+    @SuppressWarnings("unchecked")
+    DefaultJWTProcessor<SecurityContext> defaultProcessor =
+        (DefaultJWTProcessor<SecurityContext>) configuredProcessor;
+
+    assertThat(defaultProcessor.getJWSTypeVerifier())
+        .isInstanceOf(DefaultJOSEObjectTypeVerifier.class);
+
+    @SuppressWarnings("unchecked")
+    DefaultJOSEObjectTypeVerifier<SecurityContext> joseTypeVerifier =
+        (DefaultJOSEObjectTypeVerifier<SecurityContext>) defaultProcessor.getJWSTypeVerifier();
+
+    assertThat(joseTypeVerifier.getAllowedTypes()).containsExactly(JOSEObjectType.JWT);
   }
 
   // ---------------------------------------------------------------------------

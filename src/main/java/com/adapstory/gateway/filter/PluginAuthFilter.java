@@ -3,6 +3,7 @@ package com.adapstory.gateway.filter;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.jwk.source.JWKSourceBuilder;
@@ -79,7 +80,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
             Set.of("sub", "iss", "aud", "exp", "plugin_id", "adapstory_tenant_id", "permissions"));
 
     ConfigurableJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
-    processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>());
+    processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
     processor.setJWSKeySelector(keySelector);
     processor.setJWTClaimsSetVerifier(claimsVerifier);
 
