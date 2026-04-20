@@ -48,8 +48,6 @@ adapstory:
 springdoc:
   api-docs:
     enabled: true
-  swagger-ui:
-    enabled: true
 
 logging:
   level:
