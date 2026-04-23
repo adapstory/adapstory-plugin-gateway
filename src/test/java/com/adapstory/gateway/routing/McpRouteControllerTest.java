@@ -105,7 +105,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcpLegacy("course-builder", request, response);
 
       // Assert
       assertThat(response.getStatus()).isEqualTo(200);
@@ -138,7 +138,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcpLegacy("course-builder", request, response);
 
       // Assert
       wireMockServer.verify(
@@ -171,7 +171,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcpLegacy("course-builder", request, response);
 
       // Assert
       wireMockServer.verify(postRequestedFor(urlEqualTo("/mcp")).withoutHeader("Authorization"));
@@ -198,7 +198,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("../etc/passwd", request, response);
+      controller.proxyMcpLegacy("../etc/passwd", request, response);
 
       // Assert
       assertThat(response.getStatus()).isEqualTo(400);
@@ -225,7 +225,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcpLegacy("course-builder", request, response);
 
       // Assert
       assertThat(response.getStatus()).isEqualTo(502);
@@ -266,7 +266,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcpLegacy("course-builder", request, response);
 
       // Assert — 4xx passes through transparently
       assertThat(response.getStatus()).isEqualTo(400);
