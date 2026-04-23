@@ -97,6 +97,7 @@ class GatewayErrorWriterTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.requestId()).isEqualTo("custom-request-id-123");
+      assertThat(response.getHeader("X-Response-Id")).isEqualTo("custom-request-id-123");
     }
 
     @Test
@@ -115,6 +116,7 @@ class GatewayErrorWriterTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.requestId()).isNotNull().isNotBlank();
+      assertThat(response.getHeader("X-Response-Id")).isEqualTo(error.requestId());
     }
 
     @Test

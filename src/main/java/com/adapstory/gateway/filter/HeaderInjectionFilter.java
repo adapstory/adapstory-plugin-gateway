@@ -1,5 +1,6 @@
 package com.adapstory.gateway.filter;
 
+import com.adapstory.commons.header.IntegrationIdValidator;
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import jakarta.servlet.FilterChain;
@@ -23,7 +24,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Фильтр внедрения обязательных заголовков.
  *
  * <p>Инжектирует: request-id (UUID), correlation-id (из входящего или UUID),
- * user-id=plugin:{pluginId}. Пробрасывает существующий correlation-id.
+ * user-id=plugin:{pluginId}. Пробрасывает существующий correlation-id и сохраняет исходного
+ * пользователя отдельно в X-Adapstory-User-Id, когда он пришёл извне.
  */
 @Component
 @Order(3)
@@ -33,7 +35,10 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
-    String requestId = UUID.randomUUID().toString();
+    String requestId = request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID);
+    if (!IntegrationIdValidator.isValidUuidV4OrV7(requestId)) {
+      requestId = UUID.randomUUID().toString();
+    }
 
     String correlationId = request.getHeader(IntegrationHeaders.HEADER_CORRELATION_ID);
     if (correlationId == null || correlationId.isBlank()) {
@@ -41,16 +46,19 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
     }
 
     String userId = resolveUserId(request);
+    String originalUserId = resolveOriginalUserId(request, userId);
 
     MDC.put(IntegrationHeaders.REQUEST_ID, requestId);
     MDC.put(IntegrationHeaders.CORRELATION_ID, correlationId);
     MDC.put(IntegrationHeaders.USER_ID, userId);
+    putIfPresent(IntegrationHeaders.ADAPSTORY_USER_ID, originalUserId);
 
     try {
       MandatoryHeadersRequestWrapper wrappedRequest =
-          new MandatoryHeadersRequestWrapper(request, requestId, correlationId, userId);
+          new MandatoryHeadersRequestWrapper(request, requestId, correlationId, userId, originalUserId);
 
       response.setHeader(IntegrationHeaders.HEADER_REQUEST_ID, requestId);
+      response.setHeader(IntegrationHeaders.HEADER_RESPONSE_ID, requestId);
       response.setHeader(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
 
       filterChain.doFilter(wrappedRequest, response);
@@ -58,6 +66,7 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
       MDC.remove(IntegrationHeaders.REQUEST_ID);
       MDC.remove(IntegrationHeaders.CORRELATION_ID);
       MDC.remove(IntegrationHeaders.USER_ID);
+      MDC.remove(IntegrationHeaders.ADAPSTORY_USER_ID);
     }
   }
 
@@ -75,18 +84,43 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
     return "anonymous";
   }
 
+  private String resolveOriginalUserId(HttpServletRequest request, String localUserId) {
+    String explicitOriginal = request.getHeader(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID);
+    if (explicitOriginal != null && !explicitOriginal.isBlank()) {
+      return explicitOriginal;
+    }
+    String legacyUserId = request.getHeader(IntegrationHeaders.HEADER_USER_ID);
+    if (legacyUserId != null && !legacyUserId.isBlank() && !legacyUserId.equals(localUserId)) {
+      return legacyUserId;
+    }
+    return null;
+  }
+
+  private void putIfPresent(String key, String value) {
+    if (value != null && !value.isBlank()) {
+      MDC.put(key, value);
+    }
+  }
+
   /** Обёртка запроса, добавляющая обязательные заголовки. */
   private static class MandatoryHeadersRequestWrapper extends HttpServletRequestWrapper {
 
     private final Map<String, String> injectedHeaders;
 
     MandatoryHeadersRequestWrapper(
-        HttpServletRequest request, String requestId, String correlationId, String userId) {
+        HttpServletRequest request,
+        String requestId,
+        String correlationId,
+        String userId,
+        String originalUserId) {
       super(request);
       this.injectedHeaders = new LinkedHashMap<>();
       this.injectedHeaders.put(IntegrationHeaders.HEADER_REQUEST_ID, requestId);
       this.injectedHeaders.put(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
       this.injectedHeaders.put(IntegrationHeaders.HEADER_USER_ID, userId);
+      if (originalUserId != null && !originalUserId.isBlank()) {
+        this.injectedHeaders.put(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID, originalUserId);
+      }
     }
 
     @Override

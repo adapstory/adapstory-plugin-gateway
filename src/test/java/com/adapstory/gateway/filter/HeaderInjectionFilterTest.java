@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import jakarta.servlet.FilterChain;
 import java.util.List;
@@ -53,7 +54,22 @@ class HeaderInjectionFilterTest {
 
       // Assert
       assertThat(response.getHeader("X-Request-Id")).isNotNull().isNotBlank();
+      assertThat(response.getHeader("X-Response-Id")).isEqualTo(response.getHeader("X-Request-Id"));
       verify(filterChain).doFilter(any(), any());
+    }
+
+    @Test
+    @DisplayName("should preserve existing X-Request-Id and mirror it to X-Response-Id")
+    void should_preserveRequestId_when_present() throws Exception {
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
+      request.addHeader("X-Request-Id", "11111111-2222-4333-8abc-666666666666");
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      filter.doFilterInternal(request, response, filterChain);
+
+      assertThat(response.getHeader("X-Request-Id")).isEqualTo("11111111-2222-4333-8abc-666666666666");
+      assertThat(response.getHeader("X-Response-Id")).isEqualTo("11111111-2222-4333-8abc-666666666666");
     }
 
     @Test
@@ -135,6 +151,32 @@ class HeaderInjectionFilterTest {
     }
 
     @Test
+    @DisplayName("should preserve incoming user as X-Adapstory-User-Id when plugin context exists")
+    void should_preserveIncomingUser_when_pluginContextExists() throws Exception {
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
+      request.addHeader(IntegrationHeaders.HEADER_USER_ID, "student-42");
+      PluginSecurityContext ctx =
+          new PluginSecurityContext(
+              "adapstory.assessment.quiz", "tenant-1", List.of("content.read"), "CORE");
+      request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      filter.doFilterInternal(request, response, filterChain);
+
+      ArgumentCaptor<jakarta.servlet.ServletRequest> requestCaptor =
+          ArgumentCaptor.forClass(jakarta.servlet.ServletRequest.class);
+      verify(filterChain).doFilter(requestCaptor.capture(), any());
+
+      jakarta.servlet.http.HttpServletRequest wrappedRequest =
+          (jakarta.servlet.http.HttpServletRequest) requestCaptor.getValue();
+      assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_USER_ID))
+          .isEqualTo("plugin:adapstory.assessment.quiz");
+      assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID))
+          .isEqualTo("student-42");
+    }
+
+    @Test
     @DisplayName("should set user-id to 'anonymous' when no plugin context")
     void should_setAnonymousUserId_when_noPluginContext() throws Exception {
       // Arrange
@@ -175,6 +217,7 @@ class HeaderInjectionFilterTest {
       assertThat(MDC.get("request-id")).isNull();
       assertThat(MDC.get("correlation-id")).isNull();
       assertThat(MDC.get("user-id")).isNull();
+      assertThat(MDC.get("adapstory-user-id")).isNull();
     }
   }
 
@@ -230,6 +273,7 @@ class HeaderInjectionFilterTest {
       jakarta.servlet.http.HttpServletRequest wrappedRequest =
           (jakarta.servlet.http.HttpServletRequest) requestCaptor.getValue();
       assertThat(wrappedRequest.getHeader("X-Request-Id")).isNotNull();
+      assertThat(response.getHeader("X-Response-Id")).isEqualTo(response.getHeader("X-Request-Id"));
       assertThat(wrappedRequest.getHeader("X-Correlation-Id")).isNotNull();
       assertThat(wrappedRequest.getHeader("X-User-Id")).isNotNull();
       assertThat(wrappedRequest.getHeader("X-Custom-Header")).isEqualTo("custom-value");
@@ -283,6 +327,27 @@ class HeaderInjectionFilterTest {
           (jakarta.servlet.http.HttpServletRequest) requestCaptor.getValue();
       List<String> headerNames = java.util.Collections.list(wrappedRequest.getHeaderNames());
       assertThat(headerNames).contains("X-Request-Id", "X-Correlation-Id", "X-User-Id");
+    }
+
+    @Test
+    @DisplayName("should expose X-Adapstory-User-Id when incoming user is preserved")
+    void should_includeOriginalActorHeader_when_present() throws Exception {
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
+      request.addHeader(IntegrationHeaders.HEADER_USER_ID, "user-abc");
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      filter.doFilterInternal(request, response, filterChain);
+
+      ArgumentCaptor<jakarta.servlet.ServletRequest> requestCaptor =
+          ArgumentCaptor.forClass(jakarta.servlet.ServletRequest.class);
+      verify(filterChain).doFilter(requestCaptor.capture(), any());
+
+      jakarta.servlet.http.HttpServletRequest wrappedRequest =
+          (jakarta.servlet.http.HttpServletRequest) requestCaptor.getValue();
+      assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_USER_ID)).isEqualTo("anonymous");
+      assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID))
+          .isEqualTo("user-abc");
     }
   }
 }

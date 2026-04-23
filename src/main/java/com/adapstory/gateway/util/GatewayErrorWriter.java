@@ -54,6 +54,8 @@ public final class GatewayErrorWriter {
             getOrGenerateRequestId(request),
             details);
 
+    response.setHeader(IntegrationHeaders.HEADER_REQUEST_ID, errorResponse.requestId());
+    response.setHeader(IntegrationHeaders.HEADER_RESPONSE_ID, errorResponse.requestId());
     response.setStatus(status);
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
     objectMapper.writeValue(response.getOutputStream(), errorResponse);
