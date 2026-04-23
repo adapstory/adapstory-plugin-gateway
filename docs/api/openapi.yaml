@@ -667,6 +667,8 @@ components:
           type: string
           format: uri
           description: Location
+          maxLength: 2048
+          example: https://example.com/api/bc-02/gateway/v1/api/course-builder
         host:
           type: object
           properties:
@@ -757,8 +759,12 @@ components:
       description: Http headers
     HttpMethod:
       description: Http method
+      type: string
+      example: GET
     HttpRange:
       description: Http range
+      type: object
+      example: {}
     MediaType:
       type: object
       properties:
