@@ -1,5 +1,6 @@
 package com.adapstory.gateway.architecture;
 
+import static com.adapstory.starter.testing.archunit.HexagonalArchitectureRules.haveAtMostNConstructorDependencies;
 import static com.adapstory.starter.testing.archunit.RestControllerSecurityRules.allEndpointMethodsMustHaveSecurityAnnotation;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
@@ -7,14 +8,10 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.tngtech.archunit.base.DescribedPredicate;
-import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
-import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
-import com.tngtech.archunit.lang.ConditionEvents;
-import com.tngtech.archunit.lang.SimpleConditionEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -164,26 +161,5 @@ class PluginGatewayArchitectureTest {
               || name.endsWith("Response")
               || name.endsWith("Request"));
         });
-  }
-
-  private static ArchCondition<JavaClass> haveAtMostNConstructorDependencies(int maxDeps) {
-    return new ArchCondition<>("have at most " + maxDeps + " constructor dependencies") {
-      @Override
-      public void check(JavaClass javaClass, ConditionEvents events) {
-        javaClass.getConstructors().stream()
-            .filter(ctor -> ctor.getRawParameterTypes().size() > maxDeps)
-            .forEach(
-                ctor ->
-                    events.add(
-                        SimpleConditionEvent.violated(
-                            javaClass,
-                            javaClass.getName()
-                                + " constructor has "
-                                + ctor.getRawParameterTypes().size()
-                                + " parameters (max "
-                                + maxDeps
-                                + ") — extract facade (SRP-01)")));
-      }
-    };
   }
 }
