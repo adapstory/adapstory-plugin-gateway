@@ -21,9 +21,10 @@ import tools.jackson.databind.ObjectMapper;
 /**
  * Фильтр валидации JWT claims для MCP маршрутов.
  *
- * <p>Проверяет, что plugin slug из пути /internal/plugins/{slug}/mcp содержится в JWT claim
- * plugin_tools[]. Извлекает tenant context и устанавливает атрибуты для downstream обработки.
- * Возвращает 403 при отсутствии slug в plugin_tools, 401 при отсутствии authentication context.
+ * <p>Проверяет, что plugin slug из пути {@code /internal/plugins/v1/{slug}/mcp} или legacy alias
+ * {@code /internal/plugins/{slug}/mcp} содержится в JWT claim plugin_tools[]. Извлекает tenant
+ * context и устанавливает атрибуты для downstream обработки. Возвращает 403 при отсутствии slug в
+ * plugin_tools, 401 при отсутствии authentication context.
  */
 @Component
 public class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
@@ -40,7 +41,7 @@ public class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
   public static final String MCP_PLUGIN_SLUG_ATTR = "mcpPluginSlug";
 
   private static final Pattern MCP_PATH_PATTERN =
-      Pattern.compile("^/internal/plugins/([a-zA-Z0-9][a-zA-Z0-9-]*)/mcp$");
+      Pattern.compile("^/internal/plugins(?:/v1)?/([a-zA-Z0-9][a-zA-Z0-9-]*)/mcp$");
 
   private static final String ERROR_CODE = "MCP_TOOL_UNAUTHORIZED";
   private static final String METRIC_DENIED = "plugin_gateway_mcp_denied_total";
@@ -125,7 +126,7 @@ public class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
   /**
    * Извлекает plugin slug из MCP пути.
    *
-   * @param path URI запроса (e.g., /internal/plugins/course-builder/mcp)
+   * @param path URI запроса (e.g., /internal/plugins/v1/course-builder/mcp)
    * @return slug или null если путь не соответствует MCP шаблону
    */
   static String extractSlug(String path) {

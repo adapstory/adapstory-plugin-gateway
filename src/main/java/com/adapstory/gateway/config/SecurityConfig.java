@@ -54,7 +54,7 @@ public class SecurityConfig {
       PluginMcpJwtClaimFilter pluginMcpJwtClaimFilter,
       HeaderInjectionFilter headerInjectionFilter)
       throws Exception {
-    return http.securityMatcher("/internal/plugins/*/mcp")
+    return http.securityMatcher("/internal/plugins/*/mcp", "/internal/plugins/v1/*/mcp")
         .csrf(AbstractHttpConfigurer::disable)
         .cors(AbstractHttpConfigurer::disable)
         .sessionManagement(

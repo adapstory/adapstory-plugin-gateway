@@ -201,6 +201,13 @@ class PluginMcpJwtClaimFilterTest {
     }
 
     @Test
+    @DisplayName("should extract slug from versioned path /internal/plugins/v1/{slug}/mcp")
+    void should_extractSlug_when_versionedPath() {
+      assertThat(PluginMcpJwtClaimFilter.extractSlug("/internal/plugins/v1/course-builder/mcp"))
+          .isEqualTo("course-builder");
+    }
+
+    @Test
     @DisplayName("should extract slug with hyphens and numbers")
     void should_extractSlug_when_containsHyphensAndNumbers() {
       assertThat(PluginMcpJwtClaimFilter.extractSlug("/internal/plugins/ai-grader-v2/mcp"))

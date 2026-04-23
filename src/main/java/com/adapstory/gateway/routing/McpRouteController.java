@@ -4,6 +4,7 @@ import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
 import com.adapstory.gateway.util.GatewayErrorWriter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,21 +18,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import tools.jackson.databind.ObjectMapper;
 
 /**
  * MCP маршрутизатор: проксирует JSON-RPC MCP вызовы к plugin backend.
  *
- * <p>Принимает POST /internal/plugins/{slug}/mcp, валидирует slug, разрешает endpoint plugin pod и
- * делегирует проксирование в {@link McpProxyService}. Инжектирует обязательные заголовки (INT-02):
- * X-Tenant-Id, X-Request-Id, X-Correlation-Id. Тегирует mcp_method (tools/list | tools/call) для
- * observability.
+ * <p>Принимает POST {@code /internal/plugins/v1/{slug}/mcp}, валидирует slug, разрешает endpoint
+ * plugin pod и делегирует проксирование в {@link McpProxyService}. Legacy alias without explicit
+ * version is kept hidden from OpenAPI for backward compatibility. Инжектирует обязательные
+ * заголовки (INT-02): X-Tenant-Id, X-Request-Id, X-Correlation-Id. Тегирует mcp_method
+ * (tools/list | tools/call) для observability.
  */
 @RestController
 @PermitAll
-@RequestMapping("/internal/plugins")
 public class McpRouteController {
 
   private static final Logger log = LoggerFactory.getLogger(McpRouteController.class);
@@ -64,12 +64,32 @@ public class McpRouteController {
   @ApiResponse(responseCode = "200", description = "MCP response proxied from plugin backend")
   @ApiResponse(responseCode = "400", description = "Invalid plugin slug format")
   @ApiResponse(responseCode = "502", description = "Plugin pod unreachable or returned error")
-  @PostMapping("/{slug}/mcp")
-  public void proxyMcp(
+  @PostMapping("/internal/plugins/v1/{slug}/mcp")
+  public void proxyMcpVersioned(
       @Parameter(description = "Plugin slug identifier (e.g. 'course-builder')") @PathVariable
           String slug,
       HttpServletRequest request,
       HttpServletResponse response)
+      throws IOException {
+    proxyMcpInternal(slug, request, response);
+  }
+
+  /**
+   * Legacy unversioned MCP route retained for backward compatibility and hidden from OpenAPI.
+   *
+   * @param slug plugin slug
+   * @param request inbound HTTP request
+   * @param response outbound HTTP response
+   */
+  @Hidden
+  @PostMapping("/internal/plugins/{slug}/mcp")
+  public void proxyMcpLegacy(
+      @PathVariable String slug, HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
+    proxyMcpInternal(slug, request, response);
+  }
+
+  private void proxyMcpInternal(String slug, HttpServletRequest request, HttpServletResponse response)
       throws IOException {
     if (!SLUG_PATTERN.matcher(slug).matches()) {
       log.warn("MCP proxy rejected: invalid slug '{}'", slug);

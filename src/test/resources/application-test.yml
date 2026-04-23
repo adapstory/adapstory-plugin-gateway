@@ -5,6 +5,19 @@ spring:
   kafka:
     consumer:
       auto-offset-reset: earliest
+  main:
+    allow-bean-definition-overriding: true
+
+adapstory:
+  openapi:
+    enabled: true
+    title: Plugin Gateway API
+    summary: Internal plugin and MCP gateway API
+    description: First-party internal API for BC-02 Plugin Gateway REST proxying, webhook dispatch, and MCP routing for plugin tools.
+    version: 2026.04.1
+    api-major: v1
+    audience: internal
+    ai-ready: true
 
 # Gateway test overrides
 gateway:
