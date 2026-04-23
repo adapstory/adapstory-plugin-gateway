@@ -1,1 +1,1119 @@
-{"openapi":"3.1.0","info":{"title":"Plugin Gateway API","description":"First-party internal API for BC-02 Plugin Gateway REST proxying, webhook dispatch, and MCP routing for plugin tools.","version":"2026.04.1","summary":"Internal plugin and MCP gateway API","x-adapstory-api-major":"v1","x-adapstory-api-audience":"internal","x-adapstory-ai-ready":true},"servers":[{"url":"http://localhost","description":"Generated server url"}],"paths":{"/internal/plugins/v1/{slug}/mcp":{"post":{"tags":["mcp-route-controller"],"summary":"Proxy MCP JSON-RPC call to plugin backend","description":"Routes a JSON-RPC 2.0 MCP request to the plugin pod identified by slug. Injects X-Tenant-Id, X-Request-Id, X-Correlation-Id headers.","operationId":"proxyMcpVersioned","parameters":[{"name":"slug","in":"path","description":"Plugin slug identifier (e.g. 'course-builder')","required":true,"schema":{"type":"string","default":""}}],"responses":{"200":{"description":"MCP response proxied from plugin backend","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"400":{"description":"Invalid plugin slug format","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"502":{"description":"Plugin pod unreachable or returned error","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true}},"/api/bc-02/gateway/v1/webhooks/{pluginShortId}":{"post":{"tags":["webhook-dispatcher"],"summary":"Dispatch webhook to plugin pod","description":"Forwards CloudEvents 1.0 payload from core BC to the target plugin pod. Dispatch is async (returns 202 immediately). Retries with exponential backoff.","operationId":"dispatchWebhook","parameters":[{"name":"pluginShortId","in":"path","description":"Plugin short identifier","required":true,"schema":{"type":"string","default":""}},{"name":"headers","in":"header","required":true,"schema":{"$ref":"#/components/schemas/HttpHeaders"}}],"requestBody":{"content":{"application/json":{"schema":{"type":"string","format":"byte"}}},"required":true},"responses":{"202":{"description":"Webhook accepted for async delivery","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"400":{"description":"Invalid plugin short ID","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"403":{"description":"Invalid internal secret","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true}},"/api/bc-02/gateway/v1/api/**":{"get":{"tags":["plugin-route-resolver"],"summary":"Proxy REST request to target BC service","description":"Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.","operationId":"proxy","responses":{"200":{"description":"Response proxied from target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"404":{"description":"Route not configured for the target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"502":{"description":"Target BC returned an error","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"503":{"description":"Circuit breaker open — target BC unavailable","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true},"put":{"tags":["plugin-route-resolver"],"summary":"Proxy REST request to target BC service","description":"Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.","operationId":"proxy_2","responses":{"200":{"description":"Response proxied from target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"404":{"description":"Route not configured for the target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"502":{"description":"Target BC returned an error","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"503":{"description":"Circuit breaker open — target BC unavailable","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true},"post":{"tags":["plugin-route-resolver"],"summary":"Proxy REST request to target BC service","description":"Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.","operationId":"proxy_1","responses":{"200":{"description":"Response proxied from target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"404":{"description":"Route not configured for the target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"502":{"description":"Target BC returned an error","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"503":{"description":"Circuit breaker open — target BC unavailable","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true},"delete":{"tags":["plugin-route-resolver"],"summary":"Proxy REST request to target BC service","description":"Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.","operationId":"proxy_3","responses":{"200":{"description":"Response proxied from target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"404":{"description":"Route not configured for the target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"502":{"description":"Target BC returned an error","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"503":{"description":"Circuit breaker open — target BC unavailable","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true},"options":{"tags":["plugin-route-resolver"],"summary":"Proxy REST request to target BC service","description":"Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.","operationId":"proxy_6","responses":{"200":{"description":"Response proxied from target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"404":{"description":"Route not configured for the target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"502":{"description":"Target BC returned an error","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"503":{"description":"Circuit breaker open — target BC unavailable","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true},"head":{"tags":["plugin-route-resolver"],"summary":"Proxy REST request to target BC service","description":"Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.","operationId":"proxy_5","responses":{"200":{"description":"Response proxied from target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"404":{"description":"Route not configured for the target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"502":{"description":"Target BC returned an error","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"503":{"description":"Circuit breaker open — target BC unavailable","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true},"patch":{"tags":["plugin-route-resolver"],"summary":"Proxy REST request to target BC service","description":"Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.","operationId":"proxy_4","responses":{"200":{"description":"Response proxied from target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"404":{"description":"Route not configured for the target BC","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"502":{"description":"Target BC returned an error","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}},"503":{"description":"Circuit breaker open — target BC unavailable","headers":{"X-Response-Id":{"description":"Technical response identifier equal to the inbound X-Request-Id.","schema":{"type":"string"}}}}},"x-AI-ready":true}}},"components":{"schemas":{"ContentDisposition":{"type":"object","properties":{"type":{"type":"string"},"name":{"type":"string"},"filename":{"type":"string"},"charset":{"type":"string"},"attachment":{"type":"boolean"},"formData":{"type":"boolean"},"inline":{"type":"boolean"}}},"HttpHeaders":{"type":"object","properties":{"acceptCharset":{"type":"array","items":{"type":"string"}},"cacheControl":{"type":"string"},"acceptLanguageAsLocales":{"type":"array","items":{"type":"string"}},"accessControlAllowCredentials":{"type":"boolean"},"accessControlAllowHeaders":{"type":"array","items":{"type":"string"}},"accessControlAllowMethods":{"type":"array","items":{"$ref":"#/components/schemas/HttpMethod"}},"accessControlAllowOrigin":{"type":"string"},"accessControlExposeHeaders":{"type":"array","items":{"type":"string"}},"accessControlMaxAge":{"type":"integer","format":"int64"},"accessControlRequestHeaders":{"type":"array","items":{"type":"string"}},"accessControlRequestMethod":{"$ref":"#/components/schemas/HttpMethod"},"contentDisposition":{"$ref":"#/components/schemas/ContentDisposition"},"ifUnmodifiedSince":{"type":"integer","format":"int64"},"acceptLanguage":{"type":"array","items":{"type":"object","properties":{"range":{"type":"string"},"weight":{"type":"number","format":"double"}}}},"basicAuth":{"type":"string","writeOnly":true},"accept":{"type":"array","items":{"$ref":"#/components/schemas/MediaType"}},"acceptPatch":{"type":"array","items":{"$ref":"#/components/schemas/MediaType"}},"allow":{"type":"array","items":{"$ref":"#/components/schemas/HttpMethod"},"uniqueItems":true},"bearerAuth":{"type":"string","writeOnly":true},"connection":{"type":"array","items":{"type":"string"}},"contentLanguage":{"type":"string"},"etag":{"type":"string"},"expires":{"type":"integer","format":"int64"},"ifMatch":{"type":"array","items":{"type":"string"}},"ifNoneMatch":{"type":"array","items":{"type":"string"}},"origin":{"type":"string"},"pragma":{"type":"string"},"upgrade":{"type":"string"},"vary":{"type":"array","items":{"type":"string"}},"empty":{"type":"boolean"},"location":{"type":"string","format":"uri"},"host":{"type":"object","properties":{"hostName":{"type":"string"},"address":{"type":"object","properties":{"hostName":{"type":"string"},"address":{"type":"string","format":"byte"},"hostAddress":{"type":"string"},"linkLocalAddress":{"type":"boolean"},"multicastAddress":{"type":"boolean"},"anyLocalAddress":{"type":"boolean"},"loopbackAddress":{"type":"boolean"},"siteLocalAddress":{"type":"boolean"},"mcglobal":{"type":"boolean"},"mcnodeLocal":{"type":"boolean"},"mclinkLocal":{"type":"boolean"},"mcsiteLocal":{"type":"boolean"},"mcorgLocal":{"type":"boolean"},"canonicalHostName":{"type":"string"}}},"port":{"type":"integer","format":"int32"},"hostString":{"type":"string"},"unresolved":{"type":"boolean"}}},"range":{"type":"array","items":{"$ref":"#/components/schemas/HttpRange"}},"all":{"type":"object","additionalProperties":{"type":"string"},"writeOnly":true},"contentLength":{"type":"integer","format":"int64"},"lastModified":{"type":"integer","format":"int64"},"ifModifiedSince":{"type":"integer","format":"int64"},"contentType":{"$ref":"#/components/schemas/MediaType"},"date":{"type":"integer","format":"int64"}}},"HttpMethod":{},"HttpRange":{},"MediaType":{"type":"object","properties":{"type":{"type":"string"},"subtype":{"type":"string"},"parameters":{"type":"object","additionalProperties":{"type":"string"}},"qualityValue":{"type":"number","format":"double"},"charset":{"type":"string"},"concrete":{"type":"boolean"},"wildcardType":{"type":"boolean"},"wildcardSubtype":{"type":"boolean"},"subtypeSuffix":{"type":"string"}}}}}}
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Plugin Gateway API",
+    "description": "First-party internal API for BC-02 Plugin Gateway REST proxying, webhook dispatch, and MCP routing for plugin tools.",
+    "version": "2026.04.1",
+    "summary": "Internal plugin and MCP gateway API",
+    "x-adapstory-api-major": "v1",
+    "x-adapstory-api-audience": "internal",
+    "x-adapstory-ai-ready": true
+  },
+  "servers": [
+    {
+      "url": "http://localhost",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/internal/plugins/v1/{slug}/mcp": {
+      "post": {
+        "tags": [
+          "mcp-route-controller"
+        ],
+        "summary": "Proxy MCP JSON-RPC call to plugin backend",
+        "description": "Routes a JSON-RPC 2.0 MCP request to the plugin pod identified by slug. Injects X-Tenant-Id, X-Request-Id, X-Correlation-Id headers.",
+        "operationId": "proxyMcpVersioned",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "description": "Plugin slug identifier (e.g. 'course-builder')",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 254,
+              "example": "sample-school"
+            },
+            "example": "sample-school"
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "example": "idem-2026-04-23-0001"
+            },
+            "description": "Idempotency key for safe retries",
+            "example": "idem-2026-04-23-0001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MCP response proxied from plugin backend",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid plugin slug format",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Plugin pod unreachable or returned error",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      }
+    },
+    "/api/bc-02/gateway/v1/webhooks/{pluginShortId}": {
+      "post": {
+        "tags": [
+          "webhook-dispatcher"
+        ],
+        "summary": "Dispatch webhook to plugin pod",
+        "description": "Forwards CloudEvents 1.0 payload from core BC to the target plugin pod. Dispatch is async (returns 202 immediately). Retries with exponential backoff.",
+        "operationId": "dispatchWebhook",
+        "parameters": [
+          {
+            "name": "pluginShortId",
+            "in": "path",
+            "description": "Plugin short identifier",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "maxLength": 254,
+              "example": "item-1"
+            },
+            "example": "item-1"
+          },
+          {
+            "name": "headers",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/HttpHeaders"
+            },
+            "description": "Headers parameter"
+          },
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "example": "idem-2026-04-23-0001"
+            },
+            "description": "Idempotency key for safe retries",
+            "example": "idem-2026-04-23-0001"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string",
+                "format": "byte"
+              }
+            }
+          },
+          "required": true,
+          "description": "Request payload for Dispatch webhook to plugin pod"
+        },
+        "responses": {
+          "202": {
+            "description": "Webhook accepted for async delivery",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid plugin short ID",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Invalid internal secret",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      }
+    },
+    "/api/bc-02/gateway/v1/api/**": {
+      "get": {
+        "tags": [
+          "plugin-route-resolver"
+        ],
+        "summary": "Proxy REST request to target BC service",
+        "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
+        "operationId": "proxy",
+        "responses": {
+          "200": {
+            "description": "Response proxied from target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not configured for the target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Target BC returned an error",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Circuit breaker open — target BC unavailable",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "put": {
+        "tags": [
+          "plugin-route-resolver"
+        ],
+        "summary": "Proxy REST request to target BC service",
+        "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
+        "operationId": "proxy_2",
+        "responses": {
+          "200": {
+            "description": "Response proxied from target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not configured for the target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Target BC returned an error",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Circuit breaker open — target BC unavailable",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true,
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "example": "idem-2026-04-23-0001"
+            },
+            "description": "Idempotency key for safe retries",
+            "example": "idem-2026-04-23-0001"
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "plugin-route-resolver"
+        ],
+        "summary": "Proxy REST request to target BC service",
+        "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
+        "operationId": "proxy_1",
+        "responses": {
+          "200": {
+            "description": "Response proxied from target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not configured for the target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Target BC returned an error",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Circuit breaker open — target BC unavailable",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true,
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "example": "idem-2026-04-23-0001"
+            },
+            "description": "Idempotency key for safe retries",
+            "example": "idem-2026-04-23-0001"
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "plugin-route-resolver"
+        ],
+        "summary": "Proxy REST request to target BC service",
+        "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
+        "operationId": "proxy_3",
+        "responses": {
+          "200": {
+            "description": "Response proxied from target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not configured for the target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Target BC returned an error",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Circuit breaker open — target BC unavailable",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true,
+        "parameters": [
+          {
+            "name": "X-Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "example": "idem-2026-04-23-0001"
+            },
+            "description": "Idempotency key for safe retries",
+            "example": "idem-2026-04-23-0001"
+          }
+        ]
+      },
+      "options": {
+        "tags": [
+          "plugin-route-resolver"
+        ],
+        "summary": "Proxy REST request to target BC service",
+        "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
+        "operationId": "proxy_6",
+        "responses": {
+          "200": {
+            "description": "Response proxied from target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not configured for the target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Target BC returned an error",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Circuit breaker open — target BC unavailable",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "head": {
+        "tags": [
+          "plugin-route-resolver"
+        ],
+        "summary": "Proxy REST request to target BC service",
+        "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
+        "operationId": "proxy_5",
+        "responses": {
+          "200": {
+            "description": "Response proxied from target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not configured for the target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Target BC returned an error",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Circuit breaker open — target BC unavailable",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "patch": {
+        "tags": [
+          "plugin-route-resolver"
+        ],
+        "summary": "Proxy REST request to target BC service",
+        "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
+        "operationId": "proxy_4",
+        "responses": {
+          "200": {
+            "description": "Response proxied from target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Route not configured for the target BC",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Target BC returned an error",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Circuit breaker open — target BC unavailable",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ContentDisposition": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type",
+            "maxLength": 254,
+            "example": "DEFAULT"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name",
+            "maxLength": 254,
+            "example": "Sample name"
+          },
+          "filename": {
+            "type": "string",
+            "description": "Filename",
+            "maxLength": 254,
+            "example": "Sample name"
+          },
+          "charset": {
+            "type": "string",
+            "description": "Charset",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "attachment": {
+            "type": "boolean",
+            "description": "Whether attachment",
+            "example": true
+          },
+          "formData": {
+            "type": "boolean",
+            "description": "Whether form data",
+            "example": true
+          },
+          "inline": {
+            "type": "boolean",
+            "description": "Whether inline",
+            "example": true
+          }
+        },
+        "description": "Content disposition"
+      },
+      "HttpHeaders": {
+        "type": "object",
+        "properties": {
+          "acceptCharset": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Accept charset"
+            },
+            "description": "Accept charset",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "cacheControl": {
+            "type": "string",
+            "description": "Cache control",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "acceptLanguageAsLocales": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Accept language as locales"
+            },
+            "description": "Accept language as locales",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "accessControlAllowCredentials": {
+            "type": "boolean",
+            "description": "Whether access control allow credentials",
+            "example": true
+          },
+          "accessControlAllowHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Access control allow headers"
+            },
+            "description": "Access control allow headers",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "accessControlAllowMethods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HttpMethod",
+              "description": "Access control allow methods"
+            },
+            "description": "Access control allow methods",
+            "maxItems": 1000
+          },
+          "accessControlAllowOrigin": {
+            "type": "string",
+            "description": "Access control allow origin",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "accessControlExposeHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Access control expose headers"
+            },
+            "description": "Access control expose headers",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "accessControlMaxAge": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Access control max age",
+            "minimum": 0,
+            "example": 0
+          },
+          "accessControlRequestHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Access control request headers"
+            },
+            "description": "Access control request headers",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "accessControlRequestMethod": {
+            "$ref": "#/components/schemas/HttpMethod",
+            "description": "Access control request method"
+          },
+          "contentDisposition": {
+            "$ref": "#/components/schemas/ContentDisposition",
+            "description": "Content disposition"
+          },
+          "ifUnmodifiedSince": {
+            "type": "integer",
+            "format": "int64",
+            "description": "If unmodified since",
+            "minimum": 0,
+            "example": 0
+          },
+          "acceptLanguage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "range": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "number",
+                  "format": "double"
+                }
+              },
+              "description": "Accept language"
+            },
+            "description": "Accept language",
+            "maxItems": 1000,
+            "example": []
+          },
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true,
+            "description": "Basic auth",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "accept": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaType",
+              "description": "Accept"
+            },
+            "description": "Accept",
+            "maxItems": 1000
+          },
+          "acceptPatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaType",
+              "description": "Accept patch"
+            },
+            "description": "Accept patch",
+            "maxItems": 1000
+          },
+          "allow": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HttpMethod",
+              "description": "Allow"
+            },
+            "uniqueItems": true,
+            "description": "Allow",
+            "maxItems": 1000
+          },
+          "bearerAuth": {
+            "type": "string",
+            "writeOnly": true,
+            "description": "Bearer auth",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "connection": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Connection"
+            },
+            "description": "Connection",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "contentLanguage": {
+            "type": "string",
+            "description": "Content language",
+            "maxLength": 254,
+            "example": "en"
+          },
+          "etag": {
+            "type": "string",
+            "description": "Etag",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "expires": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Expires",
+            "minimum": 0,
+            "example": 0
+          },
+          "ifMatch": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "If match"
+            },
+            "description": "If match",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "If none match"
+            },
+            "description": "If none match",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "origin": {
+            "type": "string",
+            "description": "Origin",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "pragma": {
+            "type": "string",
+            "description": "Pragma",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "upgrade": {
+            "type": "string",
+            "description": "Upgrade",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "vary": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "description": "Vary"
+            },
+            "description": "Vary",
+            "maxItems": 1000,
+            "example": [
+              "value"
+            ]
+          },
+          "empty": {
+            "type": "boolean",
+            "description": "Whether empty",
+            "example": true
+          },
+          "location": {
+            "type": "string",
+            "format": "uri",
+            "description": "Location"
+          },
+          "host": {
+            "type": "object",
+            "properties": {
+              "hostName": {
+                "type": "string"
+              },
+              "address": {
+                "type": "object",
+                "properties": {
+                  "hostName": {
+                    "type": "string"
+                  },
+                  "address": {
+                    "type": "string",
+                    "format": "byte"
+                  },
+                  "hostAddress": {
+                    "type": "string"
+                  },
+                  "linkLocalAddress": {
+                    "type": "boolean"
+                  },
+                  "multicastAddress": {
+                    "type": "boolean"
+                  },
+                  "anyLocalAddress": {
+                    "type": "boolean"
+                  },
+                  "loopbackAddress": {
+                    "type": "boolean"
+                  },
+                  "siteLocalAddress": {
+                    "type": "boolean"
+                  },
+                  "mcglobal": {
+                    "type": "boolean"
+                  },
+                  "mcnodeLocal": {
+                    "type": "boolean"
+                  },
+                  "mclinkLocal": {
+                    "type": "boolean"
+                  },
+                  "mcsiteLocal": {
+                    "type": "boolean"
+                  },
+                  "mcorgLocal": {
+                    "type": "boolean"
+                  },
+                  "canonicalHostName": {
+                    "type": "string"
+                  }
+                }
+              },
+              "port": {
+                "type": "integer",
+                "format": "int32"
+              },
+              "hostString": {
+                "type": "string"
+              },
+              "unresolved": {
+                "type": "boolean"
+              }
+            },
+            "description": "Host",
+            "example": {}
+          },
+          "range": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HttpRange",
+              "description": "Range"
+            },
+            "description": "Range",
+            "maxItems": 1000
+          },
+          "all": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "writeOnly": true,
+            "description": "All",
+            "example": {}
+          },
+          "contentLength": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Content length",
+            "minimum": 0,
+            "example": 0
+          },
+          "lastModified": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Last modified",
+            "minimum": 0,
+            "example": 0
+          },
+          "ifModifiedSince": {
+            "type": "integer",
+            "format": "int64",
+            "description": "If modified since",
+            "minimum": 0,
+            "example": 0
+          },
+          "contentType": {
+            "$ref": "#/components/schemas/MediaType",
+            "description": "Content type"
+          },
+          "date": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Date",
+            "minimum": 0,
+            "example": 0
+          }
+        },
+        "description": "Http headers"
+      },
+      "HttpMethod": {
+        "description": "Http method"
+      },
+      "HttpRange": {
+        "description": "Http range"
+      },
+      "MediaType": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Type",
+            "maxLength": 254,
+            "example": "DEFAULT"
+          },
+          "subtype": {
+            "type": "string",
+            "description": "Subtype",
+            "maxLength": 254,
+            "example": "DEFAULT"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Parameters",
+            "example": {}
+          },
+          "qualityValue": {
+            "type": "number",
+            "format": "double",
+            "description": "Quality value",
+            "minimum": 0,
+            "example": 0
+          },
+          "charset": {
+            "type": "string",
+            "description": "Charset",
+            "maxLength": 254,
+            "example": "sample-value"
+          },
+          "concrete": {
+            "type": "boolean",
+            "description": "Whether concrete",
+            "example": true
+          },
+          "wildcardType": {
+            "type": "boolean",
+            "description": "Whether wildcard type",
+            "example": true
+          },
+          "wildcardSubtype": {
+            "type": "boolean",
+            "description": "Whether wildcard subtype",
+            "example": true
+          },
+          "subtypeSuffix": {
+            "type": "string",
+            "description": "Subtype suffix",
+            "maxLength": 254,
+            "example": "sample-value"
+          }
+        },
+        "description": "Media type"
+      }
+    }
+  }
+}

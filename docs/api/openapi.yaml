@@ -28,6 +28,18 @@ paths:
         schema:
           type: string
           default: ''
+          maxLength: 254
+          example: sample-school
+        example: sample-school
+      - name: X-Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+          example: idem-2026-04-23-0001
+        description: Idempotency key for safe retries
+        example: idem-2026-04-23-0001
       responses:
         '200':
           description: MCP response proxied from plugin backend
@@ -68,11 +80,24 @@ paths:
         schema:
           type: string
           default: ''
+          maxLength: 254
+          example: item-1
+        example: item-1
       - name: headers
         in: header
         required: true
         schema:
           $ref: '#/components/schemas/HttpHeaders'
+        description: Headers parameter
+      - name: X-Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+          example: idem-2026-04-23-0001
+        description: Idempotency key for safe retries
+        example: idem-2026-04-23-0001
       requestBody:
         content:
           application/json:
@@ -80,6 +105,7 @@ paths:
               type: string
               format: byte
         required: true
+        description: Request payload for Dispatch webhook to plugin pod
       responses:
         '202':
           description: Webhook accepted for async delivery
@@ -178,6 +204,16 @@ paths:
               schema:
                 type: string
       x-AI-ready: true
+      parameters:
+      - name: X-Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+          example: idem-2026-04-23-0001
+        description: Idempotency key for safe retries
+        example: idem-2026-04-23-0001
     post:
       tags:
       - plugin-route-resolver
@@ -215,6 +251,16 @@ paths:
               schema:
                 type: string
       x-AI-ready: true
+      parameters:
+      - name: X-Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+          example: idem-2026-04-23-0001
+        description: Idempotency key for safe retries
+        example: idem-2026-04-23-0001
     delete:
       tags:
       - plugin-route-resolver
@@ -252,6 +298,16 @@ paths:
               schema:
                 type: string
       x-AI-ready: true
+      parameters:
+      - name: X-Idempotency-Key
+        in: header
+        required: true
+        schema:
+          type: string
+          maxLength: 128
+          example: idem-2026-04-23-0001
+        description: Idempotency key for safe retries
+        example: idem-2026-04-23-0001
     options:
       tags:
       - plugin-route-resolver
@@ -370,18 +426,37 @@ components:
       properties:
         type:
           type: string
+          description: Type
+          maxLength: 254
+          example: DEFAULT
         name:
           type: string
+          description: Name
+          maxLength: 254
+          example: Sample name
         filename:
           type: string
+          description: Filename
+          maxLength: 254
+          example: Sample name
         charset:
           type: string
+          description: Charset
+          maxLength: 254
+          example: sample-value
         attachment:
           type: boolean
+          description: Whether attachment
+          example: true
         formData:
           type: boolean
+          description: Whether form data
+          example: true
         inline:
           type: boolean
+          description: Whether inline
+          example: true
+      description: Content disposition
     HttpHeaders:
       type: object
       properties:
@@ -389,42 +464,86 @@ components:
           type: array
           items:
             type: string
+            description: Accept charset
+          description: Accept charset
+          maxItems: 1000
+          example:
+          - value
         cacheControl:
           type: string
+          description: Cache control
+          maxLength: 254
+          example: sample-value
         acceptLanguageAsLocales:
           type: array
           items:
             type: string
+            description: Accept language as locales
+          description: Accept language as locales
+          maxItems: 1000
+          example:
+          - value
         accessControlAllowCredentials:
           type: boolean
+          description: Whether access control allow credentials
+          example: true
         accessControlAllowHeaders:
           type: array
           items:
             type: string
+            description: Access control allow headers
+          description: Access control allow headers
+          maxItems: 1000
+          example:
+          - value
         accessControlAllowMethods:
           type: array
           items:
             $ref: '#/components/schemas/HttpMethod'
+            description: Access control allow methods
+          description: Access control allow methods
+          maxItems: 1000
         accessControlAllowOrigin:
           type: string
+          description: Access control allow origin
+          maxLength: 254
+          example: sample-value
         accessControlExposeHeaders:
           type: array
           items:
             type: string
+            description: Access control expose headers
+          description: Access control expose headers
+          maxItems: 1000
+          example:
+          - value
         accessControlMaxAge:
           type: integer
           format: int64
+          description: Access control max age
+          minimum: 0
+          example: 0
         accessControlRequestHeaders:
           type: array
           items:
             type: string
+            description: Access control request headers
+          description: Access control request headers
+          maxItems: 1000
+          example:
+          - value
         accessControlRequestMethod:
           $ref: '#/components/schemas/HttpMethod'
+          description: Access control request method
         contentDisposition:
           $ref: '#/components/schemas/ContentDisposition'
+          description: Content disposition
         ifUnmodifiedSince:
           type: integer
           format: int64
+          description: If unmodified since
+          minimum: 0
+          example: 0
         acceptLanguage:
           type: array
           items:
@@ -435,59 +554,119 @@ components:
               weight:
                 type: number
                 format: double
+            description: Accept language
+          description: Accept language
+          maxItems: 1000
+          example: []
         basicAuth:
           type: string
           writeOnly: true
+          description: Basic auth
+          maxLength: 254
+          example: sample-value
         accept:
           type: array
           items:
             $ref: '#/components/schemas/MediaType'
+            description: Accept
+          description: Accept
+          maxItems: 1000
         acceptPatch:
           type: array
           items:
             $ref: '#/components/schemas/MediaType'
+            description: Accept patch
+          description: Accept patch
+          maxItems: 1000
         allow:
           type: array
           items:
             $ref: '#/components/schemas/HttpMethod'
+            description: Allow
           uniqueItems: true
+          description: Allow
+          maxItems: 1000
         bearerAuth:
           type: string
           writeOnly: true
+          description: Bearer auth
+          maxLength: 254
+          example: sample-value
         connection:
           type: array
           items:
             type: string
+            description: Connection
+          description: Connection
+          maxItems: 1000
+          example:
+          - value
         contentLanguage:
           type: string
+          description: Content language
+          maxLength: 254
+          example: en
         etag:
           type: string
+          description: Etag
+          maxLength: 254
+          example: sample-value
         expires:
           type: integer
           format: int64
+          description: Expires
+          minimum: 0
+          example: 0
         ifMatch:
           type: array
           items:
             type: string
+            description: If match
+          description: If match
+          maxItems: 1000
+          example:
+          - value
         ifNoneMatch:
           type: array
           items:
             type: string
+            description: If none match
+          description: If none match
+          maxItems: 1000
+          example:
+          - value
         origin:
           type: string
+          description: Origin
+          maxLength: 254
+          example: sample-value
         pragma:
           type: string
+          description: Pragma
+          maxLength: 254
+          example: sample-value
         upgrade:
           type: string
+          description: Upgrade
+          maxLength: 254
+          example: sample-value
         vary:
           type: array
           items:
             type: string
+            description: Vary
+          description: Vary
+          maxItems: 1000
+          example:
+          - value
         empty:
           type: boolean
+          description: Whether empty
+          example: true
         location:
           type: string
           format: uri
+          description: Location
         host:
           type: object
           properties:
@@ -532,52 +711,99 @@ components:
               type: string
             unresolved:
               type: boolean
+          description: Host
+          example: {}
         range:
           type: array
           items:
             $ref: '#/components/schemas/HttpRange'
+            description: Range
+          description: Range
+          maxItems: 1000
         all:
           type: object
           additionalProperties:
             type: string
           writeOnly: true
+          description: All
+          example: {}
         contentLength:
           type: integer
           format: int64
+          description: Content length
+          minimum: 0
+          example: 0
         lastModified:
           type: integer
           format: int64
+          description: Last modified
+          minimum: 0
+          example: 0
         ifModifiedSince:
           type: integer
           format: int64
+          description: If modified since
+          minimum: 0
+          example: 0
         contentType:
           $ref: '#/components/schemas/MediaType'
+          description: Content type
         date:
           type: integer
           format: int64
-    HttpMethod: {}
-    HttpRange: {}
+          description: Date
+          minimum: 0
+          example: 0
+      description: Http headers
+    HttpMethod:
+      description: Http method
+    HttpRange:
+      description: Http range
     MediaType:
       type: object
       properties:
         type:
           type: string
+          description: Type
+          maxLength: 254
+          example: DEFAULT
         subtype:
           type: string
+          description: Subtype
+          maxLength: 254
+          example: DEFAULT
         parameters:
           type: object
           additionalProperties:
             type: string
+          description: Parameters
+          example: {}
         qualityValue:
           type: number
           format: double
+          description: Quality value
+          minimum: 0
+          example: 0
         charset:
           type: string
+          description: Charset
+          maxLength: 254
+          example: sample-value
         concrete:
           type: boolean
+          description: Whether concrete
+          example: true
         wildcardType:
           type: boolean
+          description: Whether wildcard type
+          example: true
         wildcardSubtype:
           type: boolean
+          description: Whether wildcard subtype
+          example: true
         subtypeSuffix:
           type: string
+          description: Subtype suffix
+          maxLength: 254
+          example: sample-value
+      description: Media type
