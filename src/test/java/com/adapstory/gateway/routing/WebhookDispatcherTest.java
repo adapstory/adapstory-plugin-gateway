@@ -48,7 +48,7 @@ class WebhookDispatcherTest {
         new WebhookDispatcher(properties, RestClient.builder(), Runnable::run) {
           @Override
           String resolvePluginPodEndpoint(String pluginShortId) {
-            return wireMockServer.baseUrl() + "/webhook";
+            return webhookUrl();
           }
         };
   }
@@ -86,8 +86,7 @@ class WebhookDispatcherTest {
     headers.setContentType(MediaType.APPLICATION_JSON);
 
     // Act — call executeWithRetry directly (synchronous)
-    dispatcher.executeWithRetry(
-        "ai-grader", wireMockServer.baseUrl() + "/webhook", payload, headers);
+    dispatcher.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
 
     // Assert
     wireMockServer.verify(1, postRequestedFor(urlEqualTo("/webhook")));
@@ -122,8 +121,7 @@ class WebhookDispatcherTest {
     headers.setContentType(MediaType.APPLICATION_JSON);
 
     // Act
-    dispatcher.executeWithRetry(
-        "ai-grader", wireMockServer.baseUrl() + "/webhook", payload, headers);
+    dispatcher.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
 
     // Assert — should succeed on 3rd attempt
     wireMockServer.verify(3, postRequestedFor(urlEqualTo("/webhook")));
@@ -140,8 +138,7 @@ class WebhookDispatcherTest {
     headers.setContentType(MediaType.APPLICATION_JSON);
 
     // Act
-    dispatcher.executeWithRetry(
-        "ai-grader", wireMockServer.baseUrl() + "/webhook", payload, headers);
+    dispatcher.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
 
     // Assert — only 1 attempt, no retry for 4xx
     wireMockServer.verify(1, postRequestedFor(urlEqualTo("/webhook")));
@@ -158,8 +155,7 @@ class WebhookDispatcherTest {
     headers.setContentType(MediaType.APPLICATION_JSON);
 
     // Act
-    dispatcher.executeWithRetry(
-        "ai-grader", wireMockServer.baseUrl() + "/webhook", payload, headers);
+    dispatcher.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
 
     // Assert — 3 attempts (configured max)
     wireMockServer.verify(3, postRequestedFor(urlEqualTo("/webhook")));
@@ -186,5 +182,9 @@ class WebhookDispatcherTest {
 
     assertThat(realDispatcher.resolvePluginPodEndpoint("ai-grader"))
         .isEqualTo("http://plugin-ai-grader:8000/webhook");
+  }
+
+  private String webhookUrl() {
+    return "http://127.0.0.1:" + wireMockServer.port() + "/webhook";
   }
 }
