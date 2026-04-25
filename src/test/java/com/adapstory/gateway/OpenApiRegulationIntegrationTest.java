@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
@@ -17,15 +16,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 /**
  * Runtime integration tests for the generated Plugin Gateway OpenAPI contract.
  *
- * <p>Verifies CalVer metadata, explicit compatibility-major, and boolean {@code x-AI-ready=true}
- * on documented gateway routes.
+ * <p>Verifies CalVer metadata, explicit compatibility-major, and boolean {@code x-AI-ready=true} on
+ * documented gateway routes.
  */
 @SpringBootTest
 @ActiveProfiles("test")

@@ -1,7 +1,7 @@
 package com.adapstory.gateway.filter;
 
-import com.adapstory.commons.header.IntegrationIdValidator;
 import com.adapstory.commons.header.IntegrationHeaders;
+import com.adapstory.commons.header.IntegrationIdValidator;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -55,7 +55,8 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
 
     try {
       MandatoryHeadersRequestWrapper wrappedRequest =
-          new MandatoryHeadersRequestWrapper(request, requestId, correlationId, userId, originalUserId);
+          new MandatoryHeadersRequestWrapper(
+              request, requestId, correlationId, userId, originalUserId);
 
       response.setHeader(IntegrationHeaders.HEADER_REQUEST_ID, requestId);
       response.setHeader(IntegrationHeaders.HEADER_RESPONSE_ID, requestId);

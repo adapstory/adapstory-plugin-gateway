@@ -68,8 +68,10 @@ class HeaderInjectionFilterTest {
 
       filter.doFilterInternal(request, response, filterChain);
 
-      assertThat(response.getHeader("X-Request-Id")).isEqualTo("11111111-2222-4333-8abc-666666666666");
-      assertThat(response.getHeader("X-Response-Id")).isEqualTo("11111111-2222-4333-8abc-666666666666");
+      assertThat(response.getHeader("X-Request-Id"))
+          .isEqualTo("11111111-2222-4333-8abc-666666666666");
+      assertThat(response.getHeader("X-Response-Id"))
+          .isEqualTo("11111111-2222-4333-8abc-666666666666");
     }
 
     @Test
@@ -345,7 +347,8 @@ class HeaderInjectionFilterTest {
 
       jakarta.servlet.http.HttpServletRequest wrappedRequest =
           (jakarta.servlet.http.HttpServletRequest) requestCaptor.getValue();
-      assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_USER_ID)).isEqualTo("anonymous");
+      assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_USER_ID))
+          .isEqualTo("anonymous");
       assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID))
           .isEqualTo("user-abc");
     }

@@ -27,8 +27,8 @@ import tools.jackson.databind.ObjectMapper;
  * <p>Принимает POST {@code /internal/plugins/v1/{slug}/mcp}, валидирует slug, разрешает endpoint
  * plugin pod и делегирует проксирование в {@link McpProxyService}. Legacy alias without explicit
  * version is kept hidden from OpenAPI for backward compatibility. Инжектирует обязательные
- * заголовки (INT-02): X-Tenant-Id, X-Request-Id, X-Correlation-Id. Тегирует mcp_method
- * (tools/list | tools/call) для observability.
+ * заголовки (INT-02): X-Tenant-Id, X-Request-Id, X-Correlation-Id. Тегирует mcp_method (tools/list
+ * | tools/call) для observability.
  */
 @RestController
 @PermitAll
@@ -89,8 +89,8 @@ public class McpRouteController {
     proxyMcpInternal(slug, request, response);
   }
 
-  private void proxyMcpInternal(String slug, HttpServletRequest request, HttpServletResponse response)
-      throws IOException {
+  private void proxyMcpInternal(
+      String slug, HttpServletRequest request, HttpServletResponse response) throws IOException {
     if (!SLUG_PATTERN.matcher(slug).matches()) {
       log.warn("MCP proxy rejected: invalid slug '{}'", slug);
       GatewayErrorWriter.writeError(

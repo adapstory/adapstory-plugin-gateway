@@ -95,7 +95,9 @@ public class PermissionFetchClient {
                 IntegrationHeaders.HEADER_CORRELATION_ID,
                 MDC.get(IntegrationHeaders.CORRELATION_ID),
                 UUID.randomUUID().toString());
-            request.getHeaders().set(IntegrationHeaders.HEADER_USER_ID, "service:" + SOURCE_SERVICE);
+            request
+                .getHeaders()
+                .set(IntegrationHeaders.HEADER_USER_ID, "service:" + SOURCE_SERVICE);
             request.getHeaders().set(IntegrationHeaders.HEADER_SOURCE_SERVICE, SOURCE_SERVICE);
             return execution.execute(request, body);
           });
