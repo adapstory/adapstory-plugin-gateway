@@ -166,6 +166,18 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Retry transient flakes once before failing the build. The known flake is
+                         PluginRouteResolverTest.should_forward5xx_when_backendReturns5xx, which
+                         occasionally exceeds the reactor-netty read budget under JVM contention
+                         (passes in isolation, ~0.4% rate when full class runs). Genuine bugs still
+                         fail the second time and surface in surefire-reports. -->
+                    <rerunFailingTestsCount>1</rerunFailingTestsCount>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
             </plugin>
