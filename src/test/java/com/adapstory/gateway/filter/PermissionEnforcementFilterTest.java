@@ -63,7 +63,11 @@ class PermissionEnforcementFilterTest {
             new GatewayProperties.Bc02Config("http://localhost:8081"),
             null);
 
-    filter = new PermissionEnforcementFilter(properties, objectMapper, cacheService, meterRegistry);
+    filter =
+        new PermissionEnforcementFilter(
+            new PermissionIntersectionService(properties, cacheService),
+            objectMapper,
+            meterRegistry);
   }
 
   @Nested

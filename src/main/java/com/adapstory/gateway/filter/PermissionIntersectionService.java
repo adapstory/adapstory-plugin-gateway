@@ -5,6 +5,7 @@ import com.adapstory.gateway.config.GatewayProperties;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.stereotype.Component;
 
 /**
  * Service for computing permission intersection between JWT claims and plugin manifests.
@@ -19,6 +20,7 @@ import java.util.Optional;
  *
  * @see PermissionEnforcementFilter
  */
+@Component
 public class PermissionIntersectionService {
 
   private static final String GATEWAY_PREFIX = "/api/bc-02/gateway/v1/api/";
@@ -93,7 +95,6 @@ public class PermissionIntersectionService {
    */
   public IntersectionResult computeIntersection(
       String pluginId, List<String> jwtPermissions, String requiredPermission) {
-
     // Step 1: JWT check
     if (!hasJwtPermission(jwtPermissions, requiredPermission)) {
       return IntersectionResult.jwtMissing(requiredPermission);

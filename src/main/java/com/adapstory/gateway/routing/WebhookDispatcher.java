@@ -2,6 +2,7 @@ package com.adapstory.gateway.routing;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
+import com.adapstory.gateway.util.PluginSlugValidator;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
@@ -12,7 +13,6 @@ import jakarta.annotation.security.PermitAll;
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -68,9 +68,6 @@ public class WebhookDispatcher {
     this.webhookRetry = RetryRegistry.of(retryConfig).retry("webhook-dispatch");
   }
 
-  private static final Pattern PLUGIN_SHORT_ID_PATTERN =
-      Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9-]*$");
-
   @Operation(
       summary = "Dispatch webhook to plugin pod",
       description =
@@ -84,7 +81,7 @@ public class WebhookDispatcher {
       @Parameter(description = "Plugin short identifier") @PathVariable String pluginShortId,
       @RequestBody byte[] payload,
       @RequestHeader HttpHeaders headers) {
-    if (!PLUGIN_SHORT_ID_PATTERN.matcher(pluginShortId).matches()) {
+    if (!PluginSlugValidator.isValidSlug(pluginShortId)) {
       log.warn("Webhook dispatch rejected: invalid pluginShortId '{}'", pluginShortId);
       return ResponseEntity.badRequest().build();
     }

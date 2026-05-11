@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * Конфигурация безопасности Plugin Gateway.
@@ -105,38 +106,35 @@ public class SecurityConfig {
   @Bean
   FilterRegistrationBean<PluginAuthFilter> disablePluginAuthAutoRegistration(
       PluginAuthFilter filter) {
-    var registration = new FilterRegistrationBean<>(filter);
-    registration.setEnabled(false);
-    return registration;
+    return disableAutoRegistration(filter);
   }
 
   @Bean
   FilterRegistrationBean<PermissionEnforcementFilter> disablePermissionFilterAutoRegistration(
       PermissionEnforcementFilter filter) {
-    var registration = new FilterRegistrationBean<>(filter);
-    registration.setEnabled(false);
-    return registration;
+    return disableAutoRegistration(filter);
   }
 
   @Bean
   FilterRegistrationBean<PluginInstalledCheckFilter> disableInstalledCheckAutoRegistration(
       PluginInstalledCheckFilter filter) {
-    var registration = new FilterRegistrationBean<>(filter);
-    registration.setEnabled(false);
-    return registration;
+    return disableAutoRegistration(filter);
   }
 
   @Bean
   FilterRegistrationBean<HeaderInjectionFilter> disableHeaderFilterAutoRegistration(
       HeaderInjectionFilter filter) {
-    var registration = new FilterRegistrationBean<>(filter);
-    registration.setEnabled(false);
-    return registration;
+    return disableAutoRegistration(filter);
   }
 
   @Bean
   FilterRegistrationBean<PluginMcpJwtClaimFilter> disableMcpFilterAutoRegistration(
       PluginMcpJwtClaimFilter filter) {
+    return disableAutoRegistration(filter);
+  }
+
+  private <T extends OncePerRequestFilter> FilterRegistrationBean<T> disableAutoRegistration(
+      T filter) {
     var registration = new FilterRegistrationBean<>(filter);
     registration.setEnabled(false);
     return registration;

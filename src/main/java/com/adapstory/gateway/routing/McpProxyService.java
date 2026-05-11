@@ -2,6 +2,7 @@ package com.adapstory.gateway.routing;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
+import com.adapstory.gateway.util.ProxyHeaderUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,18 +10,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.Enumeration;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.StreamingHttpOutputMessage;
-import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -45,19 +42,6 @@ public class McpProxyService {
 
   private static final Pattern MCP_METHOD_PATTERN =
       Pattern.compile("\"method\"\\s*:\\s*\"([^\"]+)\"");
-
-  private static final Set<String> HOP_BY_HOP_HEADERS =
-      Set.of(
-          "connection",
-          "content-length",
-          "keep-alive",
-          "proxy-authenticate",
-          "proxy-authorization",
-          "te",
-          "trailers",
-          "transfer-encoding",
-          "upgrade",
-          "host");
 
   private final GatewayProperties properties;
   private final RestClient restClient;
@@ -98,7 +82,7 @@ public class McpProxyService {
         .uri(URI.create(targetUrl))
         .headers(
             headers -> {
-              copyRequestHeaders(request, headers);
+              ProxyHeaderUtils.copyRequestHeaders(request, headers);
               // Inject mandatory INT-02 headers
               if (tenantId != null) {
                 headers.set(IntegrationHeaders.HEADER_TENANT_ID, tenantId);
@@ -122,7 +106,7 @@ public class McpProxyService {
                 })
         .exchange(
             (req, clientResponse) -> {
-              copyResponse(clientResponse, response);
+              ProxyHeaderUtils.copyResponse(clientResponse, response);
 
               // Try to extract mcp_method for observability
               String mcpMethod = extractMcpMethodFromRequest(request);
@@ -133,58 +117,6 @@ public class McpProxyService {
 
               return null;
             });
-  }
-
-  /**
-   * Copies safe request headers from the incoming servlet request to the outgoing {@link
-   * HttpHeaders}, skipping hop-by-hop headers and Authorization.
-   *
-   * @param request incoming servlet request
-   * @param headers outgoing REST client headers
-   */
-  public void copyRequestHeaders(HttpServletRequest request, HttpHeaders headers) {
-    Enumeration<String> headerNames = request.getHeaderNames();
-    while (headerNames.hasMoreElements()) {
-      String headerName = headerNames.nextElement();
-      if (HOP_BY_HOP_HEADERS.contains(headerName.toLowerCase())) {
-        continue;
-      }
-      if (headerName.equalsIgnoreCase(HttpHeaders.AUTHORIZATION)) {
-        continue; // Don't forward plugin JWT to target backend
-      }
-      Enumeration<String> values = request.getHeaders(headerName);
-      while (values.hasMoreElements()) {
-        headers.add(headerName, values.nextElement());
-      }
-    }
-  }
-
-  /**
-   * Copies the response from the upstream client response to the servlet response, including status
-   * code, headers (excluding hop-by-hop), and body.
-   *
-   * @param clientResponse upstream response
-   * @param response downstream servlet response
-   * @throws IOException if an I/O error occurs during body transfer
-   */
-  public void copyResponse(ClientHttpResponse clientResponse, HttpServletResponse response)
-      throws IOException {
-    response.setStatus(clientResponse.getStatusCode().value());
-
-    clientResponse
-        .getHeaders()
-        .forEach(
-            (name, values) -> {
-              if (!HOP_BY_HOP_HEADERS.contains(name.toLowerCase())) {
-                for (String value : values) {
-                  response.addHeader(name, value);
-                }
-              }
-            });
-
-    try (InputStream body = clientResponse.getBody()) {
-      body.transferTo(response.getOutputStream());
-    }
   }
 
   /**

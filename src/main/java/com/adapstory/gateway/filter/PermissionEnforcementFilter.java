@@ -1,7 +1,5 @@
 package com.adapstory.gateway.filter;
 
-import com.adapstory.gateway.cache.PermissionCacheService;
-import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -49,12 +47,10 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
   private final MeterRegistry meterRegistry;
 
   public PermissionEnforcementFilter(
-      GatewayProperties properties,
+      PermissionIntersectionService intersectionService,
       ObjectMapper objectMapper,
-      PermissionCacheService permissionCacheService,
       MeterRegistry meterRegistry) {
-    this.intersectionService =
-        new PermissionIntersectionService(properties, permissionCacheService);
+    this.intersectionService = intersectionService;
     this.objectMapper = objectMapper;
     this.meterRegistry = meterRegistry;
   }

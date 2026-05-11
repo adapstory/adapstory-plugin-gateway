@@ -2,6 +2,7 @@ package com.adapstory.gateway.routing;
 
 import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
 import com.adapstory.gateway.util.GatewayErrorWriter;
+import com.adapstory.gateway.util.PluginSlugValidator;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -13,7 +14,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -35,8 +35,6 @@ import tools.jackson.databind.ObjectMapper;
 public class McpRouteController {
 
   private static final Logger log = LoggerFactory.getLogger(McpRouteController.class);
-
-  private static final Pattern SLUG_PATTERN = Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9-]*$");
 
   private final McpProxyService mcpProxyService;
   private final ObjectMapper objectMapper;
@@ -91,7 +89,7 @@ public class McpRouteController {
 
   private void proxyMcpInternal(
       String slug, HttpServletRequest request, HttpServletResponse response) throws IOException {
-    if (!SLUG_PATTERN.matcher(slug).matches()) {
+    if (!PluginSlugValidator.isValidSlug(slug)) {
       log.warn("MCP proxy rejected: invalid slug '{}'", slug);
       GatewayErrorWriter.writeError(
           objectMapper,

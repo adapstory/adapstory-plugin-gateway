@@ -3,6 +3,7 @@ package com.adapstory.gateway.client;
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.PluginPermissionsResponse;
+import com.adapstory.gateway.util.FetchClientUtils;
 import com.adapstory.starter.web.auth.ServiceHeaderInterceptor;
 import com.adapstory.starter.web.auth.ServiceTokenPort;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
@@ -14,14 +15,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
@@ -42,14 +41,9 @@ public class PermissionFetchClient {
   private static final String PERMISSIONS_PATH =
       "/api/bc-02/plugin-lifecycle/v1/{pluginId}/permissions";
 
-  /** Допустимый формат pluginId: tri-part (vendor.category.name) или UUID. */
-  private static final Pattern PLUGIN_ID_PATTERN =
-      Pattern.compile("^[a-zA-Z0-9][a-zA-Z0-9._-]{1,123}[a-zA-Z0-9]$");
-
   private static final int CONNECT_TIMEOUT_MS = 3000;
   private static final int READ_TIMEOUT_MS = 3000;
   private static final String TARGET_AUDIENCE = "adapstory-bc02-service";
-  private static final String SOURCE_SERVICE = "plugin-gateway";
   private static final String DEFAULT_CLIENT_ID = "adapstory-plugin-gateway";
 
   private final RestClient restClient;
@@ -81,26 +75,10 @@ public class PermissionFetchClient {
     ServiceTokenPort tokenPort = serviceTokenPort.getIfAvailable();
     if (tokenPort != null) {
       builder.requestInterceptor(
-          new ServiceHeaderInterceptor(tokenPort, TARGET_AUDIENCE, SOURCE_SERVICE, clientId));
+          new ServiceHeaderInterceptor(
+              tokenPort, TARGET_AUDIENCE, FetchClientUtils.HEADER_SOURCE_SERVICE, clientId));
     } else {
-      builder.requestInterceptor(
-          (request, body, execution) -> {
-            propagateHeader(
-                request,
-                IntegrationHeaders.HEADER_REQUEST_ID,
-                MDC.get(IntegrationHeaders.REQUEST_ID),
-                UUID.randomUUID().toString());
-            propagateHeader(
-                request,
-                IntegrationHeaders.HEADER_CORRELATION_ID,
-                MDC.get(IntegrationHeaders.CORRELATION_ID),
-                UUID.randomUUID().toString());
-            request
-                .getHeaders()
-                .set(IntegrationHeaders.HEADER_USER_ID, "service:" + SOURCE_SERVICE);
-            request.getHeaders().set(IntegrationHeaders.HEADER_SOURCE_SERVICE, SOURCE_SERVICE);
-            return execution.execute(request, body);
-          });
+      builder.requestInterceptor(FetchClientUtils.fallbackHeaderInterceptor());
     }
 
     this.restClient = builder.build();
@@ -177,15 +155,9 @@ public class PermissionFetchClient {
     if (pluginId.isBlank()) {
       throw new IllegalArgumentException("pluginId must not be blank");
     }
-    if (!PLUGIN_ID_PATTERN.matcher(pluginId).matches()) {
+    if (!FetchClientUtils.PLUGIN_ID_PATTERN.matcher(pluginId).matches()) {
       throw new IllegalArgumentException(
           "pluginId format invalid (expected tri-part or UUID): " + pluginId);
     }
-  }
-
-  private static void propagateHeader(
-      HttpRequest request, String headerName, String currentValue, String defaultValue) {
-    String value = currentValue != null && !currentValue.isBlank() ? currentValue : defaultValue;
-    request.getHeaders().set(headerName, value);
   }
 }
