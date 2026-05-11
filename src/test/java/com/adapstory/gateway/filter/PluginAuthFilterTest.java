@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.adapstory.gateway.config.GatewayProperties;
+import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.dto.GatewayErrorResponse;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.nimbusds.jose.JOSEObjectType;
@@ -75,7 +76,8 @@ class PluginAuthFilterTest {
             new GatewayProperties.Bc02Config("http://localhost:8081"),
             null);
 
-    filter = new PluginAuthFilter(properties, objectMapper);
+    JwtProcessorFactory jwtProcessorFactory = new JwtProcessorFactory();
+    filter = new PluginAuthFilter(properties, objectMapper, jwtProcessorFactory);
     // Inject mocked JWT processor to avoid needing a real JWKS endpoint
     ReflectionTestUtils.setField(filter, "jwtProcessor", jwtProcessor);
 
@@ -87,7 +89,8 @@ class PluginAuthFilterTest {
   @DisplayName("should accept JWT JOSE type during processor initialization")
   void should_acceptJwtJoseType_when_initialized() throws Exception {
     // Arrange
-    PluginAuthFilter initializedFilter = new PluginAuthFilter(properties, objectMapper);
+    PluginAuthFilter initializedFilter =
+        new PluginAuthFilter(properties, objectMapper, new JwtProcessorFactory());
 
     // Act
     initializedFilter.init();

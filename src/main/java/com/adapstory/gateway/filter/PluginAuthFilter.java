@@ -1,20 +1,12 @@
 package com.adapstory.gateway.filter;
 
 import com.adapstory.gateway.config.GatewayProperties;
+import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
-import com.nimbusds.jose.JOSEObjectType;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.source.JWKSource;
-import com.nimbusds.jose.jwk.source.JWKSourceBuilder;
-import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
-import com.nimbusds.jose.proc.JWSKeySelector;
-import com.nimbusds.jose.proc.JWSVerificationKeySelector;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
-import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
-import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import io.opentelemetry.api.trace.Span;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
@@ -22,10 +14,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -52,39 +42,21 @@ public class PluginAuthFilter extends OncePerRequestFilter {
 
   private final GatewayProperties properties;
   private final ObjectMapper objectMapper;
+  private final JwtProcessorFactory jwtProcessorFactory;
   private ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
 
-  public PluginAuthFilter(GatewayProperties properties, ObjectMapper objectMapper) {
+  public PluginAuthFilter(
+      GatewayProperties properties,
+      ObjectMapper objectMapper,
+      JwtProcessorFactory jwtProcessorFactory) {
     this.properties = properties;
     this.objectMapper = objectMapper;
+    this.jwtProcessorFactory = jwtProcessorFactory;
   }
 
   @PostConstruct
   void init() throws java.net.MalformedURLException {
-    GatewayProperties.JwtConfig jwtConfig = properties.jwt();
-
-    JWKSource<SecurityContext> jwkSource =
-        JWKSourceBuilder.create(URI.create(jwtConfig.jwksUri()).toURL())
-            .cache(jwtConfig.jwksCacheTtlMinutes() * 60L * 1000L, 60_000L)
-            .build();
-
-    JWSKeySelector<SecurityContext> keySelector =
-        new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwkSource);
-
-    DefaultJWTClaimsVerifier<SecurityContext> claimsVerifier =
-        new DefaultJWTClaimsVerifier<>(
-            new JWTClaimsSet.Builder()
-                .issuer(jwtConfig.issuer())
-                .audience(jwtConfig.audience())
-                .build(),
-            Set.of("sub", "iss", "aud", "exp", "plugin_id", "adapstory_tenant_id", "permissions"));
-
-    ConfigurableJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
-    processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
-    processor.setJWSKeySelector(keySelector);
-    processor.setJWTClaimsSetVerifier(claimsVerifier);
-
-    this.jwtProcessor = processor;
+    this.jwtProcessor = jwtProcessorFactory.createJwtProcessor(properties.jwt());
   }
 
   @Override
@@ -109,33 +81,26 @@ public class PluginAuthFilter extends OncePerRequestFilter {
     try {
       JWTClaimsSet claims = jwtProcessor.process(token, null);
 
-      String pluginId = claims.getStringClaim("plugin_id");
-      String tenantId = claims.getStringClaim("adapstory_tenant_id");
-      List<String> permissions = claims.getStringListClaim("permissions");
-      String trustLevel = claims.getStringClaim("trust_level");
+      PluginSecurityContext pluginContext = PluginJwtClaimsMapper.mapClaims(claims);
 
-      if (pluginId == null || tenantId == null || permissions == null) {
+      if (pluginContext == null) {
         writeError(
             response, request, 401, "Unauthorized", "JWT missing required plugin claims", Map.of());
         return;
       }
 
-      PluginSecurityContext pluginContext =
-          new PluginSecurityContext(pluginId, tenantId, List.copyOf(permissions), trustLevel);
-
       request.setAttribute(PLUGIN_SECURITY_CONTEXT_ATTR, pluginContext);
 
       List<SimpleGrantedAuthority> authorities =
-          permissions.stream().map(SimpleGrantedAuthority::new).toList();
+          pluginContext.permissions().stream().map(SimpleGrantedAuthority::new).toList();
 
       AbstractAuthenticationToken authentication =
           new PluginAuthenticationToken(pluginContext, authorities);
       authentication.setAuthenticated(true);
       SecurityContextHolder.getContext().setAuthentication(authentication);
 
-      Span currentSpan = Span.current();
-      currentSpan.setAttribute("plugin.id", pluginId);
-      currentSpan.setAttribute("tenant.id", tenantId);
+      Span.current().setAttribute("plugin.id", pluginContext.pluginId());
+      Span.current().setAttribute("tenant.id", pluginContext.tenantId());
 
       filterChain.doFilter(request, response);
     } catch (Exception ex) {

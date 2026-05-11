@@ -1,6 +1,6 @@
 package com.adapstory.gateway.cache;
 
-import com.adapstory.gateway.client.PermissionFetchClient;
+import com.adapstory.gateway.util.FetchClientUtils;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,7 +106,7 @@ public class PermissionRevocationEventParser {
     }
     String value = pluginIdNode.asText();
     try {
-      PermissionFetchClient.validatePluginId(value);
+      FetchClientUtils.validatePluginId(value);
     } catch (IllegalArgumentException | NullPointerException e) {
       log.warn("Rejected PluginPermissionsRevoked event: invalid pluginId format '{}'", value);
       return null;

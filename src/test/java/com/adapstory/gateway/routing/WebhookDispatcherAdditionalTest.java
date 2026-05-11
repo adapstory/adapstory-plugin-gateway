@@ -183,8 +183,9 @@ class WebhookDispatcherAdditionalTest {
               new GatewayProperties.Bc02Config("http://localhost:8081"),
               null);
 
-      WebhookDispatcher dispatcher =
-          new WebhookDispatcher(properties, RestClient.builder(), Runnable::run);
+      WebhookDispatchService dispatchService =
+          new WebhookDispatchService(properties, RestClient.builder(), Runnable::run);
+      WebhookDispatcher dispatcher = new WebhookDispatcher(properties, dispatchService);
 
       // Act
       String endpoint = dispatcher.resolvePluginPodEndpoint("quiz");
@@ -209,8 +210,9 @@ class WebhookDispatcherAdditionalTest {
               new GatewayProperties.Bc02Config("http://localhost:8081"),
               null);
 
-      WebhookDispatcher dispatcher =
-          new WebhookDispatcher(properties, RestClient.builder(), Runnable::run);
+      WebhookDispatchService dispatchService =
+          new WebhookDispatchService(properties, RestClient.builder(), Runnable::run);
+      WebhookDispatcher dispatcher = new WebhookDispatcher(properties, dispatchService);
 
       // Act
       String endpoint = dispatcher.resolvePluginPodEndpoint("ai-grader");
@@ -233,6 +235,8 @@ class WebhookDispatcherAdditionalTest {
             new GatewayProperties.Bc02Config("http://localhost:8081"),
             null);
 
-    return new WebhookDispatcher(properties, RestClient.builder(), Runnable::run);
+    WebhookDispatchService dispatchService =
+        new WebhookDispatchService(properties, RestClient.builder(), Runnable::run);
+    return new WebhookDispatcher(properties, dispatchService);
   }
 }

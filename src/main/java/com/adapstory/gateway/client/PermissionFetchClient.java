@@ -1,16 +1,12 @@
 package com.adapstory.gateway.client;
 
 import com.adapstory.commons.header.IntegrationHeaders;
-import com.adapstory.gateway.config.GatewayProperties;
+import com.adapstory.gateway.config.Bc02ClientConfig;
 import com.adapstory.gateway.dto.PluginPermissionsResponse;
 import com.adapstory.gateway.util.FetchClientUtils;
-import com.adapstory.starter.web.auth.ServiceHeaderInterceptor;
-import com.adapstory.starter.web.auth.ServiceTokenPort;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -18,10 +14,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -41,59 +34,28 @@ public class PermissionFetchClient {
   private static final String PERMISSIONS_PATH =
       "/api/bc-02/plugin-lifecycle/v1/{pluginId}/permissions";
 
-  private static final int CONNECT_TIMEOUT_MS = 3000;
-  private static final int READ_TIMEOUT_MS = 3000;
-  private static final String TARGET_AUDIENCE = "adapstory-bc02-service";
-  private static final String DEFAULT_CLIENT_ID = "adapstory-plugin-gateway";
-
   private final RestClient restClient;
   private final CircuitBreaker circuitBreaker;
 
   /**
-   * Создаёт клиент с RestClient + Circuit Breaker.
+   * Creates client with RestClient + Circuit Breaker using {@link Bc02ClientConfig} factory.
    *
-   * @param properties конфигурация Gateway (содержит baseUrl BC-02)
-   * @param circuitBreakerRegistry реестр circuit breakers
+   * @param bc02ClientConfig shared BC-02 client configuration
+   * @param restClientBuilder Spring auto-configured RestClient builder
+   * @param circuitBreakerRegistry circuit breaker registry
    */
   @Autowired
   public PermissionFetchClient(
+      Bc02ClientConfig bc02ClientConfig,
       RestClient.Builder restClientBuilder,
-      GatewayProperties properties,
-      CircuitBreakerRegistry circuitBreakerRegistry,
-      ObjectProvider<ServiceTokenPort> serviceTokenPort,
-      @Value("${adapstory.service-auth.client-id:" + DEFAULT_CLIENT_ID + "}") String clientId) {
+      CircuitBreakerRegistry circuitBreakerRegistry) {
+    Objects.requireNonNull(bc02ClientConfig, "bc02ClientConfig must not be null");
     Objects.requireNonNull(restClientBuilder, "restClientBuilder must not be null");
-    Objects.requireNonNull(properties, "properties must not be null");
     Objects.requireNonNull(circuitBreakerRegistry, "circuitBreakerRegistry must not be null");
 
-    var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS));
-    factory.setReadTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
-
-    RestClient.Builder builder =
-        restClientBuilder.baseUrl(properties.bc02().baseUrl()).requestFactory(factory);
-    ServiceTokenPort tokenPort = serviceTokenPort.getIfAvailable();
-    if (tokenPort != null) {
-      builder.requestInterceptor(
-          new ServiceHeaderInterceptor(
-              tokenPort, TARGET_AUDIENCE, FetchClientUtils.HEADER_SOURCE_SERVICE, clientId));
-    } else {
-      builder.requestInterceptor(FetchClientUtils.fallbackHeaderInterceptor());
-    }
-
-    this.restClient = builder.build();
-
+    this.restClient = bc02ClientConfig.createBc02RestClient(restClientBuilder);
     this.circuitBreaker =
-        circuitBreakerRegistry.circuitBreaker(
-            CB_NAME,
-            CircuitBreakerConfig.custom()
-                .slidingWindowSize(20)
-                .failureRateThreshold(50)
-                .waitDurationInOpenState(Duration.ofSeconds(10))
-                .permittedNumberOfCallsInHalfOpenState(3)
-                .slowCallDurationThreshold(Duration.ofSeconds(5))
-                .minimumNumberOfCalls(5)
-                .build());
+        bc02ClientConfig.createBc02CircuitBreaker(circuitBreakerRegistry, CB_NAME);
   }
 
   PermissionFetchClient(RestClient restClient, CircuitBreaker circuitBreaker) {
@@ -151,13 +113,6 @@ public class PermissionFetchClient {
   }
 
   public static void validatePluginId(String pluginId) {
-    Objects.requireNonNull(pluginId, "pluginId must not be null");
-    if (pluginId.isBlank()) {
-      throw new IllegalArgumentException("pluginId must not be blank");
-    }
-    if (!FetchClientUtils.PLUGIN_ID_PATTERN.matcher(pluginId).matches()) {
-      throw new IllegalArgumentException(
-          "pluginId format invalid (expected tri-part or UUID): " + pluginId);
-    }
+    FetchClientUtils.validatePluginId(pluginId);
   }
 }

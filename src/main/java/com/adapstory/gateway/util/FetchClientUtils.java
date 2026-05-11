@@ -1,6 +1,7 @@
 package com.adapstory.gateway.util;
 
 import com.adapstory.commons.header.IntegrationHeaders;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.slf4j.MDC;
@@ -22,6 +23,24 @@ public final class FetchClientUtils {
   public static final String HEADER_SOURCE_SERVICE = "plugin-gateway";
 
   private FetchClientUtils() {}
+
+  /**
+   * Validates a plugin ID against the accepted format (tri-part or UUID).
+   *
+   * @param pluginId the plugin ID to validate
+   * @throws NullPointerException if pluginId is null
+   * @throws IllegalArgumentException if pluginId is blank or does not match format
+   */
+  public static void validatePluginId(String pluginId) {
+    Objects.requireNonNull(pluginId, "pluginId must not be null");
+    if (pluginId.isBlank()) {
+      throw new IllegalArgumentException("pluginId must not be blank");
+    }
+    if (!PLUGIN_ID_PATTERN.matcher(pluginId).matches()) {
+      throw new IllegalArgumentException(
+          "pluginId format invalid (expected tri-part or UUID): " + pluginId);
+    }
+  }
 
   /**
    * Propagates a header value, falling back to a default when the current value is null or blank.

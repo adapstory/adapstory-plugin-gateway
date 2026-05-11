@@ -6,10 +6,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.StreamingHttpOutputMessage;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -32,10 +34,16 @@ public class ProxyExecutionService {
 
   private static final Logger log = LoggerFactory.getLogger(ProxyExecutionService.class);
 
+  private static final int CONNECT_TIMEOUT_MS = 3000;
+  private static final int READ_TIMEOUT_MS = 3000;
+
   private final RestClient restClient;
 
   public ProxyExecutionService(RestClient.Builder restClientBuilder) {
-    this.restClient = restClientBuilder.build();
+    var factory = new SimpleClientHttpRequestFactory();
+    factory.setConnectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS));
+    factory.setReadTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
+    this.restClient = restClientBuilder.requestFactory(factory).build();
   }
 
   /**

@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.StreamingHttpOutputMessage;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -40,6 +42,9 @@ public class McpProxyService {
 
   private static final Logger log = LoggerFactory.getLogger(McpProxyService.class);
 
+  private static final int DEFAULT_CONNECT_TIMEOUT_MS = 3000;
+  private static final int DEFAULT_READ_TIMEOUT_MS = 3000;
+
   private static final Pattern MCP_METHOD_PATTERN =
       Pattern.compile("\"method\"\\s*:\\s*\"([^\"]+)\"");
 
@@ -55,7 +60,12 @@ public class McpProxyService {
       RestClient.Builder restClientBuilder,
       MeterRegistry meterRegistry) {
     this.properties = properties;
-    this.restClient = restClientBuilder.build();
+    int connectTimeoutMs =
+        properties.mcp() != null ? properties.mcp().connectTimeoutMs() : DEFAULT_CONNECT_TIMEOUT_MS;
+    var factory = new SimpleClientHttpRequestFactory();
+    factory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
+    factory.setReadTimeout(Duration.ofMillis(DEFAULT_READ_TIMEOUT_MS));
+    this.restClient = restClientBuilder.requestFactory(factory).build();
     this.meterRegistry = meterRegistry;
   }
 
