@@ -447,6 +447,34 @@ class PluginAuthFilterTest {
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.message()).isEqualTo("Invalid or expired plugin token");
     }
+
+    @Test
+    @DisplayName("should return 401 when plugin claims have invalid types")
+    void should_return401_when_plugin_claims_have_invalid_types() throws Exception {
+      JWTClaimsSet claims =
+          new JWTClaimsSet.Builder()
+              .subject("plugin-subject")
+              .claim("plugin_id", "my-plugin")
+              .claim("adapstory_tenant_id", "tenant-1")
+              .claim("permissions", "content.read")
+              .build();
+
+      when(jwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(claims);
+
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
+      request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      filter.doFilterInternal(request, response, filterChain);
+
+      assertThat(response.getStatus()).isEqualTo(401);
+      verifyNoInteractions(filterChain);
+
+      GatewayErrorResponse error =
+          objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
+      assertThat(error.message()).isEqualTo("Invalid or expired plugin token");
+    }
   }
 
   // ---------------------------------------------------------------------------

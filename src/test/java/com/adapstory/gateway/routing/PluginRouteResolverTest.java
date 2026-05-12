@@ -270,7 +270,7 @@ class PluginRouteResolverTest {
 
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
-      request.addHeader("Connection", "keep-alive");
+      request.addHeader("Connection", "close");
       request.addHeader("Transfer-Encoding", "chunked");
       request.addHeader("X-Custom-Header", "preserved");
       MockHttpServletResponse response = new MockHttpServletResponse();
@@ -281,9 +281,10 @@ class PluginRouteResolverTest {
       // Assert
       wireMockServer.verify(
           getRequestedFor(urlEqualTo("/api/content/v1/materials/123"))
-              .withoutHeader("Connection")
-              .withoutHeader("Transfer-Encoding")
               .withHeader("X-Custom-Header", equalTo("preserved")));
+      var forwardedRequest = wireMockServer.getAllServeEvents().get(0).getRequest();
+      assertThat(forwardedRequest.getHeader("Connection")).isNotEqualTo("close");
+      assertThat(forwardedRequest.getHeader("Transfer-Encoding")).isNull();
     }
 
     @Test

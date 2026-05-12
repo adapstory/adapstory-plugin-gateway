@@ -2,6 +2,7 @@ package com.adapstory.gateway.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.adapstory.gateway.config.Bc02ClientConfig;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.config.GatewayProperties.Bc02Config;
 import com.adapstory.gateway.config.GatewayProperties.InstalledCacheConfig;
@@ -27,6 +28,7 @@ class InstalledPluginFetchClientSpringWiringTest {
           .withBean(RestClient.Builder.class, RestClient::builder)
           .withBean(CircuitBreakerRegistry.class, CircuitBreakerRegistry::ofDefaults)
           .withBean(ObjectMapper.class, ObjectMapper::new)
+          .withBean(Bc02ClientConfig.class)
           .withBean(InstalledPluginFetchClient.class);
 
   @Test

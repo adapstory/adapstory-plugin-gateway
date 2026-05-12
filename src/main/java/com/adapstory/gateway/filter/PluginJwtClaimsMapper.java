@@ -2,6 +2,7 @@ package com.adapstory.gateway.filter;
 
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
+import java.text.ParseException;
 import java.util.List;
 
 /**
@@ -20,12 +21,21 @@ public final class PluginJwtClaimsMapper {
    *
    * @param claims validated JWT claims
    * @return plugin security context, or {@code null} if required claims are missing
+   * @throws IllegalArgumentException if a plugin claim has an unexpected type
    */
   public static PluginSecurityContext mapClaims(JWTClaimsSet claims) {
-    String pluginId = claims.getStringClaim("plugin_id");
-    String tenantId = claims.getStringClaim("adapstory_tenant_id");
-    List<String> permissions = claims.getStringListClaim("permissions");
-    String trustLevel = claims.getStringClaim("trust_level");
+    String pluginId;
+    String tenantId;
+    List<String> permissions;
+    String trustLevel;
+    try {
+      pluginId = claims.getStringClaim("plugin_id");
+      tenantId = claims.getStringClaim("adapstory_tenant_id");
+      permissions = claims.getStringListClaim("permissions");
+      trustLevel = claims.getStringClaim("trust_level");
+    } catch (ParseException ex) {
+      throw new IllegalArgumentException("JWT plugin claims have unexpected types", ex);
+    }
 
     if (pluginId == null || tenantId == null || permissions == null) {
       return null;
