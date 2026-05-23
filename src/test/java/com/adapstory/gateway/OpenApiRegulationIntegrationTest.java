@@ -50,9 +50,9 @@ class OpenApiRegulationIntegrationTest {
     JsonNode info = root.get("info");
 
     assertThat(info).isNotNull();
-    assertThat(info.get("version").asText()).isEqualTo("2026.04.1");
-    assertThat(info.get("x-adapstory-api-major").asText()).isEqualTo("v1");
-    assertThat(info.get("x-adapstory-api-audience").asText()).isEqualTo("internal");
+    assertThat(info.get("version").textValue()).isEqualTo("2026.04.1");
+    assertThat(info.get("x-adapstory-api-major").textValue()).isEqualTo("v1");
+    assertThat(info.get("x-adapstory-api-audience").textValue()).isEqualTo("internal");
     assertThat(info.get("x-adapstory-ai-ready").asBoolean()).isTrue();
     assertThat(root.get("paths").has("/internal/plugins/v1/{slug}/mcp")).isTrue();
     assertThat(root.get("paths").has("/internal/plugins/{slug}/mcp")).isFalse();
@@ -65,10 +65,10 @@ class OpenApiRegulationIntegrationTest {
     JsonNode paths = MAPPER.readTree(body).get("paths");
     assertThat(paths).isNotNull();
 
-    Iterator<Map.Entry<String, JsonNode>> pathEntries = paths.fields();
+    Iterator<Map.Entry<String, JsonNode>> pathEntries = paths.properties().iterator();
     while (pathEntries.hasNext()) {
       Map.Entry<String, JsonNode> pathEntry = pathEntries.next();
-      Iterator<Map.Entry<String, JsonNode>> methods = pathEntry.getValue().fields();
+      Iterator<Map.Entry<String, JsonNode>> methods = pathEntry.getValue().properties().iterator();
       while (methods.hasNext()) {
         Map.Entry<String, JsonNode> methodEntry = methods.next();
         JsonNode operation = methodEntry.getValue();

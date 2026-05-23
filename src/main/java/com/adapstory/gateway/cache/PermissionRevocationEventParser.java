@@ -61,7 +61,7 @@ public class PermissionRevocationEventParser {
     if (idNode.isMissingNode() || idNode.isNull()) {
       return null;
     }
-    return idNode.asText();
+    return idNode.asString();
   }
 
   /** Проверяет, обработано ли событие ранее (idempotency via Redis dedup key). */
@@ -83,10 +83,10 @@ public class PermissionRevocationEventParser {
     }
     if (revokedNode.isArray()) {
       for (JsonNode scope : revokedNode) {
-        if (scope.isTextual() && scope.asText().length() > MAX_SCOPE_LENGTH) {
+        if (scope.isString() && scope.asString().length() > MAX_SCOPE_LENGTH) {
           log.warn(
               "Rejected PluginPermissionsRevoked event: scope length {} exceeds limit {}",
-              scope.asText().length(),
+              scope.asString().length(),
               MAX_SCOPE_LENGTH);
           return false;
         }
@@ -104,7 +104,7 @@ public class PermissionRevocationEventParser {
     if (pluginIdNode.isMissingNode()) {
       return null;
     }
-    String value = pluginIdNode.asText();
+    String value = pluginIdNode.asString();
     try {
       FetchClientUtils.validatePluginId(value);
     } catch (IllegalArgumentException | NullPointerException e) {

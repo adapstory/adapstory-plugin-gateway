@@ -53,8 +53,8 @@ class PermissionRevocationEventParserTest {
       JsonNode tree = eventParser.parseEvent(json);
 
       // Assert
-      assertThat(tree.path("specversion").asText()).isEqualTo("1.0");
-      assertThat(tree.path("id").asText()).isEqualTo("ce-123");
+      assertThat(tree.path("specversion").asString()).isEqualTo("1.0");
+      assertThat(tree.path("id").asString()).isEqualTo("ce-123");
     }
 
     @Test
