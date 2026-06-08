@@ -1,4 +1,4 @@
-FROM eclipse-temurin:25-jre-alpine AS runtime
+FROM harbor.adapstory.com/dockerhub-cache/library/eclipse-temurin:25-jre-alpine AS runtime
 
 RUN apk update && apk upgrade --no-cache --ignore alpine-baselayout --ignore alpine-baselayout-data && rm -rf /var/cache/apk/*
 
