@@ -1,16 +1,13 @@
 package com.adapstory.gateway.filter;
 
 import com.adapstory.gateway.dto.PluginSecurityContext;
-import com.adapstory.gateway.util.GatewayErrorWriter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -43,16 +40,16 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
   private static final String METRIC_UNAVAILABLE = "plugin_gateway_permission_unavailable_total";
 
   private final PermissionIntersectionService intersectionService;
-  private final ObjectMapper objectMapper;
   private final MeterRegistry meterRegistry;
+  private final PermissionEnforcementResponseWriter responseWriter;
 
   public PermissionEnforcementFilter(
       PermissionIntersectionService intersectionService,
       ObjectMapper objectMapper,
       MeterRegistry meterRegistry) {
     this.intersectionService = intersectionService;
-    this.objectMapper = objectMapper;
     this.meterRegistry = meterRegistry;
+    this.responseWriter = new PermissionEnforcementResponseWriter(objectMapper);
   }
 
   @Override
@@ -74,14 +71,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
     String requiredPermission = intersectionService.resolveRequiredPermission(path, method);
     if (requiredPermission == null) {
       log.warn("No permission mapping found for path={} method={}", path, method);
-      GatewayErrorWriter.writeError(
-          objectMapper,
-          response,
-          request,
-          403,
-          "Forbidden",
-          "No permission mapping configured for this route",
-          buildDetails(pluginContext, null));
+      responseWriter.writeMissingPermission(request, response, pluginContext);
       return;
     }
 
@@ -96,17 +86,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       meterRegistry
           .counter(METRIC_DENIED, "pluginId", pluginId, "errorCode", "JWT_MISSING")
           .increment();
-
-      GatewayErrorWriter.writeError(
-          objectMapper,
-          response,
-          request,
-          403,
-          "Forbidden",
-          String.format(
-              "Plugin '%s' does not have permission '%s'",
-              extractShortPluginId(pluginId), requiredPermission),
-          buildDetails(pluginContext, requiredPermission));
+      responseWriter.writeJwtDenied(request, response, pluginContext, requiredPermission);
       return;
     }
 
@@ -120,19 +100,8 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
           "Permission verification unavailable for plugin {}: Redis miss and BC-02 fetch failed",
           pluginId);
       meterRegistry.counter(METRIC_UNAVAILABLE, "pluginId", pluginId).increment();
-
-      Map<String, Object> details = new LinkedHashMap<>();
-      details.put("pluginId", pluginId);
-      details.put("errorCode", ERROR_CODE_PERMISSION_UNAVAILABLE);
-
-      GatewayErrorWriter.writeError(
-          objectMapper,
-          response,
-          request,
-          503,
-          "Service Unavailable",
-          "Unable to verify plugin permissions",
-          details);
+      responseWriter.writeUnavailable(
+          request, response, pluginId, ERROR_CODE_PERMISSION_UNAVAILABLE);
       return;
     }
 
@@ -145,20 +114,8 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       meterRegistry
           .counter(METRIC_DENIED, "pluginId", pluginId, "errorCode", ERROR_CODE_PERMISSION_REVOKED)
           .increment();
-
-      Map<String, Object> details = new LinkedHashMap<>();
-      details.put("pluginId", pluginId);
-      details.put("requiredPermission", requiredPermission);
-      details.put("errorCode", ERROR_CODE_PERMISSION_REVOKED);
-
-      GatewayErrorWriter.writeError(
-          objectMapper,
-          response,
-          request,
-          403,
-          "Forbidden",
-          String.format("Permission '%s' has been revoked", requiredPermission),
-          details);
+      responseWriter.writeManifestDenied(
+          request, response, pluginId, requiredPermission, ERROR_CODE_PERMISSION_REVOKED);
       return;
     }
 
@@ -180,25 +137,5 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
    */
   String resolveRequiredPermission(String path, String httpMethod) {
     return intersectionService.resolveRequiredPermission(path, httpMethod);
-  }
-
-  private String extractShortPluginId(String fullPluginId) {
-    if (fullPluginId == null) {
-      return "unknown";
-    }
-    int lastDot = fullPluginId.lastIndexOf('.');
-    return lastDot >= 0 ? fullPluginId.substring(lastDot + 1) : fullPluginId;
-  }
-
-  private Map<String, Object> buildDetails(
-      PluginSecurityContext pluginContext, String requiredPermission) {
-    Map<String, Object> details = new LinkedHashMap<>();
-    if (pluginContext != null) {
-      details.put("pluginId", pluginContext.pluginId());
-      if (requiredPermission != null) {
-        details.put("requiredPermission", requiredPermission);
-      }
-    }
-    return details;
   }
 }
