@@ -45,7 +45,9 @@ class WebhookDispatcherTest {
             new GatewayProperties.Bc02Config("http://localhost:8081"),
             null);
 
-    dispatchService = new WebhookDispatchService(properties, RestClient.builder(), Runnable::run);
+    dispatchService =
+        new WebhookDispatchService(
+            properties, new RestClientWebhookDeliveryAdapter(RestClient.builder()), Runnable::run);
     dispatcher = new WebhookDispatcher(properties, dispatchService);
   }
 
@@ -173,7 +175,8 @@ class WebhookDispatcherTest {
             null);
 
     WebhookDispatchService realDispatchService =
-        new WebhookDispatchService(properties, RestClient.builder(), Runnable::run);
+        new WebhookDispatchService(
+            properties, new RestClientWebhookDeliveryAdapter(RestClient.builder()), Runnable::run);
     WebhookDispatcher realDispatcher = new WebhookDispatcher(properties, realDispatchService);
 
     assertThat(realDispatcher.resolvePluginPodEndpoint("ai-grader"))

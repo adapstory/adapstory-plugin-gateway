@@ -77,7 +77,8 @@ class PluginRouteResolverTest {
             null);
 
     RouteResolutionService routeResolutionService = new RouteResolutionService(properties);
-    ProxyExecutionService proxyExecutionService = new ProxyExecutionService(RestClient.builder());
+    ProxyExecutionService proxyExecutionService =
+        new ProxyExecutionService(new RestClientProxyExecutionAdapter(RestClient.builder()));
 
     resolver =
         new PluginRouteResolver(

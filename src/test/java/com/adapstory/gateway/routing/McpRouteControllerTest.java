@@ -62,7 +62,10 @@ class McpRouteControllerTest {
             new GatewayProperties.McpConfig(8000, "plugin-%s.plugins.svc.cluster.local", 30000));
 
     McpProxyService mcpProxyService =
-        new McpProxyService(properties, RestClient.builder(), meterRegistry);
+        new McpProxyService(
+            properties,
+            new RestClientMcpProxyTransport(properties, RestClient.builder()),
+            meterRegistry);
     controller = new McpRouteController(mcpProxyService, objectMapper, meterRegistry);
   }
 

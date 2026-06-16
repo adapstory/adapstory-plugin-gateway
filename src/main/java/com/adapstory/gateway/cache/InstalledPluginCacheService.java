@@ -1,6 +1,5 @@
 package com.adapstory.gateway.cache;
 
-import com.adapstory.gateway.client.InstalledPluginFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
 import java.time.Duration;
 import java.util.Objects;
@@ -8,7 +7,6 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -30,17 +28,17 @@ public class InstalledPluginCacheService {
   /** Safe characters for cache key components (no colon to prevent key ambiguity). */
   private static final Pattern SAFE_KEY_PART = Pattern.compile("^[a-zA-Z0-9._-]+$");
 
-  private final StringRedisTemplate redisTemplate;
-  private final InstalledPluginFetchClient fetchClient;
+  private final InstalledPluginStatusCacheStore cacheStore;
+  private final InstalledPluginStatusSource statusSource;
   private final Duration cacheTtl;
   private final Duration negativeCacheTtl;
 
   public InstalledPluginCacheService(
-      StringRedisTemplate redisTemplate,
-      InstalledPluginFetchClient fetchClient,
+      InstalledPluginStatusCacheStore cacheStore,
+      InstalledPluginStatusSource statusSource,
       GatewayProperties properties) {
-    this.redisTemplate = Objects.requireNonNull(redisTemplate, "redisTemplate must not be null");
-    this.fetchClient = Objects.requireNonNull(fetchClient, "fetchClient must not be null");
+    this.cacheStore = Objects.requireNonNull(cacheStore, "cacheStore must not be null");
+    this.statusSource = Objects.requireNonNull(statusSource, "statusSource must not be null");
     Objects.requireNonNull(properties, "properties must not be null");
     var ic = properties.installedCache();
     this.cacheTtl = Duration.ofMinutes(ic != null ? ic.ttlMinutes() : 5);
@@ -67,7 +65,7 @@ public class InstalledPluginCacheService {
     String key = buildKey(pluginId, tenantId);
 
     try {
-      String cached = redisTemplate.opsForValue().get(key);
+      String cached = cacheStore.find(key).orElse(null);
       if (cached != null) {
         if (NEGATIVE_CACHE_SENTINEL.equals(cached)) {
           log.debug(
@@ -86,7 +84,7 @@ public class InstalledPluginCacheService {
 
     // Cache miss — fetch from BC-02
     if (onCacheMiss != null) onCacheMiss.run();
-    Optional<Boolean> result = fetchClient.fetchInstalledStatus(pluginId, tenantId);
+    Optional<Boolean> result = statusSource.fetchInstalledStatus(pluginId, tenantId);
 
     if (result.isPresent()) {
       // H-6: Both true and false from BC-02 are authoritative responses — use full cacheTtl.
@@ -108,7 +106,7 @@ public class InstalledPluginCacheService {
    */
   public void evict(String pluginId, String tenantId) {
     try {
-      redisTemplate.delete(buildKey(pluginId, tenantId));
+      cacheStore.delete(buildKey(pluginId, tenantId));
     } catch (Exception e) {
       log.warn("Redis delete error for installed check eviction: {}", e.getMessage());
     }
@@ -116,7 +114,7 @@ public class InstalledPluginCacheService {
 
   private void cacheResult(String key, String value, Duration ttl) {
     try {
-      redisTemplate.opsForValue().set(key, value, ttl);
+      cacheStore.put(key, value, ttl);
     } catch (Exception e) {
       log.warn("Redis write error for installed check: {}", e.getMessage());
     }

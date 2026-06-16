@@ -1,19 +1,9 @@
 package com.adapstory.gateway.routing;
 
-import com.adapstory.gateway.util.ProxyHeaderUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.time.Duration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.StreamingHttpOutputMessage;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 /**
  * Service for executing proxy requests to backend services.
@@ -32,18 +22,10 @@ import org.springframework.web.client.RestClient;
 @Service
 public class ProxyExecutionService {
 
-  private static final Logger log = LoggerFactory.getLogger(ProxyExecutionService.class);
+  private final ProxyExecutionPort proxyExecutionPort;
 
-  private static final int CONNECT_TIMEOUT_MS = 3000;
-  private static final int READ_TIMEOUT_MS = 3000;
-
-  private final RestClient restClient;
-
-  public ProxyExecutionService(RestClient.Builder restClientBuilder) {
-    var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS));
-    factory.setReadTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
-    this.restClient = restClientBuilder.requestFactory(factory).build();
+  public ProxyExecutionService(ProxyExecutionPort proxyExecutionPort) {
+    this.proxyExecutionPort = proxyExecutionPort;
   }
 
   /**
@@ -58,37 +40,6 @@ public class ProxyExecutionService {
   public void executeProxy(
       HttpServletRequest request, HttpServletResponse response, String targetUri)
       throws IOException {
-    HttpMethod method = HttpMethod.valueOf(request.getMethod());
-    boolean hasBody =
-        method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH;
-
-    if (hasBody) {
-      restClient
-          .method(method)
-          .uri(URI.create(targetUri))
-          .headers(headers -> ProxyHeaderUtils.copyRequestHeaders(request, headers))
-          .body(
-              (StreamingHttpOutputMessage.Body)
-                  outputStream -> {
-                    try (InputStream is = request.getInputStream()) {
-                      is.transferTo(outputStream);
-                    }
-                  })
-          .exchange(
-              (req, clientResponse) -> {
-                ProxyHeaderUtils.copyResponse(clientResponse, response);
-                return null;
-              });
-    } else {
-      restClient
-          .method(method)
-          .uri(URI.create(targetUri))
-          .headers(headers -> ProxyHeaderUtils.copyRequestHeaders(request, headers))
-          .exchange(
-              (req, clientResponse) -> {
-                ProxyHeaderUtils.copyResponse(clientResponse, response);
-                return null;
-              });
-    }
+    proxyExecutionPort.execute(request, response, targetUri);
   }
 }

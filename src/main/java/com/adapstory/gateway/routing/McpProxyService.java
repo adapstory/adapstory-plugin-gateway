@@ -2,26 +2,18 @@ package com.adapstory.gateway.routing;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
-import com.adapstory.gateway.util.ProxyHeaderUtils;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URI;
-import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import org.springframework.http.StreamingHttpOutputMessage;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 /**
  * Service encapsulating MCP proxy execution logic.
@@ -40,16 +32,11 @@ import org.springframework.web.client.RestClient;
 @Service
 public class McpProxyService {
 
-  private static final Logger log = LoggerFactory.getLogger(McpProxyService.class);
-
-  private static final int DEFAULT_CONNECT_TIMEOUT_MS = 3000;
-  private static final int DEFAULT_READ_TIMEOUT_MS = 3000;
-
   private static final Pattern MCP_METHOD_PATTERN =
       Pattern.compile("\"method\"\\s*:\\s*\"([^\"]+)\"");
 
   private final GatewayProperties properties;
-  private final RestClient restClient;
+  private final McpProxyTransportPort proxyTransport;
   private final MeterRegistry meterRegistry;
 
   /** Test-only URL overrides (slug -> base URL). */
@@ -57,15 +44,10 @@ public class McpProxyService {
 
   public McpProxyService(
       GatewayProperties properties,
-      RestClient.Builder restClientBuilder,
+      McpProxyTransportPort proxyTransport,
       MeterRegistry meterRegistry) {
     this.properties = properties;
-    int connectTimeoutMs =
-        properties.mcp() != null ? properties.mcp().connectTimeoutMs() : DEFAULT_CONNECT_TIMEOUT_MS;
-    var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout(Duration.ofMillis(connectTimeoutMs));
-    factory.setReadTimeout(Duration.ofMillis(DEFAULT_READ_TIMEOUT_MS));
-    this.restClient = restClientBuilder.requestFactory(factory).build();
+    this.proxyTransport = proxyTransport;
     this.meterRegistry = meterRegistry;
   }
 
@@ -87,46 +69,12 @@ public class McpProxyService {
       String slug,
       String tenantId)
       throws IOException {
-    restClient
-        .post()
-        .uri(URI.create(targetUrl))
-        .headers(
-            headers -> {
-              ProxyHeaderUtils.copyRequestHeaders(request, headers);
-              // Inject mandatory INT-02 headers
-              if (tenantId != null) {
-                headers.set(IntegrationHeaders.HEADER_TENANT_ID, tenantId);
-              }
-              String requestId = request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID);
-              if (requestId != null) {
-                headers.set(IntegrationHeaders.HEADER_REQUEST_ID, requestId);
-              }
-              String correlationId = request.getHeader(IntegrationHeaders.HEADER_CORRELATION_ID);
-              if (correlationId != null) {
-                headers.set(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
-              }
-              headers.set(IntegrationHeaders.HEADER_SOURCE_SERVICE, "plugin-gateway");
-            })
-        .body(
-            (StreamingHttpOutputMessage.Body)
-                outputStream -> {
-                  try (InputStream is = request.getInputStream()) {
-                    is.transferTo(outputStream);
-                  }
-                })
-        .exchange(
-            (req, clientResponse) -> {
-              ProxyHeaderUtils.copyResponse(clientResponse, response);
-
-              // Try to extract mcp_method for observability
-              String mcpMethod = extractMcpMethodFromRequest(request);
-              Span.current().setAttribute("mcp.method", mcpMethod);
-              meterRegistry
-                  .counter("plugin_gateway_mcp_method_total", "slug", slug, "mcp_method", mcpMethod)
-                  .increment();
-
-              return null;
-            });
+    proxyTransport.proxy(request, response, URI.create(targetUrl), tenantId);
+    String mcpMethod = extractMcpMethodFromRequest(request);
+    Span.current().setAttribute("mcp.method", mcpMethod);
+    meterRegistry
+        .counter("plugin_gateway_mcp_method_total", "slug", slug, "mcp_method", mcpMethod)
+        .increment();
   }
 
   /**

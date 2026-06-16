@@ -10,7 +10,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.adapstory.gateway.client.PermissionFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.event.PermissionCacheInvalidationListener;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -34,19 +33,21 @@ class PermissionCacheServiceTest {
 
   private PermissionCacheService cacheService;
   private PermissionCacheInvalidationListener listener;
+  private PermissionCacheStore cacheStore;
+  private PluginPermissionSource permissionSource;
   private StringRedisTemplate redisTemplate;
   private ValueOperations<String, String> valueOperations;
   private SimpleMeterRegistry meterRegistry;
-  private PermissionFetchClient permissionFetchClient;
 
   @BeforeEach
   @SuppressWarnings("unchecked")
   void setUp() {
+    cacheStore = mock(PermissionCacheStore.class);
+    permissionSource = mock(PluginPermissionSource.class);
     redisTemplate = mock(StringRedisTemplate.class);
     valueOperations = mock(ValueOperations.class);
     when(redisTemplate.opsForValue()).thenReturn(valueOperations);
     meterRegistry = new SimpleMeterRegistry();
-    permissionFetchClient = mock(PermissionFetchClient.class);
 
     GatewayProperties properties =
         new GatewayProperties(
@@ -61,7 +62,7 @@ class PermissionCacheServiceTest {
             null);
 
     ObjectMapper objectMapper = new ObjectMapper();
-    cacheService = new PermissionCacheService(redisTemplate, properties, permissionFetchClient);
+    cacheService = new PermissionCacheService(cacheStore, properties, permissionSource);
     PermissionRevocationEventParser eventParser =
         new PermissionRevocationEventParser(redisTemplate, objectMapper);
     listener = new PermissionCacheInvalidationListener(cacheService, eventParser, meterRegistry);
@@ -75,8 +76,8 @@ class PermissionCacheServiceTest {
     @DisplayName("Cache hit returns cached permissions")
     void should_returnCachedPermissions_when_cacheHit() {
       // Arrange
-      when(valueOperations.get("plugin:permissions:test-plugin"))
-          .thenReturn("content.read,submission.read");
+      when(cacheStore.find("plugin:permissions:test-plugin"))
+          .thenReturn(Optional.of("content.read,submission.read"));
 
       // Act
       Optional<List<String>> result = cacheService.getCachedPermissions("test-plugin");
@@ -90,7 +91,7 @@ class PermissionCacheServiceTest {
     @DisplayName("Cache miss returns empty Optional")
     void should_returnEmpty_when_cacheMiss() {
       // Arrange
-      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn(null);
+      when(cacheStore.find("plugin:permissions:test-plugin")).thenReturn(Optional.empty());
 
       // Act
       Optional<List<String>> result = cacheService.getCachedPermissions("test-plugin");
@@ -106,8 +107,8 @@ class PermissionCacheServiceTest {
       cacheService.cachePermissions("test-plugin", List.of("content.read", "grade.write"));
 
       // Assert
-      verify(valueOperations)
-          .set(
+      verify(cacheStore)
+          .put(
               eq("plugin:permissions:test-plugin"),
               eq("content.read,grade.write"),
               eq(Duration.ofMinutes(5)));
@@ -117,7 +118,7 @@ class PermissionCacheServiceTest {
     @DisplayName("Cache hit with empty value returns empty list")
     void should_returnEmptyList_when_emptyValue() {
       // Arrange
-      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn("");
+      when(cacheStore.find("plugin:permissions:test-plugin")).thenReturn(Optional.of(""));
 
       // Act
       Optional<List<String>> result = cacheService.getCachedPermissions("test-plugin");
@@ -131,7 +132,8 @@ class PermissionCacheServiceTest {
     @DisplayName("Negative cache sentinel returns empty Optional")
     void should_returnEmpty_when_negativeCacheSentinel() {
       // Arrange
-      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn("__UNAVAILABLE__");
+      when(cacheStore.find("plugin:permissions:test-plugin"))
+          .thenReturn(Optional.of("__UNAVAILABLE__"));
 
       // Act
       Optional<List<String>> result = cacheService.getCachedPermissions("test-plugin");
@@ -157,7 +159,7 @@ class PermissionCacheServiceTest {
       cacheService.invalidate("test-plugin");
 
       // Assert
-      verify(redisTemplate).delete("plugin:permissions:test-plugin");
+      verify(cacheStore).delete("plugin:permissions:test-plugin");
     }
   }
 
@@ -169,7 +171,7 @@ class PermissionCacheServiceTest {
     @DisplayName("should fetch from BC-02 and cache on success")
     void should_fetchAndCache_on_success() {
       // Arrange
-      when(permissionFetchClient.fetchPermissions("test-plugin"))
+      when(permissionSource.fetchPermissions("test-plugin"))
           .thenReturn(Optional.of(List.of("content.read", "grade.write")));
 
       // Act
@@ -178,8 +180,8 @@ class PermissionCacheServiceTest {
       // Assert
       assertThat(result).isPresent();
       assertThat(result.get()).containsExactly("content.read", "grade.write");
-      verify(valueOperations)
-          .set(
+      verify(cacheStore)
+          .put(
               eq("plugin:permissions:test-plugin"),
               eq("content.read,grade.write"),
               eq(Duration.ofMinutes(5)));
@@ -189,7 +191,7 @@ class PermissionCacheServiceTest {
     @DisplayName("should return empty Optional and cache negative result when BC-02 unavailable")
     void should_returnEmpty_when_bc02Unavailable() {
       // Arrange
-      when(permissionFetchClient.fetchPermissions("test-plugin")).thenReturn(Optional.empty());
+      when(permissionSource.fetchPermissions("test-plugin")).thenReturn(Optional.empty());
 
       // Act
       Optional<List<String>> result = cacheService.fetchAndCachePermissions("test-plugin");
@@ -197,8 +199,8 @@ class PermissionCacheServiceTest {
       // Assert
       assertThat(result).isEmpty();
       // Negative cache sentinel should be stored with short TTL (30s)
-      verify(valueOperations)
-          .set(
+      verify(cacheStore)
+          .put(
               eq("plugin:permissions:test-plugin"),
               eq("__UNAVAILABLE__"),
               eq(Duration.ofSeconds(30)));
@@ -208,22 +210,23 @@ class PermissionCacheServiceTest {
     @DisplayName("should skip BC-02 call when negative cache sentinel is active (H-1 fix)")
     void should_skipBc02_when_negativeCacheActive() {
       // Arrange — negative sentinel in Redis
-      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn("__UNAVAILABLE__");
+      when(cacheStore.find("plugin:permissions:test-plugin"))
+          .thenReturn(Optional.of("__UNAVAILABLE__"));
 
       // Act
       Optional<List<String>> result = cacheService.fetchAndCachePermissions("test-plugin");
 
       // Assert — BC-02 NOT called, returns empty
       assertThat(result).isEmpty();
-      verify(permissionFetchClient, never()).fetchPermissions(anyString());
+      verify(permissionSource, never()).fetchPermissions(anyString());
     }
 
     @Test
     @DisplayName("should call BC-02 when no negative sentinel exists")
     void should_callBc02_when_noNegativeSentinel() {
       // Arrange — no sentinel in Redis
-      when(valueOperations.get("plugin:permissions:test-plugin")).thenReturn(null);
-      when(permissionFetchClient.fetchPermissions("test-plugin"))
+      when(cacheStore.find("plugin:permissions:test-plugin")).thenReturn(Optional.empty());
+      when(permissionSource.fetchPermissions("test-plugin"))
           .thenReturn(Optional.of(List.of("content.read")));
 
       // Act
@@ -231,7 +234,7 @@ class PermissionCacheServiceTest {
 
       // Assert
       assertThat(result).isPresent();
-      verify(permissionFetchClient).fetchPermissions("test-plugin");
+      verify(permissionSource).fetchPermissions("test-plugin");
     }
   }
 
@@ -259,7 +262,7 @@ class PermissionCacheServiceTest {
       listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
       // Assert
-      verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
+      verify(cacheStore).delete("plugin:permissions:adapstory.assessment.quiz");
     }
 
     @Test
@@ -311,7 +314,7 @@ class PermissionCacheServiceTest {
         listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, null, null);
 
         // Assert
-        verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
+        verify(cacheStore).delete("plugin:permissions:adapstory.assessment.quiz");
       }
 
       @Test
@@ -331,7 +334,7 @@ class PermissionCacheServiceTest {
         listener.onPluginPermissionsRevoked(eventWithoutCeId, null, null);
 
         // Assert — invalidation still happens (fail-open for cache invalidation)
-        verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
+        verify(cacheStore).delete("plugin:permissions:adapstory.assessment.quiz");
         // No dedup key should be set
         verify(valueOperations, never()).setIfAbsent(anyString(), anyString(), any(Duration.class));
       }
@@ -406,7 +409,7 @@ class PermissionCacheServiceTest {
         listener.onPluginPermissionsRevoked(eventWithSnakeCase, null, null);
 
         // Assert
-        verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
+        verify(cacheStore).delete("plugin:permissions:adapstory.assessment.quiz");
       }
 
       @Test
@@ -420,7 +423,7 @@ class PermissionCacheServiceTest {
         listener.onPluginPermissionsRevoked(VALID_REVOCATION_EVENT, "corr-123", "req-456");
 
         // Assert — verify invalidation still works with headers
-        verify(redisTemplate).delete("plugin:permissions:adapstory.assessment.quiz");
+        verify(cacheStore).delete("plugin:permissions:adapstory.assessment.quiz");
       }
 
       @Test

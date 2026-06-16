@@ -12,11 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClient;
 
 /**
  * Service for dispatching webhooks to plugin pods with retry and async execution.
@@ -27,7 +24,7 @@ import org.springframework.web.client.RestClient;
  * <p>Responsibilities:
  *
  * <ul>
- *   <li>Create RestClient with connect/read timeout (PV-2)
+ *   <li>Delegate HTTP delivery to dedicated transport adapter (PV-2)
  *   <li>Configure Resilience4j Retry with exponential backoff
  *   <li>Resolve plugin pod endpoint from K8s naming convention
  *   <li>Async dispatch with CompletableFuture
@@ -38,25 +35,18 @@ public class WebhookDispatchService {
 
   private static final Logger log = LoggerFactory.getLogger(WebhookDispatchService.class);
 
-  private static final int CONNECT_TIMEOUT_MS = 3000;
-  private static final int READ_TIMEOUT_MS = 3000;
-
   private final GatewayProperties properties;
-  private final RestClient restClient;
+  private final WebhookDeliveryPort deliveryPort;
   private final Executor webhookExecutor;
   private final Retry webhookRetry;
 
   public WebhookDispatchService(
       GatewayProperties properties,
-      RestClient.Builder restClientBuilder,
+      WebhookDeliveryPort deliveryPort,
       @Qualifier("webhookExecutor") Executor webhookExecutor) {
     this.properties = properties;
+    this.deliveryPort = deliveryPort;
     this.webhookExecutor = webhookExecutor;
-
-    var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout(java.time.Duration.ofMillis(CONNECT_TIMEOUT_MS));
-    factory.setReadTimeout(java.time.Duration.ofMillis(READ_TIMEOUT_MS));
-    this.restClient = restClientBuilder.requestFactory(factory).build();
 
     GatewayProperties.WebhookConfig cfg = properties.webhook();
     RetryConfig retryConfig =
@@ -121,24 +111,7 @@ public class WebhookDispatchService {
   }
 
   private void sendWebhook(String pluginPodUrl, byte[] payload, HttpHeaders headers) {
-    restClient
-        .post()
-        .uri(URI.create(pluginPodUrl))
-        .headers(
-            h -> {
-              if (headers.getContentType() != null) {
-                h.setContentType(headers.getContentType());
-              } else {
-                h.setContentType(MediaType.APPLICATION_JSON);
-              }
-              String correlationId = headers.getFirst(IntegrationHeaders.HEADER_CORRELATION_ID);
-              if (correlationId != null) {
-                h.set(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
-              }
-            })
-        .body(payload)
-        .retrieve()
-        .toBodilessEntity();
+    deliveryPort.send(pluginPodUrl, payload, headers);
   }
 
   /**

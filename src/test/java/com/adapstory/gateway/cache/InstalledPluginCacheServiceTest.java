@@ -9,7 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.adapstory.gateway.client.InstalledPluginFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
 import java.time.Duration;
 import java.util.Map;
@@ -20,8 +19,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.RedisConnectionFailureException;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 
 /**
  * Тесты InstalledPluginCacheService: Redis cache-aside для проверки установки плагинов.
@@ -33,21 +30,17 @@ import org.springframework.data.redis.core.ValueOperations;
 class InstalledPluginCacheServiceTest {
 
   private InstalledPluginCacheService cacheService;
-  private StringRedisTemplate redisTemplate;
-  private ValueOperations<String, String> valueOperations;
-  private InstalledPluginFetchClient fetchClient;
+  private InstalledPluginStatusCacheStore cacheStore;
+  private InstalledPluginStatusSource statusSource;
 
   private static final String PLUGIN_ID = "adapstory.assessment.quiz";
   private static final String TENANT_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
   private static final String CACHE_KEY = "plugin-gateway:installed:" + PLUGIN_ID + ":" + TENANT_ID;
 
   @BeforeEach
-  @SuppressWarnings("unchecked")
   void setUp() {
-    redisTemplate = mock(StringRedisTemplate.class);
-    valueOperations = mock(ValueOperations.class);
-    when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-    fetchClient = mock(InstalledPluginFetchClient.class);
+    cacheStore = mock(InstalledPluginStatusCacheStore.class);
+    statusSource = mock(InstalledPluginStatusSource.class);
 
     GatewayProperties properties =
         new GatewayProperties(
@@ -61,7 +54,7 @@ class InstalledPluginCacheServiceTest {
             new GatewayProperties.Bc02Config("http://localhost:8081"),
             null);
 
-    cacheService = new InstalledPluginCacheService(redisTemplate, fetchClient, properties);
+    cacheService = new InstalledPluginCacheService(cacheStore, statusSource, properties);
   }
 
   @Nested
@@ -72,49 +65,49 @@ class InstalledPluginCacheServiceTest {
     @DisplayName("should return true when cache contains 'true'")
     void should_returnTrue_when_cachedTrue() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn("true");
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("true"));
 
       // Act
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
 
       // Assert
       assertThat(result).isPresent().contains(true);
-      verify(fetchClient, never()).fetchInstalledStatus(anyString(), anyString());
+      verify(statusSource, never()).fetchInstalledStatus(anyString(), anyString());
     }
 
     @Test
     @DisplayName("should return false when cache contains 'false'")
     void should_returnFalse_when_cachedFalse() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn("false");
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("false"));
 
       // Act
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
 
       // Assert
       assertThat(result).isPresent().contains(false);
-      verify(fetchClient, never()).fetchInstalledStatus(anyString(), anyString());
+      verify(statusSource, never()).fetchInstalledStatus(anyString(), anyString());
     }
 
     @Test
     @DisplayName("should return empty when negative cache sentinel is stored")
     void should_returnEmpty_when_negativeCacheSentinel() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn("__UNAVAILABLE__");
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("__UNAVAILABLE__"));
 
       // Act
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
 
       // Assert
       assertThat(result).isEmpty();
-      verify(fetchClient, never()).fetchInstalledStatus(anyString(), anyString());
+      verify(statusSource, never()).fetchInstalledStatus(anyString(), anyString());
     }
 
     @Test
     @DisplayName("should invoke cacheHit callback on hit")
     void should_invokeCacheHitCallback_when_cacheHit() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn("true");
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("true"));
       AtomicInteger hitCount = new AtomicInteger(0);
 
       // Act
@@ -133,53 +126,53 @@ class InstalledPluginCacheServiceTest {
     @DisplayName("should fetch from BC-02 and cache result on miss")
     void should_fetchAndCache_when_cacheMiss() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn(null);
-      when(fetchClient.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
+      when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
 
       // Act
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
 
       // Assert
       assertThat(result).isPresent().contains(true);
-      verify(valueOperations).set(eq(CACHE_KEY), eq("true"), eq(Duration.ofMinutes(5)));
+      verify(cacheStore).put(eq(CACHE_KEY), eq("true"), eq(Duration.ofMinutes(5)));
     }
 
     @Test
     @DisplayName("should cache 'false' when BC-02 says not installed")
     void should_cacheFalse_when_bc02SaysNotInstalled() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn(null);
-      when(fetchClient.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(false));
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
+      when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(false));
 
       // Act
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
 
       // Assert
       assertThat(result).isPresent().contains(false);
-      verify(valueOperations).set(eq(CACHE_KEY), eq("false"), eq(Duration.ofMinutes(5)));
+      verify(cacheStore).put(eq(CACHE_KEY), eq("false"), eq(Duration.ofMinutes(5)));
     }
 
     @Test
     @DisplayName("should store negative sentinel when BC-02 unavailable")
     void should_storeNegativeSentinel_when_bc02Unavailable() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn(null);
-      when(fetchClient.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.empty());
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
+      when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.empty());
 
       // Act
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
 
       // Assert
       assertThat(result).isEmpty();
-      verify(valueOperations).set(eq(CACHE_KEY), eq("__UNAVAILABLE__"), eq(Duration.ofSeconds(30)));
+      verify(cacheStore).put(eq(CACHE_KEY), eq("__UNAVAILABLE__"), eq(Duration.ofSeconds(30)));
     }
 
     @Test
     @DisplayName("should invoke cacheMiss callback on miss")
     void should_invokeCacheMissCallback_when_cacheMiss() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn(null);
-      when(fetchClient.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
+      when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
       AtomicInteger missCount = new AtomicInteger(0);
 
       // Act
@@ -198,9 +191,9 @@ class InstalledPluginCacheServiceTest {
     @DisplayName("should fetch from BC-02 when Redis read fails")
     void should_fetchFromBc02_when_redisReadFails() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY))
+      when(cacheStore.find(CACHE_KEY))
           .thenThrow(new RedisConnectionFailureException("Connection refused"));
-      when(fetchClient.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
+      when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
 
       // Act
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
@@ -213,10 +206,11 @@ class InstalledPluginCacheServiceTest {
     @DisplayName("should not throw when Redis write fails after BC-02 fetch")
     void should_notThrow_when_redisWriteFails() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn(null);
-      when(fetchClient.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
-      // Redis write throws
-      when(valueOperations.get(CACHE_KEY)).thenReturn(null);
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
+      when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
+      org.mockito.Mockito.doThrow(new RedisConnectionFailureException("Connection refused"))
+          .when(cacheStore)
+          .put(eq(CACHE_KEY), eq("true"), eq(Duration.ofMinutes(5)));
 
       // Act — should not throw
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
@@ -237,15 +231,16 @@ class InstalledPluginCacheServiceTest {
       cacheService.evict(PLUGIN_ID, TENANT_ID);
 
       // Assert
-      verify(redisTemplate).delete(CACHE_KEY);
+      verify(cacheStore).delete(CACHE_KEY);
     }
 
     @Test
     @DisplayName("should not throw when Redis delete fails during eviction")
     void should_notThrow_when_redisDeleteFails() {
       // Arrange
-      when(redisTemplate.delete(anyString()))
-          .thenThrow(new RedisConnectionFailureException("Connection refused"));
+      org.mockito.Mockito.doThrow(new RedisConnectionFailureException("Connection refused"))
+          .when(cacheStore)
+          .delete(anyString());
 
       // Act — should not throw
       cacheService.evict(PLUGIN_ID, TENANT_ID);
@@ -297,7 +292,7 @@ class InstalledPluginCacheServiceTest {
     @DisplayName("should delegate to full method with null callbacks")
     void should_delegate_to_fullMethod() {
       // Arrange
-      when(valueOperations.get(CACHE_KEY)).thenReturn("true");
+      when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("true"));
 
       // Act
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);

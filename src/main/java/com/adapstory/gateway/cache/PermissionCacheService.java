@@ -1,13 +1,11 @@
 package com.adapstory.gateway.cache;
 
-import com.adapstory.gateway.client.PermissionFetchClient;
 import com.adapstory.gateway.config.GatewayProperties;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 /**
@@ -30,17 +28,17 @@ public class PermissionCacheService {
 
   private static final String NEGATIVE_CACHE_SENTINEL = "__UNAVAILABLE__";
 
-  private final StringRedisTemplate redisTemplate;
+  private final PermissionCacheStore cacheStore;
   private final GatewayProperties properties;
-  private final PermissionFetchClient permissionFetchClient;
+  private final PluginPermissionSource permissionSource;
 
   public PermissionCacheService(
-      StringRedisTemplate redisTemplate,
+      PermissionCacheStore cacheStore,
       GatewayProperties properties,
-      PermissionFetchClient permissionFetchClient) {
-    this.redisTemplate = redisTemplate;
+      PluginPermissionSource permissionSource) {
+    this.cacheStore = cacheStore;
     this.properties = properties;
-    this.permissionFetchClient = permissionFetchClient;
+    this.permissionSource = permissionSource;
   }
 
   /**
@@ -51,9 +49,9 @@ public class PermissionCacheService {
    *     или negative cache hit (BC-02 unavailable sentinel)
    */
   public Optional<List<String>> getCachedPermissions(String pluginId) {
-    PermissionFetchClient.validatePluginId(pluginId);
+    permissionSource.validatePluginId(pluginId);
     String key = buildCacheKey(pluginId);
-    String cached = redisTemplate.opsForValue().get(key);
+    String cached = cacheStore.find(key).orElse(null);
     if (cached == null) {
       log.debug("Permission cache miss for plugin '{}'", pluginId);
       return Optional.empty();
@@ -80,7 +78,7 @@ public class PermissionCacheService {
     String key = buildCacheKey(pluginId);
     String value = String.join(PERMISSIONS_SEPARATOR, permissions);
     Duration ttl = Duration.ofMinutes(properties.permissionCache().ttlMinutes());
-    redisTemplate.opsForValue().set(key, value, ttl);
+    cacheStore.put(key, value, ttl);
     log.debug("Cached permissions for plugin '{}': {}", pluginId, permissions);
   }
 
@@ -91,7 +89,7 @@ public class PermissionCacheService {
    */
   public void invalidate(String pluginId) {
     String key = buildCacheKey(pluginId);
-    Boolean deleted = redisTemplate.delete(key);
+    Boolean deleted = cacheStore.delete(key);
     log.info("Invalidated permission cache for plugin '{}': deleted={}", pluginId, deleted);
   }
 
@@ -112,7 +110,7 @@ public class PermissionCacheService {
       return Optional.empty();
     }
 
-    Optional<List<String>> fetched = permissionFetchClient.fetchPermissions(pluginId);
+    Optional<List<String>> fetched = permissionSource.fetchPermissions(pluginId);
     if (fetched.isPresent()) {
       cachePermissions(pluginId, fetched.get());
     } else {
@@ -125,13 +123,12 @@ public class PermissionCacheService {
 
   boolean isNegativeCached(String pluginId) {
     String key = buildCacheKey(pluginId);
-    String cached = redisTemplate.opsForValue().get(key);
-    return NEGATIVE_CACHE_SENTINEL.equals(cached);
+    return cacheStore.find(key).filter(NEGATIVE_CACHE_SENTINEL::equals).isPresent();
   }
 
   private void cacheNegativeResult(String pluginId) {
     String key = buildCacheKey(pluginId);
-    redisTemplate.opsForValue().set(key, NEGATIVE_CACHE_SENTINEL, NEGATIVE_CACHE_TTL);
+    cacheStore.put(key, NEGATIVE_CACHE_SENTINEL, NEGATIVE_CACHE_TTL);
     log.debug("Cached negative result for plugin '{}' (BC-02 unavailable, TTL=30s)", pluginId);
   }
 
