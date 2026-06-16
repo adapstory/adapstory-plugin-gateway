@@ -75,9 +75,11 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       return;
     }
 
-    // Step 1: Check JWT claims first — if JWT itself lacks the permission, reject immediately
     List<String> jwtPermissions = pluginContext.permissions();
-    if (!intersectionService.hasJwtPermission(jwtPermissions, requiredPermission)) {
+    PermissionIntersectionResult result =
+        intersectionService.computeIntersection(pluginId, jwtPermissions, requiredPermission);
+
+    if (result.isJwtMissing()) {
       log.warn(
           "Permission denied for plugin {}: required={}, jwt={}",
           pluginId,
@@ -89,10 +91,6 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       responseWriter.writeJwtDenied(request, response, pluginContext, requiredPermission);
       return;
     }
-
-    // Step 2 & 3: Compute full intersection (manifest fetch + intersection check)
-    PermissionIntersectionService.IntersectionResult result =
-        intersectionService.computeIntersection(pluginId, jwtPermissions, requiredPermission);
 
     if (result.isUnavailable()) {
       // Fail-closed: cannot verify permissions (ADAP-SEC-0011)
@@ -110,12 +108,16 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       log.warn(
           "Permission denied for plugin {}: required={}, manifest check failed",
           pluginId,
-          requiredPermission);
+          result.getRequiredPermission());
       meterRegistry
           .counter(METRIC_DENIED, "pluginId", pluginId, "errorCode", ERROR_CODE_PERMISSION_REVOKED)
           .increment();
       responseWriter.writeManifestDenied(
-          request, response, pluginId, requiredPermission, ERROR_CODE_PERMISSION_REVOKED);
+          request,
+          response,
+          pluginId,
+          result.getRequiredPermission(),
+          ERROR_CODE_PERMISSION_REVOKED);
       return;
     }
 

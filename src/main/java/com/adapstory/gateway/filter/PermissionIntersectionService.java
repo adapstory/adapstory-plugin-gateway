@@ -1,10 +1,6 @@
 package com.adapstory.gateway.filter;
 
-import com.adapstory.gateway.cache.PermissionCacheService;
-import com.adapstory.gateway.config.GatewayProperties;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,16 +18,17 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class PermissionIntersectionService {
-
-  private static final String GATEWAY_PREFIX = "/api/bc-02/gateway/v1/api/";
-
-  private final GatewayProperties properties;
-  private final PermissionCacheService permissionCacheService;
+  private final GatewayPermissionRouteResolver routeResolver;
+  private final PluginManifestPermissionResolver manifestPermissionResolver;
+  private final PermissionIntersectionPolicy policy;
 
   public PermissionIntersectionService(
-      GatewayProperties properties, PermissionCacheService permissionCacheService) {
-    this.properties = properties;
-    this.permissionCacheService = permissionCacheService;
+      GatewayPermissionRouteResolver routeResolver,
+      PluginManifestPermissionResolver manifestPermissionResolver,
+      PermissionIntersectionPolicy policy) {
+    this.routeResolver = routeResolver;
+    this.manifestPermissionResolver = manifestPermissionResolver;
+    this.policy = policy;
   }
 
   /**
@@ -46,35 +43,7 @@ public class PermissionIntersectionService {
    * @return the required permission string, or {@code null} if no mapping exists
    */
   public String resolveRequiredPermission(String path, String httpMethod) {
-    if (!path.startsWith(GATEWAY_PREFIX)) {
-      return null;
-    }
-
-    String afterPrefix = path.substring(GATEWAY_PREFIX.length());
-    int slashIndex = afterPrefix.indexOf('/');
-    String routeKey = slashIndex > 0 ? afterPrefix.substring(0, slashIndex) : afterPrefix;
-
-    Map<String, Map<String, String>> routeMappings = properties.permissions().routeMappings();
-    Map<String, String> methodMapping = routeMappings.get(routeKey);
-    if (methodMapping == null) {
-      return null;
-    }
-
-    return methodMapping.get(httpMethod.toUpperCase());
-  }
-
-  /**
-   * Checks whether the required permission is present in the JWT claims.
-   *
-   * <p>Step 1 of the intersection model: if the JWT itself lacks the permission, reject immediately
-   * without checking the manifest.
-   *
-   * @param jwtPermissions permissions extracted from the JWT
-   * @param requiredPermission the permission required for this route
-   * @return {@code true} if the JWT claims contain the required permission
-   */
-  public boolean hasJwtPermission(List<String> jwtPermissions, String requiredPermission) {
-    return jwtPermissions.contains(requiredPermission);
+    return routeResolver.resolveRequiredPermission(path, httpMethod);
   }
 
   /**
@@ -93,107 +62,20 @@ public class PermissionIntersectionService {
    * @param requiredPermission the permission required for this route
    * @return the intersection result indicating grant, denial, or unavailability
    */
-  public IntersectionResult computeIntersection(
+  public PermissionIntersectionResult computeIntersection(
       String pluginId, List<String> jwtPermissions, String requiredPermission) {
-    // Step 1: JWT check
-    if (!hasJwtPermission(jwtPermissions, requiredPermission)) {
-      return IntersectionResult.jwtMissing(requiredPermission);
+    PermissionIntersectionResult jwtResult =
+        policy.evaluateJwtPermissions(jwtPermissions, requiredPermission);
+    if (!jwtResult.isGranted()) {
+      return jwtResult;
     }
 
-    // Step 2: Fetch manifest permissions from cache or BC-02
-    Optional<List<String>> cached = permissionCacheService.getCachedPermissions(pluginId);
-
-    List<String> manifestPermissions;
-    if (cached.isPresent()) {
-      manifestPermissions = cached.get();
-    } else {
-      Optional<List<String>> fetched = permissionCacheService.fetchAndCachePermissions(pluginId);
-      if (fetched.isEmpty()) {
-        return IntersectionResult.unavailable(pluginId);
-      }
-      manifestPermissions = fetched.get();
-    }
-
-    // Step 3: Intersection check — must be in BOTH JWT AND manifest
-    if (!manifestPermissions.contains(requiredPermission)) {
-      return IntersectionResult.revoked(pluginId, requiredPermission);
-    }
-
-    return IntersectionResult.granted();
-  }
-
-  /**
-   * Result of a permission intersection computation.
-   *
-   * <p>Encapsulates the three possible outcomes:
-   *
-   * <ul>
-   *   <li>{@link #granted()} — permission present in both JWT and manifest
-   *   <li>{@link #jwtMissing(String)} — permission absent from JWT claims
-   *   <li>{@link #revoked(String, String)} — permission in JWT but revoked in manifest
-   *       (ADAP-SEC-0010)
-   *   <li>{@link #unavailable(String)} — unable to verify (fail-closed, ADAP-SEC-0011)
-   * </ul>
-   */
-  public static final class IntersectionResult {
-
-    private final boolean granted;
-    private final boolean unavailable;
-    private final String errorCode;
-    private final String requiredPermission;
-    private final String pluginId;
-
-    private IntersectionResult(
-        boolean granted,
-        boolean unavailable,
-        String errorCode,
-        String requiredPermission,
-        String pluginId) {
-      this.granted = granted;
-      this.unavailable = unavailable;
-      this.errorCode = errorCode;
-      this.requiredPermission = requiredPermission;
-      this.pluginId = pluginId;
-    }
-
-    /** Permission granted — present in both JWT and manifest. */
-    public static IntersectionResult granted() {
-      return new IntersectionResult(true, false, null, null, null);
-    }
-
-    /** Permission missing from JWT claims — reject without manifest check. */
-    public static IntersectionResult jwtMissing(String requiredPermission) {
-      return new IntersectionResult(false, false, "JWT_MISSING", requiredPermission, null);
-    }
-
-    /** Permission in JWT but revoked in manifest (ADAP-SEC-0010). */
-    public static IntersectionResult revoked(String pluginId, String requiredPermission) {
-      return new IntersectionResult(false, false, "ADAP-SEC-0010", requiredPermission, pluginId);
-    }
-
-    /** Unable to verify permissions — fail-closed (ADAP-SEC-0011). */
-    public static IntersectionResult unavailable(String pluginId) {
-      return new IntersectionResult(false, true, "ADAP-SEC-0011", null, pluginId);
-    }
-
-    public boolean isGranted() {
-      return granted;
-    }
-
-    public boolean isUnavailable() {
-      return unavailable;
-    }
-
-    public String getErrorCode() {
-      return errorCode;
-    }
-
-    public String getRequiredPermission() {
-      return requiredPermission;
-    }
-
-    public String getPluginId() {
-      return pluginId;
-    }
+    return manifestPermissionResolver
+        .resolveManifestPermissions(pluginId)
+        .map(
+            manifestPermissions ->
+                policy.evaluateManifestPermissions(
+                    pluginId, requiredPermission, manifestPermissions))
+        .orElseGet(() -> PermissionIntersectionResult.unavailable(pluginId));
   }
 }

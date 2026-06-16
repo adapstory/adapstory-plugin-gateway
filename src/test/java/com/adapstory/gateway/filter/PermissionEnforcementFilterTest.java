@@ -65,7 +65,10 @@ class PermissionEnforcementFilterTest {
 
     filter =
         new PermissionEnforcementFilter(
-            new PermissionIntersectionService(properties, cacheService),
+            new PermissionIntersectionService(
+                new GatewayPermissionRouteResolver(properties),
+                new PluginManifestPermissionResolver(cacheService),
+                new PermissionIntersectionPolicy()),
             objectMapper,
             meterRegistry);
   }
