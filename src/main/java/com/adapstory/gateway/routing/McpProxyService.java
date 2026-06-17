@@ -1,6 +1,5 @@
 package com.adapstory.gateway.routing;
 
-import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;

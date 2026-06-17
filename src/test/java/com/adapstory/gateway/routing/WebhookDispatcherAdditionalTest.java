@@ -185,7 +185,9 @@ class WebhookDispatcherAdditionalTest {
 
       WebhookDispatchService dispatchService =
           new WebhookDispatchService(
-              properties, new RestClientWebhookDeliveryAdapter(RestClient.builder()), Runnable::run);
+              properties,
+              new RestClientWebhookDeliveryAdapter(RestClient.builder()),
+              Runnable::run);
       WebhookDispatcher dispatcher = new WebhookDispatcher(properties, dispatchService);
 
       // Act
@@ -213,7 +215,9 @@ class WebhookDispatcherAdditionalTest {
 
       WebhookDispatchService dispatchService =
           new WebhookDispatchService(
-              properties, new RestClientWebhookDeliveryAdapter(RestClient.builder()), Runnable::run);
+              properties,
+              new RestClientWebhookDeliveryAdapter(RestClient.builder()),
+              Runnable::run);
       WebhookDispatcher dispatcher = new WebhookDispatcher(properties, dispatchService);
 
       // Act

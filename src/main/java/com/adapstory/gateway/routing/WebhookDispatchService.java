@@ -1,11 +1,9 @@
 package com.adapstory.gateway.routing;
 
-import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
-import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
