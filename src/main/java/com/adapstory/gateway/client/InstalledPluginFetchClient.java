@@ -130,10 +130,10 @@ public class InstalledPluginFetchClient {
   private Optional<Boolean> doFetch(String pluginId, String tenantId) {
     String requestId =
         Optional.ofNullable(MDC.get(IntegrationHeaders.REQUEST_ID))
-            .orElse(UUID.randomUUID().toString());
+            .orElse(com.adapstory.commons.id.Uuid7.randomUuid().toString());
     String correlationId =
         Optional.ofNullable(MDC.get(IntegrationHeaders.CORRELATION_ID))
-            .orElse(UUID.randomUUID().toString());
+            .orElse(com.adapstory.commons.id.Uuid7.randomUuid().toString());
 
     String responseBody;
     try {

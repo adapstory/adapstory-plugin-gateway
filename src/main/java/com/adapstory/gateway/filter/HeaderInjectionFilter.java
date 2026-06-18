@@ -37,12 +37,12 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
       throws ServletException, IOException {
     String requestId = request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID);
     if (!IntegrationIdValidator.isValidUuidV4OrV7(requestId)) {
-      requestId = UUID.randomUUID().toString();
+      requestId = com.adapstory.commons.id.Uuid7.randomUuid().toString();
     }
 
     String correlationId = request.getHeader(IntegrationHeaders.HEADER_CORRELATION_ID);
     if (correlationId == null || correlationId.isBlank()) {
-      correlationId = UUID.randomUUID().toString();
+      correlationId = com.adapstory.commons.id.Uuid7.randomUuid().toString();
     }
 
     String userId = resolveUserId(request);

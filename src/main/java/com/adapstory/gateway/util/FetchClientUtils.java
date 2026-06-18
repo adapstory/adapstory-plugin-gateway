@@ -69,12 +69,12 @@ public final class FetchClientUtils {
           request,
           IntegrationHeaders.HEADER_REQUEST_ID,
           MDC.get(IntegrationHeaders.REQUEST_ID),
-          UUID.randomUUID().toString());
+          com.adapstory.commons.id.Uuid7.randomUuid().toString());
       propagateHeader(
           request,
           IntegrationHeaders.HEADER_CORRELATION_ID,
           MDC.get(IntegrationHeaders.CORRELATION_ID),
-          UUID.randomUUID().toString());
+          com.adapstory.commons.id.Uuid7.randomUuid().toString());
       request
           .getHeaders()
           .set(IntegrationHeaders.HEADER_USER_ID, "service:" + HEADER_SOURCE_SERVICE);

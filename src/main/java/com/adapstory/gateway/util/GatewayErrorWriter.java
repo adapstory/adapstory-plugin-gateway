@@ -64,6 +64,6 @@ public final class GatewayErrorWriter {
   /** Extract X-Request-Id header or generate a new UUID. */
   public static String getOrGenerateRequestId(HttpServletRequest request) {
     String requestId = request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID);
-    return requestId != null ? requestId : UUID.randomUUID().toString();
+    return requestId != null ? requestId : com.adapstory.commons.id.Uuid7.randomUuid().toString();
   }
 }
