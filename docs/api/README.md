@@ -1,6 +1,17 @@
 # adapstory-plugin-gateway API Documentation
 
-> Auto-generated — do not edit manually. Generated from `/v3/api-docs`.
+> Auto-generated — do not edit manually. Updated on every deploy via Jenkins.
+
+| Field | Value |
+|-------|-------|
+| OpenAPI version | 3.1.0 |
+| Deploy tag | 26.06.20-1b9157140-b1143 |
+| Generated | 2026-06-20 20:20 UTC |
+| Endpoints | 3 |
+| Schemas | 5 |
+| Swagger UI (dev) | http://dev-plugin-gateway-svc.env-dev.svc:8090/swagger-ui/index.html |
+
+## Files
 
 | File | Format | Description |
 |------|--------|-------------|
