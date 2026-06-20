@@ -13,6 +13,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -26,6 +28,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+  @Bean
+  UserDetailsService failClosedUserDetailsService() {
+    return username -> {
+      throw new UsernameNotFoundException("Password-based users are disabled");
+    };
+  }
 
   @Bean
   @Order(0)
