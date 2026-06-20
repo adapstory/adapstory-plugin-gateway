@@ -644,6 +644,16 @@ class PluginAuthFilterTest {
     }
 
     @Test
+    @DisplayName("should not filter OpenAPI docs paths")
+    void should_notFilter_openApiDocsPaths_when_called() {
+      MockHttpServletRequest root = new MockHttpServletRequest("GET", "/v3/api-docs");
+      MockHttpServletRequest grouped = new MockHttpServletRequest("GET", "/v3/api-docs/plugin");
+
+      assertThat(filter.shouldNotFilter(root)).isTrue();
+      assertThat(filter.shouldNotFilter(grouped)).isTrue();
+    }
+
+    @Test
     @DisplayName("should filter normal API paths")
     void should_filter_normalApiPaths_when_called() {
       MockHttpServletRequest request =

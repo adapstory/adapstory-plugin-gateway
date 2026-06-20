@@ -86,7 +86,8 @@ public class SecurityConfig {
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/api/bc-02/gateway/v1/webhooks/**")
+                auth.requestMatchers(
+                        "/api/bc-02/gateway/v1/webhooks/**", "/v3/api-docs", "/v3/api-docs/**")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
