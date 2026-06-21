@@ -673,10 +673,6 @@
           "accessControlAllowCredentials": {
             "type": "boolean"
           },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
           "acceptLanguage": {
             "type": "array",
             "items": {
@@ -746,6 +742,19 @@
           "pragma": {
             "type": "string"
           },
+          "upgrade": {
+            "type": "string"
+          },
+          "vary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
+          },
           "acceptLanguageAsLocales": {
             "type": "array",
             "items": {
@@ -801,15 +810,6 @@
           "ifUnmodifiedSince": {
             "type": "integer",
             "format": "int64"
-          },
-          "upgrade": {
-            "type": "string"
-          },
-          "vary": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           },
           "cacheControl": {
             "type": "string"
