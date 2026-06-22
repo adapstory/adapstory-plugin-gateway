@@ -673,10 +673,6 @@
           "accessControlAllowCredentials": {
             "type": "boolean"
           },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
           "acceptLanguage": {
             "type": "array",
             "items": {
@@ -692,36 +688,9 @@
               }
             }
           },
-          "acceptLanguageAsLocales": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlAllowHeaders": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlAllowMethods": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/HttpMethod"
-            }
-          },
-          "accessControlAllowOrigin": {
-            "type": "string"
-          },
-          "accessControlExposeHeaders": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlMaxAge": {
-            "type": "integer",
-            "format": "int64"
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
           },
           "accept": {
             "type": "array",
@@ -765,20 +734,36 @@
               "type": "string"
             }
           },
-          "ifNoneMatch": {
+          "acceptLanguageAsLocales": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "origin": {
+          "accessControlAllowHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accessControlAllowMethods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HttpMethod"
+            }
+          },
+          "accessControlAllowOrigin": {
             "type": "string"
           },
-          "pragma": {
-            "type": "string"
+          "accessControlExposeHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
-          "upgrade": {
-            "type": "string"
+          "accessControlMaxAge": {
+            "type": "integer",
+            "format": "int64"
           },
           "accessControlRequestHeaders": {
             "type": "array",
@@ -804,6 +789,21 @@
           "ifUnmodifiedSince": {
             "type": "integer",
             "format": "int64"
+          },
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "origin": {
+            "type": "string"
+          },
+          "pragma": {
+            "type": "string"
+          },
+          "upgrade": {
+            "type": "string"
           },
           "vary": {
             "type": "array",
@@ -850,6 +850,9 @@
             "type": "number",
             "format": "double"
           },
+          "concrete": {
+            "type": "boolean"
+          },
           "wildcardSubtype": {
             "type": "boolean"
           },
@@ -857,9 +860,6 @@
             "type": "string"
           },
           "wildcardType": {
-            "type": "boolean"
-          },
-          "concrete": {
             "type": "boolean"
           },
           "charset": {
