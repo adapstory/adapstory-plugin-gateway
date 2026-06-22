@@ -734,6 +734,18 @@
               "type": "string"
             }
           },
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "origin": {
+            "type": "string"
+          },
+          "pragma": {
+            "type": "string"
+          },
           "acceptLanguageAsLocales": {
             "type": "array",
             "items": {
@@ -790,18 +802,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "ifNoneMatch": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "origin": {
-            "type": "string"
-          },
-          "pragma": {
-            "type": "string"
-          },
           "upgrade": {
             "type": "string"
           },
@@ -850,7 +850,7 @@
             "type": "number",
             "format": "double"
           },
-          "concrete": {
+          "wildcardType": {
             "type": "boolean"
           },
           "wildcardSubtype": {
@@ -859,7 +859,7 @@
           "subtypeSuffix": {
             "type": "string"
           },
-          "wildcardType": {
+          "concrete": {
             "type": "boolean"
           },
           "charset": {
