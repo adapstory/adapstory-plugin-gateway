@@ -673,10 +673,6 @@
           "accessControlAllowCredentials": {
             "type": "boolean"
           },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
           "acceptLanguage": {
             "type": "array",
             "items": {
@@ -708,25 +704,6 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/HttpMethod"
-            }
-          },
-          "accessControlAllowOrigin": {
-            "type": "string"
-          },
-          "accessControlExposeHeaders": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlMaxAge": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "accessControlRequestHeaders": {
-            "type": "array",
-            "items": {
-              "type": "string"
             }
           },
           "accept": {
@@ -780,13 +757,24 @@
           "origin": {
             "type": "string"
           },
-          "pragma": {
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "accessControlAllowOrigin": {
             "type": "string"
           },
-          "upgrade": {
-            "type": "string"
+          "accessControlExposeHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
-          "vary": {
+          "accessControlMaxAge": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "accessControlRequestHeaders": {
             "type": "array",
             "items": {
               "type": "string"
@@ -810,6 +798,18 @@
           "ifUnmodifiedSince": {
             "type": "integer",
             "format": "int64"
+          },
+          "pragma": {
+            "type": "string"
+          },
+          "upgrade": {
+            "type": "string"
+          },
+          "vary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "cacheControl": {
             "type": "string"
