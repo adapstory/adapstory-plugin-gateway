@@ -670,6 +670,28 @@
             "type": "integer",
             "format": "int64"
           },
+          "accessControlAllowCredentials": {
+            "type": "boolean"
+          },
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "acceptLanguage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "range": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            }
+          },
           "acceptLanguageAsLocales": {
             "type": "array",
             "items": {
@@ -701,23 +723,10 @@
             "type": "integer",
             "format": "int64"
           },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
-          "acceptLanguage": {
+          "accessControlRequestHeaders": {
             "type": "array",
             "items": {
-              "type": "object",
-              "properties": {
-                "range": {
-                  "type": "string"
-                },
-                "weight": {
-                  "type": "number",
-                  "format": "double"
-                }
-              }
+              "type": "string"
             }
           },
           "accept": {
@@ -762,7 +771,22 @@
               "type": "string"
             }
           },
-          "accessControlRequestHeaders": {
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "origin": {
+            "type": "string"
+          },
+          "pragma": {
+            "type": "string"
+          },
+          "upgrade": {
+            "type": "string"
+          },
+          "vary": {
             "type": "array",
             "items": {
               "type": "string"
@@ -787,38 +811,14 @@
             "type": "integer",
             "format": "int64"
           },
-          "ifNoneMatch": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "origin": {
+          "cacheControl": {
             "type": "string"
-          },
-          "pragma": {
-            "type": "string"
-          },
-          "upgrade": {
-            "type": "string"
-          },
-          "vary": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlAllowCredentials": {
-            "type": "boolean"
           },
           "range": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/HttpRange"
             }
-          },
-          "cacheControl": {
-            "type": "string"
           },
           "contentType": {
             "$ref": "#/components/schemas/MediaType"
