@@ -673,6 +673,10 @@
           "accessControlAllowCredentials": {
             "type": "boolean"
           },
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
+          },
           "acceptLanguage": {
             "type": "array",
             "items": {
@@ -686,22 +690,6 @@
                   "format": "double"
                 }
               }
-            }
-          },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
-          "acceptLanguageAsLocales": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlAllowHeaders": {
-            "type": "array",
-            "items": {
-              "type": "string"
             }
           },
           "accept": {
@@ -746,22 +734,13 @@
               "type": "string"
             }
           },
-          "ifNoneMatch": {
+          "acceptLanguageAsLocales": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "origin": {
-            "type": "string"
-          },
-          "pragma": {
-            "type": "string"
-          },
-          "upgrade": {
-            "type": "string"
-          },
-          "vary": {
+          "accessControlAllowHeaders": {
             "type": "array",
             "items": {
               "type": "string"
@@ -810,6 +789,27 @@
           "ifUnmodifiedSince": {
             "type": "integer",
             "format": "int64"
+          },
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "origin": {
+            "type": "string"
+          },
+          "pragma": {
+            "type": "string"
+          },
+          "upgrade": {
+            "type": "string"
+          },
+          "vary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "cacheControl": {
             "type": "string"

@@ -5,8 +5,8 @@
 | Field | Value |
 |-------|-------|
 | OpenAPI version | 3.1.0 |
-| Deploy tag | 26.06.21-a631da246-b1182 |
-| Generated | 2026-06-21 22:57 UTC |
+| Deploy tag | 26.06.22-889fd033b-b1198 |
+| Generated | 2026-06-22 13:10 UTC |
 | Endpoints | 3 |
 | Schemas | 5 |
 | Swagger UI (dev) | http://dev-plugin-gateway-svc.env-dev.svc:8090/swagger-ui/index.html |
