@@ -21,6 +21,12 @@ public record GatewayProperties(
     Bc02Config bc02,
     McpConfig mcp) {
 
+  public GatewayProperties {
+    if (mcp == null) {
+      mcp = new McpConfig(8000, "plugin-%s.plugins.svc.cluster.local", 30000, List.of());
+    }
+  }
+
   public record JwtConfig(
       @NotBlank String jwksUri,
       @NotBlank String issuer,
@@ -76,10 +82,6 @@ public record GatewayProperties(
       if (pluginRoutes == null) {
         pluginRoutes = List.of();
       }
-    }
-
-    public McpConfig(int pluginPodPort, String pluginHostTemplate, int connectTimeoutMs) {
-      this(pluginPodPort, pluginHostTemplate, connectTimeoutMs, List.of());
     }
   }
 
