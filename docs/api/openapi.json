@@ -673,9 +673,11 @@
           "accessControlAllowCredentials": {
             "type": "boolean"
           },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
+          "contentLanguage": {
+            "type": "string"
+          },
+          "etag": {
+            "type": "string"
           },
           "acceptLanguage": {
             "type": "array",
@@ -690,48 +692,6 @@
                   "format": "double"
                 }
               }
-            }
-          },
-          "accept": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MediaType"
-            }
-          },
-          "acceptPatch": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MediaType"
-            }
-          },
-          "allow": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/HttpMethod"
-            },
-            "uniqueItems": true
-          },
-          "bearerAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
-          "connection": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "etag": {
-            "type": "string"
-          },
-          "expires": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "ifMatch": {
-            "type": "array",
-            "items": {
-              "type": "string"
             }
           },
           "acceptLanguageAsLocales": {
@@ -765,6 +725,51 @@
             "type": "integer",
             "format": "int64"
           },
+          "accept": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaType"
+            }
+          },
+          "acceptPatch": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MediaType"
+            }
+          },
+          "allow": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HttpMethod"
+            },
+            "uniqueItems": true
+          },
+          "bearerAuth": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "connection": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expires": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ifMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "accessControlRequestHeaders": {
             "type": "array",
             "items": {
@@ -783,18 +788,9 @@
           "contentDisposition": {
             "$ref": "#/components/schemas/ContentDisposition"
           },
-          "contentLanguage": {
-            "type": "string"
-          },
           "ifUnmodifiedSince": {
             "type": "integer",
             "format": "int64"
-          },
-          "ifNoneMatch": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
           },
           "origin": {
             "type": "string"
@@ -810,6 +806,10 @@
             "items": {
               "type": "string"
             }
+          },
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
           },
           "cacheControl": {
             "type": "string"
