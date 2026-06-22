@@ -2,8 +2,11 @@ package com.adapstory.gateway.routing;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.patch;
+import static com.github.tomakehurst.wiremock.client.WireMock.patchRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -100,5 +103,41 @@ class FirstPartyPluginRestRouteControllerTest {
         getRequestedFor(urlEqualTo("/api/plugins/ai-course-generator/v1/runs?limit=5"))
             .withoutHeader("Authorization")
             .withHeader("X-Tenant-Id", equalTo("00000000-0000-4000-a000-000000000001")));
+  }
+
+  @Test
+  @DisplayName("should proxy PATCH first-party plugin REST route to configured backend")
+  void should_proxyPatchFirstPartyPluginRestRoute() throws IOException {
+    wireMockServer.stubFor(
+        patch(
+                urlEqualTo(
+                    "/api/plugins/ai-course-generator/v1/runs/019ef1b5-3af7-7861-ac6e-7890b2ec21fa/content"))
+            .willReturn(
+                aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBody("{\"saved\":true}")));
+
+    MockHttpServletRequest request =
+        new MockHttpServletRequest(
+            "PATCH",
+            "/api/plugins/ai-course-generator/v1/runs/019ef1b5-3af7-7861-ac6e-7890b2ec21fa/content");
+    request.setContentType("application/json");
+    request.setContent("{\"blocks\":[{\"text\":\"updated\"}]}".getBytes());
+    request.addHeader("Authorization", "Bearer user-token");
+    request.addHeader("X-Tenant-Id", "00000000-0000-4000-a000-000000000001");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    controller.proxy("ai-course-generator", request, response);
+
+    assertThat(response.getStatus()).isEqualTo(200);
+    assertThat(response.getContentAsString()).contains("\"saved\"");
+    wireMockServer.verify(
+        patchRequestedFor(
+                urlEqualTo(
+                    "/api/plugins/ai-course-generator/v1/runs/019ef1b5-3af7-7861-ac6e-7890b2ec21fa/content"))
+            .withoutHeader("Authorization")
+            .withHeader("X-Tenant-Id", equalTo("00000000-0000-4000-a000-000000000001"))
+            .withRequestBody(equalToJson("{\"blocks\":[{\"text\":\"updated\"}]}")));
   }
 }

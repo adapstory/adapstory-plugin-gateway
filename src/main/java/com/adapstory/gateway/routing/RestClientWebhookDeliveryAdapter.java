@@ -5,7 +5,6 @@ import java.net.URI;
 import java.time.Duration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -18,10 +17,12 @@ final class RestClientWebhookDeliveryAdapter implements WebhookDeliveryPort {
   private final RestClient restClient;
 
   RestClientWebhookDeliveryAdapter(RestClient.Builder restClientBuilder) {
-    var factory = new SimpleClientHttpRequestFactory();
-    factory.setConnectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS));
-    factory.setReadTimeout(Duration.ofMillis(READ_TIMEOUT_MS));
-    this.restClient = restClientBuilder.requestFactory(factory).build();
+    this.restClient =
+        restClientBuilder
+            .requestFactory(
+                ProxyClientHttpRequestFactory.create(
+                    Duration.ofMillis(CONNECT_TIMEOUT_MS), Duration.ofMillis(READ_TIMEOUT_MS)))
+            .build();
   }
 
   @Override
