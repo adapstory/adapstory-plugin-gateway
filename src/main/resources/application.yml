@@ -101,7 +101,8 @@ gateway:
     plugin-pod-port: 8000
     plugin-host-template: "plugin-%s.plugins.svc.cluster.local"
     connect-timeout-ms: 30000
-    # Optional per-slug route overrides for deployed plugin services with env-specific names.
+    # Optional per-slug backend route overrides for deployed plugin services with env-specific names.
+    # Used by both MCP and first-party REST plugin proxy routes.
     # Env example: GATEWAY_MCP_PLUGIN_ROUTES_0_SLUG=dify-plugin,
     # GATEWAY_MCP_PLUGIN_ROUTES_0_BASE_URL=http://dev-dify-plugin-svc.env-dev.svc.cluster.local:8000
     plugin-routes: []

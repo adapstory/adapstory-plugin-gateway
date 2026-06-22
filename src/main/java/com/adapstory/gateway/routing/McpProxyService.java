@@ -83,20 +83,30 @@ public class McpProxyService {
    * @return full URL like http://plugin-{slug}.plugins.svc.cluster.local:{port}/mcp
    */
   public String resolvePluginMcpUrl(String slug) {
+    return resolvePluginBaseUrl(slug) + "/mcp";
+  }
+
+  /**
+   * Resolves the plugin backend base URL for REST and MCP traffic.
+   *
+   * @param slug plugin slug (e.g., "course-builder")
+   * @return base URL like http://plugin-{slug}.plugins.svc.cluster.local:{port}
+   */
+  public String resolvePluginBaseUrl(String slug) {
     // Check test overrides first
     String override = urlOverrides.get(slug);
     if (override != null) {
-      return override + "/mcp";
+      return withoutTrailingSlash(override);
     }
 
     GatewayProperties.McpConfig cfg = properties.mcp();
     for (GatewayProperties.PluginRoute route : cfg.pluginRoutes()) {
       if (route.slug().equals(slug)) {
-        return withoutTrailingSlash(route.baseUrl()) + "/mcp";
+        return withoutTrailingSlash(route.baseUrl());
       }
     }
     String host = String.format(cfg.pluginHostTemplate(), slug);
-    return String.format("http://%s:%d/mcp", host, cfg.pluginPodPort());
+    return String.format("http://%s:%d", host, cfg.pluginPodPort());
   }
 
   /**
