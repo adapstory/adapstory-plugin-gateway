@@ -14,13 +14,13 @@ gateway:
     audience: adapstory-plugin-gateway
 
   bc02:
-    base-url: http://dev-plugin-lifecycle-svc.env-dev.svc.cluster.local:8080
+    base-url: http://dev-plugin-lifecycle-svc.env-dev.svc.cluster.local:8083
 
   routes:
     content: http://dev-data-model-engine-svc.env-dev.svc.cluster.local:8081
     submission: http://dev-submission-svc.env-dev.svc.cluster.local:8080
     identity: http://dev-identity-service-svc.env-dev.svc.cluster.local:8082
-    plugin: http://dev-plugin-lifecycle-svc.env-dev.svc.cluster.local:8080
+    plugin: http://dev-plugin-lifecycle-svc.env-dev.svc.cluster.local:8083
     tenant: http://dev-multi-tenant-runtime-svc.env-dev.svc.cluster.local:8080
 
 logging:
