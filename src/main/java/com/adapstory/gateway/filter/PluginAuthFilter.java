@@ -80,7 +80,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
               properties.jwt().jwksUri(),
               properties.jwt().issuer(),
               Set.copyOf(bffUserJwtProperties.getAudiences()),
-              Set.of("sub", "iss", "aud", "exp"),
+              Set.of("iss", "aud", "exp"),
               properties.jwt().jwksCacheTtlMinutes());
     }
   }

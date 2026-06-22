@@ -91,7 +91,8 @@ class PluginAuthFilterTest {
   }
 
   @Test
-  @DisplayName("should accept BFF user JWT for plugin REST route when plugin JWT audience rejects")
+  @DisplayName(
+      "should accept BFF user JWT without subject for plugin REST route when plugin JWT audience rejects")
   void should_acceptBffUserJwt_forPluginRestRoute_whenPluginAudienceRejects() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
@@ -106,7 +107,6 @@ class PluginAuthFilterTest {
         .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT aud claim rejected"));
     JWTClaimsSet bffClaims =
         new JWTClaimsSet.Builder()
-            .subject("school-user")
             .issuer("http://localhost:8080/realms/adapstory")
             .audience(List.of("adapstory-api", "account"))
             .claim("adapstory_tenant_id", "tenant-42")
