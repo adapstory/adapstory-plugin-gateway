@@ -1,7 +1,9 @@
 package com.adapstory.gateway.config;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
+import java.util.List;
 import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
@@ -64,12 +66,22 @@ public record GatewayProperties(
   public record McpConfig(
       @Positive int pluginPodPort,
       @NotBlank String pluginHostTemplate,
-      @Positive int connectTimeoutMs) {
+      @Positive int connectTimeoutMs,
+      List<@Valid PluginRoute> pluginRoutes) {
 
     public McpConfig {
       if (pluginHostTemplate == null || pluginHostTemplate.isBlank()) {
         pluginHostTemplate = "plugin-%s.plugins.svc.cluster.local";
       }
+      if (pluginRoutes == null) {
+        pluginRoutes = List.of();
+      }
+    }
+
+    public McpConfig(int pluginPodPort, String pluginHostTemplate, int connectTimeoutMs) {
+      this(pluginPodPort, pluginHostTemplate, connectTimeoutMs, List.of());
     }
   }
+
+  public record PluginRoute(@NotBlank String slug, @NotBlank String baseUrl) {}
 }

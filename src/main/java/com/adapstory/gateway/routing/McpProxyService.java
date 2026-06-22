@@ -90,6 +90,11 @@ public class McpProxyService {
     }
 
     GatewayProperties.McpConfig cfg = properties.mcp();
+    for (GatewayProperties.PluginRoute route : cfg.pluginRoutes()) {
+      if (route.slug().equals(slug)) {
+        return withoutTrailingSlash(route.baseUrl()) + "/mcp";
+      }
+    }
     String host = String.format(cfg.pluginHostTemplate(), slug);
     return String.format("http://%s:%d/mcp", host, cfg.pluginPodPort());
   }
@@ -139,5 +144,12 @@ public class McpProxyService {
    */
   public void overridePluginUrl(String slug, String baseUrl) {
     urlOverrides.put(slug, baseUrl);
+  }
+
+  private static String withoutTrailingSlash(String value) {
+    if (value.endsWith("/")) {
+      return value.substring(0, value.length() - 1);
+    }
+    return value;
   }
 }

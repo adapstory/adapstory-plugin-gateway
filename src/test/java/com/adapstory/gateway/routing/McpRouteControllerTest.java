@@ -59,7 +59,13 @@ class McpRouteControllerTest {
             new GatewayProperties.InstalledCacheConfig(5, 30),
             new GatewayProperties.WebhookConfig(3, 1000, 2.0, 8000, null, null),
             new GatewayProperties.Bc02Config("http://localhost:8081"),
-            new GatewayProperties.McpConfig(8000, "plugin-%s.plugins.svc.cluster.local", 30000));
+            new GatewayProperties.McpConfig(
+                8000,
+                "plugin-%s.plugins.svc.cluster.local",
+                30000,
+                List.of(
+                    new GatewayProperties.PluginRoute(
+                        "dify-plugin", "http://dev-dify-plugin-svc.env-dev.svc:8000/"))));
 
     McpProxyService mcpProxyService =
         new McpProxyService(
@@ -293,6 +299,13 @@ class McpRouteControllerTest {
     void should_resolveUrl_when_simpleSlug() {
       String url = controller.resolvePluginMcpUrl("quiz");
       assertThat(url).isEqualTo("http://plugin-quiz.plugins.svc.cluster.local:8000/mcp");
+    }
+
+    @Test
+    @DisplayName("should resolve URL from configured plugin route before template fallback")
+    void should_resolveUrl_when_configuredPluginRouteExists() {
+      String url = controller.resolvePluginMcpUrl("dify-plugin");
+      assertThat(url).isEqualTo("http://dev-dify-plugin-svc.env-dev.svc:8000/mcp");
     }
   }
 
