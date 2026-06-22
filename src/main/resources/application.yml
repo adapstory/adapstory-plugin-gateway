@@ -46,7 +46,7 @@ gateway:
   # Browser-facing plugin route slugs are stable public URLs; BC-02 security checks use canonical
   # manifest identifiers.
   plugin-id-aliases:
-    ai-course-generator: adapstory.ai.course-generator
+    ai-course-generator: adapstory.ai.coursegenerator
 
   # Route-to-permission mapping (HTTP method -> required permission suffix)
   permissions:

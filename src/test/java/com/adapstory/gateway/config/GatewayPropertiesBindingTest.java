@@ -50,14 +50,14 @@ class GatewayPropertiesBindingTest {
   void bindsPluginIdAliases() {
     contextRunner
         .withPropertyValues(
-            "gateway.plugin-id-aliases.ai-course-generator=adapstory.ai.course-generator")
+            "gateway.plugin-id-aliases.ai-course-generator=adapstory.ai.coursegenerator")
         .run(
             context -> {
               assertThat(context).hasNotFailed();
               GatewayProperties properties = context.getBean(GatewayProperties.class);
 
               assertThat(properties.pluginIdAliases())
-                  .containsEntry("ai-course-generator", "adapstory.ai.course-generator");
+                  .containsEntry("ai-course-generator", "adapstory.ai.coursegenerator");
             });
   }
 
