@@ -82,6 +82,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
       JWTClaimsSet claims = jwtProcessor.process(token, null);
 
       PluginSecurityContext pluginContext = PluginJwtClaimsMapper.mapClaims(claims);
+      List<String> pluginTools = PluginJwtClaimsMapper.mapPluginTools(claims);
 
       if (pluginContext == null) {
         writeError(
@@ -90,6 +91,9 @@ public class PluginAuthFilter extends OncePerRequestFilter {
       }
 
       request.setAttribute(PLUGIN_SECURITY_CONTEXT_ATTR, pluginContext);
+      if (pluginTools != null) {
+        request.setAttribute(PluginMcpJwtClaimFilter.PLUGIN_TOOLS_ATTR, pluginTools);
+      }
 
       List<SimpleGrantedAuthority> authorities =
           pluginContext.permissions().stream().map(SimpleGrantedAuthority::new).toList();

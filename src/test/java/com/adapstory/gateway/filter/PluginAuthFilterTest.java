@@ -157,6 +157,35 @@ class PluginAuthFilterTest {
     }
 
     @Test
+    @DisplayName("should expose plugin_tools claim for MCP authorization")
+    void should_exposePluginTools_forMcpAuthorization_when_claimPresent() throws Exception {
+      // Arrange
+      JWTClaimsSet claims =
+          new JWTClaimsSet.Builder()
+              .subject("plugin-subject")
+              .claim("plugin_id", "adapstory.ai.course-generator")
+              .claim("adapstory_tenant_id", "tenant-42")
+              .claim("permissions", List.of("dify-plugin:mcp", "edu-knowledge-graph:mcp"))
+              .claim("plugin_tools", List.of("dify-plugin", "edu-knowledge-graph"))
+              .build();
+
+      when(jwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(claims);
+
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("POST", "/internal/plugins/v1/dify-plugin/mcp");
+      request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      // Act
+      filter.doFilterInternal(request, response, filterChain);
+
+      // Assert
+      assertThat(request.getAttribute(PluginMcpJwtClaimFilter.PLUGIN_TOOLS_ATTR))
+          .isEqualTo(List.of("dify-plugin", "edu-knowledge-graph"));
+      verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
     @DisplayName("should set authentication in SecurityContextHolder")
     void should_setAuthentication_inSecurityContext_when_called() throws Exception {
       // Arrange
