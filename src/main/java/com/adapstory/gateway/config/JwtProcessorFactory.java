@@ -45,11 +45,10 @@ public class JwtProcessorFactory {
 
     DefaultJWTClaimsVerifier<SecurityContext> claimsVerifier =
         new DefaultJWTClaimsVerifier<>(
-            new JWTClaimsSet.Builder()
-                .issuer(jwtConfig.issuer())
-                .audience(jwtConfig.audience())
-                .build(),
-            Set.of("sub", "iss", "aud", "exp", "plugin_id", "adapstory_tenant_id", "permissions"));
+            Set.of(jwtConfig.audience()),
+            new JWTClaimsSet.Builder().issuer(jwtConfig.issuer()).build(),
+            Set.of("sub", "iss", "aud", "exp", "plugin_id", "adapstory_tenant_id", "permissions"),
+            Set.of());
 
     ConfigurableJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
     processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));
