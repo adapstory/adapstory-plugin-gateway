@@ -783,13 +783,13 @@
           "charset": {
             "type": "string"
           },
+          "inline": {
+            "type": "boolean"
+          },
           "attachment": {
             "type": "boolean"
           },
           "formData": {
-            "type": "boolean"
-          },
-          "inline": {
             "type": "boolean"
           }
         }
@@ -896,6 +896,21 @@
             "type": "string",
             "writeOnly": true
           },
+          "acceptLanguage": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "range": {
+                  "type": "string"
+                },
+                "weight": {
+                  "type": "number",
+                  "format": "double"
+                }
+              }
+            }
+          },
           "accept": {
             "type": "array",
             "items": {
@@ -907,6 +922,30 @@
             "items": {
               "$ref": "#/components/schemas/MediaType"
             }
+          },
+          "allow": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HttpMethod"
+            },
+            "uniqueItems": true
+          },
+          "bearerAuth": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "connection": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "etag": {
+            "type": "string"
+          },
+          "expires": {
+            "type": "integer",
+            "format": "int64"
           },
           "acceptLanguageAsLocales": {
             "type": "array",
@@ -945,21 +984,6 @@
               "type": "string"
             }
           },
-          "acceptLanguage": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "range": {
-                  "type": "string"
-                },
-                "weight": {
-                  "type": "number",
-                  "format": "double"
-                }
-              }
-            }
-          },
           "accessControlRequestMethod": {
             "$ref": "#/components/schemas/HttpMethod"
           },
@@ -976,30 +1000,6 @@
             "type": "string"
           },
           "ifUnmodifiedSince": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "allow": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/HttpMethod"
-            },
-            "uniqueItems": true
-          },
-          "bearerAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
-          "connection": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "etag": {
-            "type": "string"
-          },
-          "expires": {
             "type": "integer",
             "format": "int64"
           },
@@ -1069,14 +1069,14 @@
             "type": "number",
             "format": "double"
           },
+          "wildcardType": {
+            "type": "boolean"
+          },
           "wildcardSubtype": {
             "type": "boolean"
           },
           "subtypeSuffix": {
             "type": "string"
-          },
-          "wildcardType": {
-            "type": "boolean"
           },
           "concrete": {
             "type": "boolean"
