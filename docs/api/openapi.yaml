@@ -670,8 +670,40 @@
             "type": "integer",
             "format": "int64"
           },
-          "accessControlAllowCredentials": {
-            "type": "boolean"
+          "acceptLanguageAsLocales": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accessControlAllowHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accessControlAllowMethods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HttpMethod"
+            }
+          },
+          "accessControlAllowOrigin": {
+            "type": "string"
+          },
+          "accessControlExposeHeaders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accessControlMaxAge": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
           },
           "acceptLanguage": {
             "type": "array",
@@ -687,10 +719,6 @@
                 }
               }
             }
-          },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
           },
           "accept": {
             "type": "array",
@@ -734,49 +762,6 @@
               "type": "string"
             }
           },
-          "ifNoneMatch": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "origin": {
-            "type": "string"
-          },
-          "pragma": {
-            "type": "string"
-          },
-          "acceptLanguageAsLocales": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlAllowHeaders": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlAllowMethods": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/HttpMethod"
-            }
-          },
-          "accessControlAllowOrigin": {
-            "type": "string"
-          },
-          "accessControlExposeHeaders": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlMaxAge": {
-            "type": "integer",
-            "format": "int64"
-          },
           "accessControlRequestHeaders": {
             "type": "array",
             "items": {
@@ -802,6 +787,18 @@
             "type": "integer",
             "format": "int64"
           },
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "origin": {
+            "type": "string"
+          },
+          "pragma": {
+            "type": "string"
+          },
           "upgrade": {
             "type": "string"
           },
@@ -811,14 +808,17 @@
               "type": "string"
             }
           },
-          "cacheControl": {
-            "type": "string"
+          "accessControlAllowCredentials": {
+            "type": "boolean"
           },
           "range": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/HttpRange"
             }
+          },
+          "cacheControl": {
+            "type": "string"
           },
           "contentType": {
             "$ref": "#/components/schemas/MediaType"
@@ -850,14 +850,14 @@
             "type": "number",
             "format": "double"
           },
-          "wildcardType": {
-            "type": "boolean"
-          },
           "wildcardSubtype": {
             "type": "boolean"
           },
           "subtypeSuffix": {
             "type": "string"
+          },
+          "wildcardType": {
+            "type": "boolean"
           },
           "concrete": {
             "type": "boolean"
