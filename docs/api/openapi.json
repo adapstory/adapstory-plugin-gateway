@@ -159,6 +159,225 @@
         "x-AI-ready": true
       }
     },
+    "/api/plugins/{slug}/v1/**": {
+      "get": {
+        "tags": [
+          "first-party-plugin-rest-route-controller"
+        ],
+        "operationId": "proxy",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "example-slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "put": {
+        "tags": [
+          "first-party-plugin-rest-route-controller"
+        ],
+        "operationId": "proxy_2",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "example-slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "post": {
+        "tags": [
+          "first-party-plugin-rest-route-controller"
+        ],
+        "operationId": "proxy_1",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "example-slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "delete": {
+        "tags": [
+          "first-party-plugin-rest-route-controller"
+        ],
+        "operationId": "proxy_3",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "example-slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "options": {
+        "tags": [
+          "first-party-plugin-rest-route-controller"
+        ],
+        "operationId": "proxy_6",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "example-slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "head": {
+        "tags": [
+          "first-party-plugin-rest-route-controller"
+        ],
+        "operationId": "proxy_5",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "example-slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      },
+      "patch": {
+        "tags": [
+          "first-party-plugin-rest-route-controller"
+        ],
+        "operationId": "proxy_4",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "example-slug"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "X-Response-Id": {
+                "description": "Technical response identifier equal to the inbound X-Request-Id.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "x-AI-ready": true
+      }
+    },
     "/api/bc-02/gateway/v1/api/**": {
       "get": {
         "tags": [
@@ -166,7 +385,7 @@
         ],
         "summary": "Proxy REST request to target BC service",
         "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
-        "operationId": "proxy",
+        "operationId": "proxy_7",
         "responses": {
           "200": {
             "description": "Response proxied from target BC",
@@ -221,7 +440,7 @@
         ],
         "summary": "Proxy REST request to target BC service",
         "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
-        "operationId": "proxy_2",
+        "operationId": "proxy_9",
         "responses": {
           "200": {
             "description": "Response proxied from target BC",
@@ -276,7 +495,7 @@
         ],
         "summary": "Proxy REST request to target BC service",
         "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
-        "operationId": "proxy_1",
+        "operationId": "proxy_8",
         "responses": {
           "200": {
             "description": "Response proxied from target BC",
@@ -331,7 +550,7 @@
         ],
         "summary": "Proxy REST request to target BC service",
         "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
-        "operationId": "proxy_3",
+        "operationId": "proxy_10",
         "responses": {
           "200": {
             "description": "Response proxied from target BC",
@@ -386,7 +605,7 @@
         ],
         "summary": "Proxy REST request to target BC service",
         "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
-        "operationId": "proxy_6",
+        "operationId": "proxy_13",
         "responses": {
           "200": {
             "description": "Response proxied from target BC",
@@ -441,7 +660,7 @@
         ],
         "summary": "Proxy REST request to target BC service",
         "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
-        "operationId": "proxy_5",
+        "operationId": "proxy_12",
         "responses": {
           "200": {
             "description": "Response proxied from target BC",
@@ -496,7 +715,7 @@
         ],
         "summary": "Proxy REST request to target BC service",
         "description": "Resolves the target BC from the URL path and proxies the request with circuit breaker protection. Strips /api/bc-02/gateway/v1 prefix.",
-        "operationId": "proxy_4",
+        "operationId": "proxy_11",
         "responses": {
           "200": {
             "description": "Response proxied from target BC",
@@ -673,10 +892,6 @@
           "accessControlAllowCredentials": {
             "type": "boolean"
           },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
           "acceptLanguage": {
             "type": "array",
             "items": {
@@ -727,6 +942,33 @@
           "expires": {
             "type": "integer",
             "format": "int64"
+          },
+          "ifMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "origin": {
+            "type": "string"
+          },
+          "pragma": {
+            "type": "string"
+          },
+          "upgrade": {
+            "type": "string"
+          },
+          "vary": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "acceptLanguageAsLocales": {
             "type": "array",
@@ -784,32 +1026,9 @@
             "type": "integer",
             "format": "int64"
           },
-          "ifMatch": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "ifNoneMatch": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "origin": {
-            "type": "string"
-          },
-          "pragma": {
-            "type": "string"
-          },
-          "upgrade": {
-            "type": "string"
-          },
-          "vary": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
           },
           "cacheControl": {
             "type": "string"
@@ -850,14 +1069,14 @@
             "type": "number",
             "format": "double"
           },
+          "wildcardType": {
+            "type": "boolean"
+          },
           "wildcardSubtype": {
             "type": "boolean"
           },
           "subtypeSuffix": {
             "type": "string"
-          },
-          "wildcardType": {
-            "type": "boolean"
           },
           "concrete": {
             "type": "boolean"
