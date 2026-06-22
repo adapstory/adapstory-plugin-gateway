@@ -673,6 +673,10 @@
           "accessControlAllowCredentials": {
             "type": "boolean"
           },
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
+          },
           "acceptLanguage": {
             "type": "array",
             "items": {
@@ -686,24 +690,6 @@
                   "format": "double"
                 }
               }
-            }
-          },
-          "acceptLanguageAsLocales": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlAllowHeaders": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "accessControlAllowMethods": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/HttpMethod"
             }
           },
           "accept": {
@@ -742,24 +728,23 @@
             "type": "integer",
             "format": "int64"
           },
-          "ifMatch": {
+          "acceptLanguageAsLocales": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "ifNoneMatch": {
+          "accessControlAllowHeaders": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "origin": {
-            "type": "string"
-          },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
+          "accessControlAllowMethods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HttpMethod"
+            }
           },
           "accessControlAllowOrigin": {
             "type": "string"
@@ -798,6 +783,21 @@
           "ifUnmodifiedSince": {
             "type": "integer",
             "format": "int64"
+          },
+          "ifMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ifNoneMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "origin": {
+            "type": "string"
           },
           "pragma": {
             "type": "string"
