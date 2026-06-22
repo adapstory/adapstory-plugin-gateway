@@ -14,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 public record GatewayProperties(
     JwtConfig jwt,
     Map<String, String> routes,
+    Map<String, String> pluginIdAliases,
     PermissionsConfig permissions,
     PermissionCacheConfig permissionCache,
     InstalledCacheConfig installedCache,
@@ -22,6 +23,9 @@ public record GatewayProperties(
     McpConfig mcp) {
 
   public GatewayProperties {
+    if (pluginIdAliases == null) {
+      pluginIdAliases = Map.of();
+    }
     if (mcp == null) {
       mcp = new McpConfig(8000, "plugin-%s.plugins.svc.cluster.local", 30000, List.of());
     }

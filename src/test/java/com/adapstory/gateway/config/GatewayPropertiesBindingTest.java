@@ -46,6 +46,22 @@ class GatewayPropertiesBindingTest {
   }
 
   @Test
+  @DisplayName("binds browser route slug to canonical plugin id aliases")
+  void bindsPluginIdAliases() {
+    contextRunner
+        .withPropertyValues(
+            "gateway.plugin-id-aliases.ai-course-generator=adapstory.ai.course-generator")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              GatewayProperties properties = context.getBean(GatewayProperties.class);
+
+              assertThat(properties.pluginIdAliases())
+                  .containsEntry("ai-course-generator", "adapstory.ai.course-generator");
+            });
+  }
+
+  @Test
   @DisplayName("binds configured MCP plugin routes with scalar defaults")
   void bindsMcpPluginRoutesWithDefaults() {
     contextRunner

@@ -91,6 +91,7 @@ class JwksHealthIndicatorTest {
     return new GatewayProperties(
         new GatewayProperties.JwtConfig(jwksUri, "test-issuer", "test-audience", 5),
         Map.of(),
+        Map.of(),
         new GatewayProperties.PermissionsConfig(Map.of()),
         new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
         new GatewayProperties.InstalledCacheConfig(5, 30),

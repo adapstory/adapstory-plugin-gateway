@@ -74,6 +74,7 @@ class PluginAuthFilterTest {
                 "adapstory-plugin-gateway",
                 5),
             Map.of(),
+            Map.of("ai-course-generator", "adapstory.ai.course-generator"),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
             new GatewayProperties.InstalledCacheConfig(5, 30),
@@ -123,7 +124,7 @@ class PluginAuthFilterTest {
 
     PluginSecurityContext ctx =
         (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
-    assertThat(ctx.pluginId()).isEqualTo("ai-course-generator");
+    assertThat(ctx.pluginId()).isEqualTo("adapstory.ai.course-generator");
     assertThat(ctx.tenantId()).isEqualTo("tenant-42");
     assertThat(ctx.trustLevel()).isEqualTo("BFF_USER");
     verify(filterChain).doFilter(request, response);

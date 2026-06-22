@@ -176,6 +176,7 @@ class WebhookDispatcherAdditionalTest {
               new GatewayProperties.JwtConfig(
                   "http://localhost/certs", "test-issuer", "test-audience", 5),
               Map.of(),
+              Map.of(),
               new GatewayProperties.PermissionsConfig(Map.of()),
               new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
               new GatewayProperties.InstalledCacheConfig(5, 30),
@@ -206,6 +207,7 @@ class WebhookDispatcherAdditionalTest {
               new GatewayProperties.JwtConfig(
                   "http://localhost/certs", "test-issuer", "test-audience", 5),
               Map.of(),
+              Map.of(),
               new GatewayProperties.PermissionsConfig(Map.of()),
               new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
               new GatewayProperties.InstalledCacheConfig(5, 30),
@@ -233,6 +235,7 @@ class WebhookDispatcherAdditionalTest {
         new GatewayProperties(
             new GatewayProperties.JwtConfig(
                 "http://localhost/certs", "test-issuer", "test-audience", 5),
+            Map.of(),
             Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),

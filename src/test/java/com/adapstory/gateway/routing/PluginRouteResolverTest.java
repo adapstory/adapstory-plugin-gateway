@@ -69,6 +69,7 @@ class PluginRouteResolverTest {
                 wireMockServer.baseUrl(),
                 "identity",
                 wireMockServer.baseUrl()),
+            Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
             new GatewayProperties.InstalledCacheConfig(5, 30),

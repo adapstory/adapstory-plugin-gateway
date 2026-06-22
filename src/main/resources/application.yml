@@ -43,6 +43,11 @@ gateway:
     plugin: http://localhost:8083
     tenant: http://localhost:8081
 
+  # Browser-facing plugin route slugs are stable public URLs; BC-02 security checks use canonical
+  # manifest identifiers.
+  plugin-id-aliases:
+    ai-course-generator: adapstory.ai.course-generator
+
   # Route-to-permission mapping (HTTP method -> required permission suffix)
   permissions:
     route-mappings:

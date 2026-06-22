@@ -45,6 +45,7 @@ class InstalledPluginFetchClientSpringWiringTest {
     return new GatewayProperties(
         new JwtConfig("http://keycloak/realms/adapstory/certs", "issuer", "audience", 5),
         Map.of(),
+        Map.of(),
         new PermissionsConfig(Map.of()),
         new PermissionCacheConfig(5, "plugin-gateway:permissions:"),
         new InstalledCacheConfig(5, 30),

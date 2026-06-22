@@ -54,6 +54,7 @@ class McpRouteControllerTest {
             new GatewayProperties.JwtConfig(
                 "http://localhost/certs", "test-issuer", "test-audience", 5),
             Map.of("content", "http://localhost:8081"),
+            Map.of(),
             new GatewayProperties.PermissionsConfig(Map.of()),
             new GatewayProperties.PermissionCacheConfig(5, "plugin:permissions:"),
             new GatewayProperties.InstalledCacheConfig(5, 30),

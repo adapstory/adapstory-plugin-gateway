@@ -181,7 +181,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
       }
 
       PluginSecurityContext pluginContext =
-          new PluginSecurityContext(pluginId, tenantId, List.of(), "BFF_USER");
+          new PluginSecurityContext(canonicalPluginId(pluginId), tenantId, List.of(), "BFF_USER");
       request.setAttribute(PLUGIN_SECURITY_CONTEXT_ATTR, pluginContext);
 
       AbstractAuthenticationToken authentication =
@@ -223,6 +223,10 @@ public class PluginAuthFilter extends OncePerRequestFilter {
 
   private static String firstNonBlank(String first, String second) {
     return first != null && !first.isBlank() ? first : second;
+  }
+
+  private String canonicalPluginId(String routePluginId) {
+    return properties.pluginIdAliases().getOrDefault(routePluginId, routePluginId);
   }
 
   private static List<String> extractRoles(JWTClaimsSet claims) {
