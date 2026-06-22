@@ -1,5 +1,6 @@
 package com.adapstory.gateway;
 
+import com.adapstory.gateway.config.BffUserJwtProperties;
 import com.adapstory.gateway.config.GatewayProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,7 +13,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
       com.adapstory.starter.security.config.SecurityAutoConfiguration.class,
       com.adapstory.starter.web.config.WebClientAutoConfiguration.class
     })
-@EnableConfigurationProperties(GatewayProperties.class)
+@EnableConfigurationProperties({GatewayProperties.class, BffUserJwtProperties.class})
 public class PluginGatewayApplication {
 
   public static void main(String[] args) {

@@ -35,9 +35,24 @@ public class JwtProcessorFactory {
    */
   public ConfigurableJWTProcessor<SecurityContext> createJwtProcessor(
       GatewayProperties.JwtConfig jwtConfig) throws java.net.MalformedURLException {
+    return createJwtProcessor(
+        jwtConfig.jwksUri(),
+        jwtConfig.issuer(),
+        Set.of(jwtConfig.audience()),
+        Set.of("sub", "iss", "aud", "exp", "plugin_id", "adapstory_tenant_id", "permissions"),
+        jwtConfig.jwksCacheTtlMinutes());
+  }
+
+  public ConfigurableJWTProcessor<SecurityContext> createJwtProcessor(
+      String jwksUri,
+      String issuer,
+      Set<String> audiences,
+      Set<String> requiredClaims,
+      int jwksCacheTtlMinutes)
+      throws java.net.MalformedURLException {
     JWKSource<SecurityContext> jwkSource =
-        JWKSourceBuilder.create(URI.create(jwtConfig.jwksUri()).toURL())
-            .cache(jwtConfig.jwksCacheTtlMinutes() * 60L * 1000L, 60_000L)
+        JWKSourceBuilder.create(URI.create(jwksUri).toURL())
+            .cache(jwksCacheTtlMinutes * 60L * 1000L, 60_000L)
             .build();
 
     JWSKeySelector<SecurityContext> keySelector =
@@ -45,10 +60,7 @@ public class JwtProcessorFactory {
 
     DefaultJWTClaimsVerifier<SecurityContext> claimsVerifier =
         new DefaultJWTClaimsVerifier<>(
-            Set.of(jwtConfig.audience()),
-            new JWTClaimsSet.Builder().issuer(jwtConfig.issuer()).build(),
-            Set.of("sub", "iss", "aud", "exp", "plugin_id", "adapstory_tenant_id", "permissions"),
-            Set.of());
+            audiences, new JWTClaimsSet.Builder().issuer(issuer).build(), requiredClaims, Set.of());
 
     ConfigurableJWTProcessor<SecurityContext> processor = new DefaultJWTProcessor<>();
     processor.setJWSTypeVerifier(new DefaultJOSEObjectTypeVerifier<>(JOSEObjectType.JWT));

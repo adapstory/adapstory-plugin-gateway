@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.adapstory.gateway.config.BffUserJwtProperties;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.dto.GatewayErrorResponse;
@@ -53,6 +54,10 @@ class PluginAuthFilterTest {
   private com.nimbusds.jwt.proc.ConfigurableJWTProcessor<com.nimbusds.jose.proc.SecurityContext>
       jwtProcessor;
 
+  @Mock
+  private com.nimbusds.jwt.proc.ConfigurableJWTProcessor<com.nimbusds.jose.proc.SecurityContext>
+      bffUserJwtProcessor;
+
   private PluginAuthFilter filter;
   private GatewayProperties properties;
   private ObjectMapper objectMapper;
@@ -83,6 +88,107 @@ class PluginAuthFilterTest {
 
     // Clear SecurityContextHolder before each test
     SecurityContextHolder.clearContext();
+  }
+
+  @Test
+  @DisplayName("should accept BFF user JWT for plugin REST route when plugin JWT audience rejects")
+  void should_acceptBffUserJwt_forPluginRestRoute_whenPluginAudienceRejects() throws Exception {
+    BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
+    bffUserJwtProperties.setEnabled(true);
+    bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
+    filter =
+        new PluginAuthFilter(
+            properties, bffUserJwtProperties, objectMapper, new JwtProcessorFactory());
+    ReflectionTestUtils.setField(filter, "jwtProcessor", jwtProcessor);
+    ReflectionTestUtils.setField(filter, "bffUserJwtProcessor", bffUserJwtProcessor);
+
+    when(jwtProcessor.process(eq(VALID_TOKEN), any()))
+        .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT aud claim rejected"));
+    JWTClaimsSet bffClaims =
+        new JWTClaimsSet.Builder()
+            .subject("school-user")
+            .issuer("http://localhost:8080/realms/adapstory")
+            .audience(List.of("adapstory-api", "account"))
+            .claim("adapstory_tenant_id", "tenant-42")
+            .claim("realm_access", Map.of("roles", List.of("SCHOOL_OPERATOR")))
+            .build();
+    when(bffUserJwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(bffClaims);
+
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
+    request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    PluginSecurityContext ctx =
+        (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
+    assertThat(ctx.pluginId()).isEqualTo("ai-course-generator");
+    assertThat(ctx.tenantId()).isEqualTo("tenant-42");
+    assertThat(ctx.trustLevel()).isEqualTo("BFF_USER");
+    verify(filterChain).doFilter(request, response);
+  }
+
+  @Test
+  @DisplayName("should reject BFF user JWT for plugin REST route when school role is missing")
+  void should_rejectBffUserJwt_forPluginRestRoute_whenSchoolRoleMissing() throws Exception {
+    BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
+    bffUserJwtProperties.setEnabled(true);
+    bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
+    filter =
+        new PluginAuthFilter(
+            properties, bffUserJwtProperties, objectMapper, new JwtProcessorFactory());
+    ReflectionTestUtils.setField(filter, "jwtProcessor", jwtProcessor);
+    ReflectionTestUtils.setField(filter, "bffUserJwtProcessor", bffUserJwtProcessor);
+
+    when(jwtProcessor.process(eq(VALID_TOKEN), any()))
+        .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT aud claim rejected"));
+    JWTClaimsSet bffClaims =
+        new JWTClaimsSet.Builder()
+            .subject("school-user")
+            .issuer("http://localhost:8080/realms/adapstory")
+            .audience(List.of("adapstory-api", "account"))
+            .claim("adapstory_tenant_id", "tenant-42")
+            .claim("realm_access", Map.of("roles", List.of("student")))
+            .build();
+    when(bffUserJwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(bffClaims);
+
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
+    request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat(response.getStatus()).isEqualTo(403);
+    verifyNoInteractions(filterChain);
+  }
+
+  @Test
+  @DisplayName("should not use BFF user JWT fallback outside plugin v1 REST routes")
+  void should_notUseBffUserJwtFallback_outsidePluginV1RestRoutes() throws Exception {
+    BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
+    bffUserJwtProperties.setEnabled(true);
+    bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
+    filter =
+        new PluginAuthFilter(
+            properties, bffUserJwtProperties, objectMapper, new JwtProcessorFactory());
+    ReflectionTestUtils.setField(filter, "jwtProcessor", jwtProcessor);
+    ReflectionTestUtils.setField(filter, "bffUserJwtProcessor", bffUserJwtProcessor);
+
+    when(jwtProcessor.process(eq(VALID_TOKEN), any()))
+        .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT aud claim rejected"));
+
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v2/runs");
+    request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat(response.getStatus()).isEqualTo(401);
+    verifyNoInteractions(bffUserJwtProcessor);
+    verifyNoInteractions(filterChain);
   }
 
   @Test

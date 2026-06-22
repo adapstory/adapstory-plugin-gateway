@@ -31,6 +31,9 @@ gateway:
     issuer: http://localhost:8180/realms/adapstory
     audience: adapstory-plugin-gateway
     jwks-cache-ttl-minutes: 60  # ARCH-1: Keycloak SPOF mitigation — 60 min cache
+  bff-user-jwt:
+    enabled: false
+    audiences: []
 
   # Route-to-BC mapping (overridden by GATEWAY_ROUTES_* env vars in cluster)
   routes:
