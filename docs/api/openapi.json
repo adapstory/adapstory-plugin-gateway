@@ -673,11 +673,9 @@
           "accessControlAllowCredentials": {
             "type": "boolean"
           },
-          "contentLanguage": {
-            "type": "string"
-          },
-          "etag": {
-            "type": "string"
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
           },
           "acceptLanguage": {
             "type": "array",
@@ -754,6 +752,9 @@
               "type": "string"
             }
           },
+          "etag": {
+            "type": "string"
+          },
           "expires": {
             "type": "integer",
             "format": "int64"
@@ -769,6 +770,15 @@
             "items": {
               "type": "string"
             }
+          },
+          "origin": {
+            "type": "string"
+          },
+          "pragma": {
+            "type": "string"
+          },
+          "upgrade": {
+            "type": "string"
           },
           "accessControlRequestHeaders": {
             "type": "array",
@@ -788,28 +798,18 @@
           "contentDisposition": {
             "$ref": "#/components/schemas/ContentDisposition"
           },
+          "contentLanguage": {
+            "type": "string"
+          },
           "ifUnmodifiedSince": {
             "type": "integer",
             "format": "int64"
-          },
-          "origin": {
-            "type": "string"
-          },
-          "pragma": {
-            "type": "string"
-          },
-          "upgrade": {
-            "type": "string"
           },
           "vary": {
             "type": "array",
             "items": {
               "type": "string"
             }
-          },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
           },
           "cacheControl": {
             "type": "string"
