@@ -783,13 +783,13 @@
           "charset": {
             "type": "string"
           },
-          "inline": {
-            "type": "boolean"
-          },
           "attachment": {
             "type": "boolean"
           },
           "formData": {
+            "type": "boolean"
+          },
+          "inline": {
             "type": "boolean"
           }
         }
@@ -889,13 +889,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "accessControlAllowCredentials": {
-            "type": "boolean"
-          },
-          "basicAuth": {
-            "type": "string",
-            "writeOnly": true
-          },
           "acceptLanguage": {
             "type": "array",
             "items": {
@@ -910,6 +903,10 @@
                 }
               }
             }
+          },
+          "basicAuth": {
+            "type": "string",
+            "writeOnly": true
           },
           "accept": {
             "type": "array",
@@ -946,6 +943,12 @@
           "expires": {
             "type": "integer",
             "format": "int64"
+          },
+          "ifMatch": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "acceptLanguageAsLocales": {
             "type": "array",
@@ -1003,12 +1006,6 @@
             "type": "integer",
             "format": "int64"
           },
-          "ifMatch": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "ifNoneMatch": {
             "type": "array",
             "items": {
@@ -1029,6 +1026,9 @@
             "items": {
               "type": "string"
             }
+          },
+          "accessControlAllowCredentials": {
+            "type": "boolean"
           },
           "cacheControl": {
             "type": "string"
