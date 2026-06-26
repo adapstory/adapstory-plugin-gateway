@@ -783,13 +783,13 @@
           "charset": {
             "type": "string"
           },
-          "formData": {
+          "inline": {
             "type": "boolean"
           },
           "attachment": {
             "type": "boolean"
           },
-          "inline": {
+          "formData": {
             "type": "boolean"
           }
         }
@@ -889,6 +889,9 @@
             "type": "integer",
             "format": "int64"
           },
+          "accessControlAllowCredentials": {
+            "type": "boolean"
+          },
           "acceptLanguage": {
             "type": "array",
             "items": {
@@ -941,6 +944,9 @@
               "type": "string"
             }
           },
+          "accessControlRequestMethod": {
+            "$ref": "#/components/schemas/HttpMethod"
+          },
           "basicAuth": {
             "type": "string",
             "writeOnly": true
@@ -987,25 +993,6 @@
               "type": "string"
             }
           },
-          "accessControlRequestMethod": {
-            "$ref": "#/components/schemas/HttpMethod"
-          },
-          "acceptCharset": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "contentDisposition": {
-            "$ref": "#/components/schemas/ContentDisposition"
-          },
-          "contentLanguage": {
-            "type": "string"
-          },
-          "ifUnmodifiedSince": {
-            "type": "integer",
-            "format": "int64"
-          },
           "ifNoneMatch": {
             "type": "array",
             "items": {
@@ -1027,8 +1014,21 @@
               "type": "string"
             }
           },
-          "accessControlAllowCredentials": {
-            "type": "boolean"
+          "acceptCharset": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "contentDisposition": {
+            "$ref": "#/components/schemas/ContentDisposition"
+          },
+          "contentLanguage": {
+            "type": "string"
+          },
+          "ifUnmodifiedSince": {
+            "type": "integer",
+            "format": "int64"
           },
           "cacheControl": {
             "type": "string"
@@ -1069,17 +1069,17 @@
             "type": "number",
             "format": "double"
           },
-          "wildcardType": {
-            "type": "boolean"
-          },
-          "concrete": {
-            "type": "boolean"
-          },
           "wildcardSubtype": {
             "type": "boolean"
           },
           "subtypeSuffix": {
             "type": "string"
+          },
+          "wildcardType": {
+            "type": "boolean"
+          },
+          "concrete": {
+            "type": "boolean"
           },
           "charset": {
             "type": "string"
