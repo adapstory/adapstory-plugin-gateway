@@ -166,6 +166,46 @@ class PluginAuthFilterTest {
   }
 
   @Test
+  @DisplayName(
+      "should accept BFF user JWT for plugin REST route when Keycloak uses lowercase platform_admin role")
+  void should_acceptBffUserJwt_forPluginRestRoute_whenKeycloakUsesLowercasePlatformAdminRole()
+      throws Exception {
+    BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
+    bffUserJwtProperties.setEnabled(true);
+    bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
+    filter =
+        new PluginAuthFilter(
+            properties, bffUserJwtProperties, objectMapper, new JwtProcessorFactory());
+    ReflectionTestUtils.setField(filter, "jwtProcessor", jwtProcessor);
+    ReflectionTestUtils.setField(filter, "bffUserJwtProcessor", bffUserJwtProcessor);
+
+    when(jwtProcessor.process(eq(VALID_TOKEN), any()))
+        .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT aud claim rejected"));
+    JWTClaimsSet bffClaims =
+        new JWTClaimsSet.Builder()
+            .issuer("http://localhost:8080/realms/adapstory")
+            .audience(List.of("adapstory-api", "account"))
+            .claim("adapstory_tenant_id", "tenant-42")
+            .claim("realm_access", Map.of("roles", List.of("platform_admin")))
+            .build();
+    when(bffUserJwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(bffClaims);
+
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
+    request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    PluginSecurityContext ctx =
+        (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
+    assertThat(ctx.pluginId()).isEqualTo("adapstory.ai.coursegenerator");
+    assertThat(ctx.tenantId()).isEqualTo("tenant-42");
+    assertThat(ctx.trustLevel()).isEqualTo("BFF_USER");
+    verify(filterChain).doFilter(request, response);
+  }
+
+  @Test
   @DisplayName("should not use BFF user JWT fallback outside plugin v1 REST routes")
   void should_notUseBffUserJwtFallback_outsidePluginV1RestRoutes() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();

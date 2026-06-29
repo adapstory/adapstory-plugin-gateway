@@ -32,8 +32,12 @@ gateway:
     audience: adapstory-plugin-gateway
     jwks-cache-ttl-minutes: 60  # ARCH-1: Keycloak SPOF mitigation — 60 min cache
   bff-user-jwt:
-    enabled: false
-    audiences: []
+    enabled: true
+    audiences:
+      - adapstory-bff-school
+      - adapstory-api
+      - lms-client
+      - account
 
   # Route-to-BC mapping (overridden by GATEWAY_ROUTES_* env vars in cluster)
   routes:
@@ -143,6 +147,9 @@ springdoc:
     path: /v3/api-docs
 
 adapstory:
+  web:
+    etag:
+      enabled: false
   openapi:
     enabled: ${SPRINGDOC_ENABLED:true}
     title: Plugin Gateway API

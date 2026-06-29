@@ -8,8 +8,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "gateway.bff-user-jwt")
 public class BffUserJwtProperties {
 
-  private boolean enabled;
-  private List<String> audiences = new ArrayList<>();
+  private boolean enabled = true;
+  private List<String> audiences =
+      new ArrayList<>(List.of("adapstory-bff-school", "adapstory-api", "lms-client", "account"));
   private List<String> allowedRoles =
       new ArrayList<>(
           List.of(
@@ -19,7 +20,15 @@ public class BffUserJwtProperties {
               "INSTRUCTOR",
               "PLATFORM_ADMIN",
               "SUPER_ADMIN",
+              "school_operator",
+              "tenant_owner",
+              "methodist",
+              "instructor",
+              "platform_admin",
+              "super_admin",
               "adapstory:school-operator",
+              "adapstory:methodist",
+              "adapstory:instructor",
               "adapstory:superadmin"));
 
   public boolean isEnabled() {
