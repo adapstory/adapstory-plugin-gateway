@@ -131,17 +131,12 @@ public class McpProxyService {
   private String extractMcpMethodFromRequest(HttpServletRequest request) {
     // Try to read from cached body if available, otherwise return unknown
     // The body has already been consumed by the proxy, so we rely on content-type check
-    try {
-      if (request.getContentType() != null
-          && request.getContentType().contains(MediaType.APPLICATION_JSON_VALUE)) {
-        // Body was already forwarded; try to get from request attribute if set
-        String cachedMethod = (String) request.getAttribute("mcp.method");
-        if (cachedMethod != null) {
-          return cachedMethod;
-        }
+    if (request.getContentType() != null
+        && request.getContentType().contains(MediaType.APPLICATION_JSON_VALUE)) {
+      String cachedMethod = (String) request.getAttribute("mcp.method");
+      if (cachedMethod != null) {
+        return cachedMethod;
       }
-    } catch (Exception ignored) {
-      // Fallback to unknown
     }
     return "unknown";
   }

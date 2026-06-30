@@ -50,8 +50,6 @@ public class InstalledPluginCacheService {
    *
    * @param pluginId идентификатор плагина
    * @param tenantId идентификатор тенанта
-   * @param onCacheHit callback to increment cache-hit metric (nullable)
-   * @param onCacheMiss callback to increment cache-miss metric (nullable)
    * @return Optional.of(true/false) при наличии данных, Optional.empty() если verification
    *     unavailable и вызывающий код должен fail-close
    */
@@ -75,7 +73,9 @@ public class InstalledPluginCacheService {
           return Optional.empty();
         }
         log.debug("Cache hit for installed check: pluginId={}, tenantId={}", pluginId, tenantId);
-        if (onCacheHit != null) onCacheHit.run();
+        if (onCacheHit != null) {
+          onCacheHit.run();
+        }
         return Optional.of("true".equals(cached));
       }
     } catch (Exception e) {
@@ -83,7 +83,9 @@ public class InstalledPluginCacheService {
     }
 
     // Cache miss — fetch from BC-02
-    if (onCacheMiss != null) onCacheMiss.run();
+    if (onCacheMiss != null) {
+      onCacheMiss.run();
+    }
     Optional<Boolean> result = statusSource.fetchInstalledStatus(pluginId, tenantId);
 
     if (result.isPresent()) {

@@ -993,7 +993,7 @@ class PluginAuthFilterTest {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
-      request.addHeader("X-Request-Id", "req-abc-123");
+      request.addHeader("X-Request-Id", "11111111-2222-4333-8abc-666666666666");
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
@@ -1002,7 +1002,7 @@ class PluginAuthFilterTest {
       // Assert
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
-      assertThat(error.requestId()).isEqualTo("req-abc-123");
+      assertThat(error.requestId()).isEqualTo("11111111-2222-4333-8abc-666666666666");
     }
 
     @Test

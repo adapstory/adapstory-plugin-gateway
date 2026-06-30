@@ -14,7 +14,6 @@ import java.util.Enumeration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -35,13 +34,17 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
-    String requestId = request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID);
-    if (!IntegrationIdValidator.isValidUuidV4OrV7(requestId)) {
+    String requestId =
+        IntegrationIdValidator.normalizeUuidV4OrV7(
+            request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID));
+    if (requestId == null) {
       requestId = com.adapstory.commons.id.Uuid7.randomUuid().toString();
     }
 
-    String correlationId = request.getHeader(IntegrationHeaders.HEADER_CORRELATION_ID);
-    if (correlationId == null || correlationId.isBlank()) {
+    String correlationId =
+        IntegrationIdValidator.normalizeUuidV4OrV7(
+            request.getHeader(IntegrationHeaders.HEADER_CORRELATION_ID));
+    if (correlationId == null) {
       correlationId = com.adapstory.commons.id.Uuid7.randomUuid().toString();
     }
 

@@ -1,6 +1,7 @@
 package com.adapstory.gateway.filter;
 
 import com.adapstory.gateway.config.GatewayProperties;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
 
@@ -30,6 +31,6 @@ final class GatewayPermissionRouteResolver {
       return null;
     }
 
-    return methodMapping.get(httpMethod.toUpperCase());
+    return methodMapping.get(httpMethod.toUpperCase(Locale.ROOT));
   }
 }

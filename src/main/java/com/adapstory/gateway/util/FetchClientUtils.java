@@ -2,7 +2,6 @@ package com.adapstory.gateway.util;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import org.slf4j.MDC;
 import org.springframework.http.HttpRequest;

@@ -43,6 +43,17 @@ public class JwtProcessorFactory {
         jwtConfig.jwksCacheTtlMinutes());
   }
 
+  /**
+   * Creates a fully configured JWT processor for plugin token validation from explicit parameters.
+   *
+   * @param jwksUri JWKS endpoint URI
+   * @param issuer token issuer
+   * @param audiences accepted audience claims
+   * @param requiredClaims required JWT claim names
+   * @param jwksCacheTtlMinutes cache TTL for JWKS key material in minutes
+   * @return configured JWT processor
+   * @throws java.net.MalformedURLException if JWKS URI is malformed
+   */
   public ConfigurableJWTProcessor<SecurityContext> createJwtProcessor(
       String jwksUri,
       String issuer,

@@ -48,6 +48,14 @@ public class WebhookDispatcher {
     this.dispatchService = dispatchService;
   }
 
+  /**
+   * Receives webhook payloads from BC-02 and dispatches them to plugin pod endpoints.
+   *
+   * @param pluginShortId plugin short identifier
+   * @param payload webhook payload bytes
+   * @param headers incoming request headers
+   * @return HTTP status representing dispatch result
+   */
   @Operation(
       summary = "Dispatch webhook to plugin pod",
       description =

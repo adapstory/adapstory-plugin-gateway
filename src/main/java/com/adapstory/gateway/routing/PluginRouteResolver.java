@@ -11,6 +11,7 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,13 @@ public class PluginRouteResolver {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * Proxies BC API requests to target service endpoints resolved from route key.
+   *
+   * @param request incoming servlet request
+   * @param response servlet response
+   * @throws IOException when proxy execution fails with checked IO errors
+   */
   @Operation(
       summary = "Proxy REST request to target BC service",
       description =
@@ -100,7 +108,7 @@ public class PluginRouteResolver {
             try {
               proxyExecutionService.executeProxy(request, response, targetUri);
             } catch (IOException ex) {
-              throw new RuntimeException("Proxy IO error", ex);
+              throw new UncheckedIOException("Proxy IO error", ex);
             }
           });
     } catch (io.github.resilience4j.circuitbreaker.CallNotPermittedException ex) {
@@ -112,7 +120,7 @@ public class PluginRouteResolver {
           "Service Unavailable",
           "Target service '" + routeKey + "' is temporarily unavailable",
           Map.of("route", routeKey, "circuitBreakerState", "OPEN"));
-    } catch (RuntimeException ex) {
+    } catch (UncheckedIOException ex) {
       if (response.isCommitted()) {
         log.error(
             "Proxy error after response committed for route '{}': {}", routeKey, ex.getMessage());

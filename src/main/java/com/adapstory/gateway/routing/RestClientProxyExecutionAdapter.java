@@ -10,6 +10,7 @@ import java.time.Duration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.StreamingHttpOutputMessage;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 @Component
@@ -36,34 +37,38 @@ final class RestClientProxyExecutionAdapter implements ProxyExecutionPort {
     boolean hasBody =
         method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH;
 
-    if (hasBody) {
+    try {
+      if (hasBody) {
+        restClient
+            .method(method)
+            .uri(URI.create(targetUri))
+            .headers(headers -> ProxyHeaderUtils.copyRequestHeaders(request, headers))
+            .body(
+                (StreamingHttpOutputMessage.Body)
+                    outputStream -> {
+                      try (InputStream is = request.getInputStream()) {
+                        is.transferTo(outputStream);
+                      }
+                    })
+            .exchange(
+                (req, clientResponse) -> {
+                  ProxyHeaderUtils.copyResponse(clientResponse, response);
+                  return null;
+                });
+        return;
+      }
+
       restClient
           .method(method)
           .uri(URI.create(targetUri))
           .headers(headers -> ProxyHeaderUtils.copyRequestHeaders(request, headers))
-          .body(
-              (StreamingHttpOutputMessage.Body)
-                  outputStream -> {
-                    try (InputStream is = request.getInputStream()) {
-                      is.transferTo(outputStream);
-                    }
-                  })
           .exchange(
               (req, clientResponse) -> {
                 ProxyHeaderUtils.copyResponse(clientResponse, response);
                 return null;
               });
-      return;
+    } catch (ResourceAccessException ex) {
+      throw new IOException("Proxy request failed for target URI: " + targetUri, ex);
     }
-
-    restClient
-        .method(method)
-        .uri(URI.create(targetUri))
-        .headers(headers -> ProxyHeaderUtils.copyRequestHeaders(request, headers))
-        .exchange(
-            (req, clientResponse) -> {
-              ProxyHeaderUtils.copyResponse(clientResponse, response);
-              return null;
-            });
   }
 }

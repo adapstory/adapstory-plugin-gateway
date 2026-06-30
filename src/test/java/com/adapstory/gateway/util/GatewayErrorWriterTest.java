@@ -21,6 +21,8 @@ import tools.jackson.databind.ObjectMapper;
 @DisplayName("GatewayErrorWriter")
 class GatewayErrorWriterTest {
 
+  private static final String VALID_REQUEST_ID = "11111111-2222-4333-8abc-666666666666";
+
   private ObjectMapper objectMapper;
 
   @BeforeEach
@@ -86,7 +88,7 @@ class GatewayErrorWriterTest {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
-      request.addHeader("X-Request-Id", "custom-request-id-123");
+      request.addHeader("X-Request-Id", VALID_REQUEST_ID);
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
@@ -96,8 +98,8 @@ class GatewayErrorWriterTest {
       // Assert
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
-      assertThat(error.requestId()).isEqualTo("custom-request-id-123");
-      assertThat(response.getHeader("X-Response-Id")).isEqualTo("custom-request-id-123");
+      assertThat(error.requestId()).isEqualTo(VALID_REQUEST_ID);
+      assertThat(response.getHeader("X-Response-Id")).isEqualTo(VALID_REQUEST_ID);
     }
 
     @Test
@@ -166,9 +168,9 @@ class GatewayErrorWriterTest {
     @DisplayName("should return header value when present")
     void should_returnHeaderValue_when_present() {
       MockHttpServletRequest request = new MockHttpServletRequest();
-      request.addHeader("X-Request-Id", "my-request-id");
+      request.addHeader("X-Request-Id", VALID_REQUEST_ID);
 
-      assertThat(GatewayErrorWriter.getOrGenerateRequestId(request)).isEqualTo("my-request-id");
+      assertThat(GatewayErrorWriter.getOrGenerateRequestId(request)).isEqualTo(VALID_REQUEST_ID);
     }
 
     @Test
@@ -179,6 +181,17 @@ class GatewayErrorWriterTest {
       String result = GatewayErrorWriter.getOrGenerateRequestId(request);
       assertThat(result).isNotNull().isNotBlank();
       // Verify it looks like a UUID
+      assertThat(result).matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+    }
+
+    @Test
+    @DisplayName("should generate UUID when header value is invalid")
+    void should_generateUuid_when_headerInvalid() {
+      MockHttpServletRequest request = new MockHttpServletRequest();
+      request.addHeader("X-Request-Id", "my-request-id");
+
+      String result = GatewayErrorWriter.getOrGenerateRequestId(request);
+      assertThat(result).isNotNull().isNotBlank().isNotEqualTo("my-request-id");
       assertThat(result).matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
     }
   }

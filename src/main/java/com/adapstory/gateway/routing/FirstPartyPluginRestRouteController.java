@@ -8,6 +8,7 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -43,6 +44,14 @@ public class FirstPartyPluginRestRouteController {
     this.objectMapper = objectMapper;
   }
 
+  /**
+   * Proxies a plugin REST request from the browser to the selected plugin backend.
+   *
+   * @param slug plugin slug from the request path
+   * @param request servlet request
+   * @param response servlet response
+   * @throws IOException when target proxy call fails with checked IO errors
+   */
   @RequestMapping("/api/plugins/{slug}/v1/**")
   public void proxy(
       @PathVariable String slug, HttpServletRequest request, HttpServletResponse response)
@@ -62,7 +71,7 @@ public class FirstPartyPluginRestRouteController {
             try {
               proxyExecutionService.executeProxy(request, response, targetUri);
             } catch (IOException ex) {
-              throw new RuntimeException("Plugin REST proxy IO error", ex);
+              throw new UncheckedIOException("Plugin REST proxy IO error", ex);
             }
           });
     } catch (io.github.resilience4j.circuitbreaker.CallNotPermittedException ex) {
@@ -74,7 +83,7 @@ public class FirstPartyPluginRestRouteController {
           "Service Unavailable",
           "Plugin backend is temporarily unavailable",
           Map.of("pluginSlug", slug, "circuitBreakerState", "OPEN"));
-    } catch (RuntimeException ex) {
+    } catch (UncheckedIOException ex) {
       if (response.isCommitted()) {
         log.error("Plugin REST proxy error after response committed for slug '{}'", slug, ex);
         return;

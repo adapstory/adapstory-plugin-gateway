@@ -1,5 +1,6 @@
 package com.adapstory.gateway.dto;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -11,4 +12,5 @@ import java.util.List;
  * @param trustLevel уровень доверия плагина (e.g., "CORE", "COMMUNITY")
  */
 public record PluginSecurityContext(
-    String pluginId, String tenantId, List<String> permissions, String trustLevel) {}
+    String pluginId, String tenantId, List<String> permissions, String trustLevel)
+    implements Serializable {}

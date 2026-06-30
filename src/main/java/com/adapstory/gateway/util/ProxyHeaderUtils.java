@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Enumeration;
+import java.util.Locale;
 import java.util.Set;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.ClientHttpResponse;
@@ -44,7 +45,7 @@ public final class ProxyHeaderUtils {
     Enumeration<String> headerNames = request.getHeaderNames();
     while (headerNames.hasMoreElements()) {
       String headerName = headerNames.nextElement();
-      if (HOP_BY_HOP_HEADERS.contains(headerName.toLowerCase())) {
+      if (HOP_BY_HOP_HEADERS.contains(headerName.toLowerCase(Locale.ROOT))) {
         continue;
       }
       if (headerName.equalsIgnoreCase(HttpHeaders.AUTHORIZATION)) {
@@ -73,7 +74,7 @@ public final class ProxyHeaderUtils {
         .getHeaders()
         .forEach(
             (name, values) -> {
-              if (!HOP_BY_HOP_HEADERS.contains(name.toLowerCase())) {
+              if (!HOP_BY_HOP_HEADERS.contains(name.toLowerCase(Locale.ROOT))) {
                 for (String value : values) {
                   response.addHeader(name, value);
                 }

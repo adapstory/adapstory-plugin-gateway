@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 import org.springframework.http.MediaType;
 import tools.jackson.databind.ObjectMapper;
 
@@ -63,7 +62,9 @@ public final class GatewayErrorWriter {
 
   /** Extract X-Request-Id header or generate a new UUID. */
   public static String getOrGenerateRequestId(HttpServletRequest request) {
-    String requestId = request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID);
+    String requestId =
+        com.adapstory.commons.header.IntegrationIdValidator.normalizeUuidV4OrV7(
+            request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID));
     return requestId != null ? requestId : com.adapstory.commons.id.Uuid7.randomUuid().toString();
   }
 }

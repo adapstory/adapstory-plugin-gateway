@@ -5,6 +5,8 @@ import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
@@ -194,7 +196,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
 
       chain.doFilter(request, response);
       return true;
-    } catch (Exception fallbackEx) {
+    } catch (BadJOSEException | JOSEException | ParseException fallbackEx) {
       log.warn("BFF user JWT validation failed: {}", fallbackEx.getMessage());
       return false;
     }
@@ -252,10 +254,10 @@ public class PluginAuthFilter extends OncePerRequestFilter {
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI();
-    return (path.startsWith("/actuator/")
+    return path.startsWith("/actuator/")
         || path.startsWith("/api/bc-02/gateway/v1/webhooks")
         || path.equals("/v3/api-docs")
-        || path.startsWith("/v3/api-docs/"));
+        || path.startsWith("/v3/api-docs/");
   }
 
   private void writeError(

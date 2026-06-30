@@ -95,14 +95,15 @@ class HeaderInjectionFilterTest {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
-      request.addHeader("X-Correlation-Id", "existing-correlation-id");
+      request.addHeader("X-Correlation-Id", "11111111-2222-4333-8abc-777777777777");
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
       filter.doFilterInternal(request, response, filterChain);
 
       // Assert
-      assertThat(response.getHeader("X-Correlation-Id")).isEqualTo("existing-correlation-id");
+      assertThat(response.getHeader("X-Correlation-Id"))
+          .isEqualTo("11111111-2222-4333-8abc-777777777777");
     }
 
     @Test

@@ -105,9 +105,13 @@ public class PermissionRevocationEventParser {
       return null;
     }
     String value = pluginIdNode.asString();
+    if (value == null || value.isBlank()) {
+      log.warn("Rejected PluginPermissionsRevoked event: pluginId is blank");
+      return null;
+    }
     try {
       FetchClientUtils.validatePluginId(value);
-    } catch (IllegalArgumentException | NullPointerException e) {
+    } catch (IllegalArgumentException e) {
       log.warn("Rejected PluginPermissionsRevoked event: invalid pluginId format '{}'", value);
       return null;
     }

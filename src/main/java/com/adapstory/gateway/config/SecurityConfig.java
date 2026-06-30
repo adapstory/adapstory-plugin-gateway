@@ -38,22 +38,26 @@ public class SecurityConfig {
 
   @Bean
   @Order(0)
-  SecurityFilterChain actuatorFilterChain(HttpSecurity http) throws Exception {
-    return http.securityMatcher("/actuator/**")
-        .csrf(AbstractHttpConfigurer::disable)
-        .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers(
-                        "/actuator/health",
-                        "/actuator/health/**",
-                        "/actuator/info",
-                        "/actuator/prometheus")
-                    .permitAll()
-                    .anyRequest()
-                    .denyAll())
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .build();
+  SecurityFilterChain actuatorFilterChain(HttpSecurity http) {
+    try {
+      return http.securityMatcher("/actuator/**")
+          .csrf(AbstractHttpConfigurer::disable)
+          .authorizeHttpRequests(
+              auth ->
+                  auth.requestMatchers(
+                          "/actuator/health",
+                          "/actuator/health/**",
+                          "/actuator/info",
+                          "/actuator/prometheus")
+                      .permitAll()
+                      .anyRequest()
+                      .denyAll())
+          .sessionManagement(
+              session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .build();
+    } catch (Exception ex) {
+      throw new IllegalStateException("Failed to build actuator security filter chain", ex);
+    }
   }
 
   @Bean
@@ -62,21 +66,24 @@ public class SecurityConfig {
       HttpSecurity http,
       PluginAuthFilter pluginAuthFilter,
       PluginMcpJwtClaimFilter pluginMcpJwtClaimFilter,
-      HeaderInjectionFilter headerInjectionFilter)
-      throws Exception {
-    return http.securityMatcher("/internal/plugins/*/mcp", "/internal/plugins/v1/*/mcp")
-        .csrf(AbstractHttpConfigurer::disable)
-        .cors(AbstractHttpConfigurer::disable)
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-        .addFilterBefore(pluginAuthFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterAfter(pluginMcpJwtClaimFilter, PluginAuthFilter.class)
-        .addFilterAfter(headerInjectionFilter, PluginMcpJwtClaimFilter.class)
-        .formLogin(AbstractHttpConfigurer::disable)
-        .httpBasic(AbstractHttpConfigurer::disable)
-        .logout(AbstractHttpConfigurer::disable)
-        .build();
+      HeaderInjectionFilter headerInjectionFilter) {
+    try {
+      return http.securityMatcher("/internal/plugins/*/mcp", "/internal/plugins/v1/*/mcp")
+          .csrf(AbstractHttpConfigurer::disable)
+          .cors(AbstractHttpConfigurer::disable)
+          .sessionManagement(
+              session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
+          .addFilterBefore(pluginAuthFilter, UsernamePasswordAuthenticationFilter.class)
+          .addFilterAfter(pluginMcpJwtClaimFilter, PluginAuthFilter.class)
+          .addFilterAfter(headerInjectionFilter, PluginMcpJwtClaimFilter.class)
+          .formLogin(AbstractHttpConfigurer::disable)
+          .httpBasic(AbstractHttpConfigurer::disable)
+          .logout(AbstractHttpConfigurer::disable)
+          .build();
+    } catch (Exception ex) {
+      throw new IllegalStateException("Failed to build MCP security filter chain", ex);
+    }
   }
 
   @Bean
@@ -86,28 +93,31 @@ public class SecurityConfig {
       PluginAuthFilter pluginAuthFilter,
       PluginInstalledCheckFilter pluginInstalledCheckFilter,
       PermissionEnforcementFilter permissionEnforcementFilter,
-      HeaderInjectionFilter headerInjectionFilter)
-      throws Exception {
-    return http.securityMatcher("/**")
-        .csrf(AbstractHttpConfigurer::disable)
-        .cors(AbstractHttpConfigurer::disable)
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-        .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers(
-                        "/api/bc-02/gateway/v1/webhooks/**", "/v3/api-docs", "/v3/api-docs/**")
-                    .permitAll()
-                    .anyRequest()
-                    .authenticated())
-        .addFilterBefore(pluginAuthFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterAfter(pluginInstalledCheckFilter, PluginAuthFilter.class)
-        .addFilterAfter(permissionEnforcementFilter, PluginInstalledCheckFilter.class)
-        .addFilterAfter(headerInjectionFilter, PermissionEnforcementFilter.class)
-        .formLogin(AbstractHttpConfigurer::disable)
-        .httpBasic(AbstractHttpConfigurer::disable)
-        .logout(AbstractHttpConfigurer::disable)
-        .build();
+      HeaderInjectionFilter headerInjectionFilter) {
+    try {
+      return http.securityMatcher("/**")
+          .csrf(AbstractHttpConfigurer::disable)
+          .cors(AbstractHttpConfigurer::disable)
+          .sessionManagement(
+              session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .authorizeHttpRequests(
+              auth ->
+                  auth.requestMatchers(
+                          "/api/bc-02/gateway/v1/webhooks/**", "/v3/api-docs", "/v3/api-docs/**")
+                      .permitAll()
+                      .anyRequest()
+                      .authenticated())
+          .addFilterBefore(pluginAuthFilter, UsernamePasswordAuthenticationFilter.class)
+          .addFilterAfter(pluginInstalledCheckFilter, PluginAuthFilter.class)
+          .addFilterAfter(permissionEnforcementFilter, PluginInstalledCheckFilter.class)
+          .addFilterAfter(headerInjectionFilter, PermissionEnforcementFilter.class)
+          .formLogin(AbstractHttpConfigurer::disable)
+          .httpBasic(AbstractHttpConfigurer::disable)
+          .logout(AbstractHttpConfigurer::disable)
+          .build();
+    } catch (Exception ex) {
+      throw new IllegalStateException("Failed to build gateway security filter chain", ex);
+    }
   }
 
   // Filters are added to the Security filter chain above.
