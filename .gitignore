@@ -10,3 +10,13 @@ target/
 # Test reports (generated locally)
 **/allure-results/
 .jqwik-database
+temp/
+tmp/
+build/
+out/
+.gradle/
+.vscode/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
