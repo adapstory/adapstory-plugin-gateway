@@ -33,6 +33,7 @@ public class McpProxyService {
 
   private static final Pattern MCP_METHOD_PATTERN =
       Pattern.compile("\"method\"\\s*:\\s*\"([^\"]+)\"");
+  private static final String UNKNOWN_METHOD = "unknown";
 
   private final GatewayProperties properties;
   private final McpProxyTransportPort proxyTransport;
@@ -119,13 +120,13 @@ public class McpProxyService {
    */
   public static String extractMcpMethod(String body) {
     if (body == null || body.isBlank()) {
-      return "unknown";
+      return UNKNOWN_METHOD;
     }
     Matcher matcher = MCP_METHOD_PATTERN.matcher(body);
     if (matcher.find()) {
       return matcher.group(1);
     }
-    return "unknown";
+    return UNKNOWN_METHOD;
   }
 
   private String extractMcpMethodFromRequest(HttpServletRequest request) {
@@ -138,7 +139,7 @@ public class McpProxyService {
         return cachedMethod;
       }
     }
-    return "unknown";
+    return UNKNOWN_METHOD;
   }
 
   /**

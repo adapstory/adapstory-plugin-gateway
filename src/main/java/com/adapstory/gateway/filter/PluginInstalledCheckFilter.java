@@ -127,7 +127,8 @@ public class PluginInstalledCheckFilter extends OncePerRequestFilter {
       return;
     }
 
-    if (!installed.get()) {
+    boolean isInstalled = installed.orElseThrow();
+    if (!isInstalled) {
       notInstalledCounter.increment();
       log.info(
           "Plugin not installed for tenant, rejecting: pluginId={}, tenantId={}",

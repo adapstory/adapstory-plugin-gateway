@@ -13,6 +13,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -74,26 +76,29 @@ class WebhookDispatcherTest {
     assertThat(result.getStatusCode().value()).isEqualTo(202);
   }
 
-  @Test
-  @DisplayName("Successful dispatch on first attempt")
-  void should_succeedOnFirstAttempt_when_executeWithRetry() {
+  @ParameterizedTest(name = "status {0} -> {1} attempts")
+  @CsvSource({
+    "200, 1", "400, 1", "500, 3",
+  })
+  @DisplayName("Retry policy follows HTTP status contract")
+  void should_apply_retry_policy_when_executeWithRetry(int statusCode, int expectedAttempts) {
     // Arrange
-    wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(200)));
+    wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(statusCode)));
 
-    byte[] payload = "{\"type\":\"test.event\",\"data\":{}}".getBytes();
+    byte[] payload = "{\"type\":\"test.event\"}".getBytes();
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
 
-    // Act — call executeWithRetry directly on dispatchService (synchronous)
+    // Act
     dispatchService.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
 
     // Assert
-    wireMockServer.verify(1, postRequestedFor(urlEqualTo("/webhook")));
+    wireMockServer.verify(expectedAttempts, postRequestedFor(urlEqualTo("/webhook")));
   }
 
   @Test
-  @DisplayName("Retry on 5xx — retries configured number of times")
-  void should_retryOn5xx_when_executeWithRetry() {
+  @DisplayName("Retry on 5xx — succeeds on final configured attempt")
+  void should_retryOn5xx_until_success_when_executeWithRetry() {
     // Arrange — first 2 calls fail with 500, 3rd succeeds
     wireMockServer.stubFor(
         post("/webhook")
@@ -123,40 +128,6 @@ class WebhookDispatcherTest {
     dispatchService.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
 
     // Assert — should succeed on 3rd attempt
-    wireMockServer.verify(3, postRequestedFor(urlEqualTo("/webhook")));
-  }
-
-  @Test
-  @DisplayName("4xx client error — does NOT retry (H4 fix)")
-  void should_doNotRetryOn4xx_when_executeWithRetry() {
-    // Arrange — plugin pod returns 400 Bad Request
-    wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(400)));
-
-    byte[] payload = "{\"type\":\"test.event\"}".getBytes();
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-
-    // Act
-    dispatchService.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
-
-    // Assert — only 1 attempt, no retry for 4xx
-    wireMockServer.verify(1, postRequestedFor(urlEqualTo("/webhook")));
-  }
-
-  @Test
-  @DisplayName("All retries exhausted on 5xx — logs error")
-  void should_allRetriesExhausted_when_executeWithRetry() {
-    // Arrange — all calls fail with 500
-    wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(500)));
-
-    byte[] payload = "{\"type\":\"test.event\"}".getBytes();
-    HttpHeaders headers = new HttpHeaders();
-    headers.setContentType(MediaType.APPLICATION_JSON);
-
-    // Act
-    dispatchService.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
-
-    // Assert — 3 attempts (configured max)
     wireMockServer.verify(3, postRequestedFor(urlEqualTo("/webhook")));
   }
 

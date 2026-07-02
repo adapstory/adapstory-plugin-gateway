@@ -45,10 +45,9 @@ public final class ProxyHeaderUtils {
     Enumeration<String> headerNames = request.getHeaderNames();
     while (headerNames.hasMoreElements()) {
       String headerName = headerNames.nextElement();
-      if (HOP_BY_HOP_HEADERS.contains(headerName.toLowerCase(Locale.ROOT))) {
-        continue;
-      }
-      if (headerName.equalsIgnoreCase(HttpHeaders.AUTHORIZATION)) {
+      String normalizedHeaderName = headerName.toLowerCase(Locale.ROOT);
+      if (HOP_BY_HOP_HEADERS.contains(normalizedHeaderName)
+          || headerName.equalsIgnoreCase(HttpHeaders.AUTHORIZATION)) {
         continue;
       }
       Enumeration<String> values = request.getHeaders(headerName);

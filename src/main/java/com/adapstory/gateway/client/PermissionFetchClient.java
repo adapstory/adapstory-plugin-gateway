@@ -30,11 +30,10 @@ public class PermissionFetchClient {
 
   private static final Logger log = LoggerFactory.getLogger(PermissionFetchClient.class);
   private static final String CB_NAME = "bc02-permissions";
-  private static final String PERMISSIONS_PATH =
-      "/api/bc-02/plugin-lifecycle/v1/{pluginId}/permissions";
 
   private final RestClient restClient;
   private final CircuitBreaker circuitBreaker;
+  private final String permissionsPath;
 
   /**
    * Creates client with RestClient + Circuit Breaker using {@link Bc02ClientConfig} factory.
@@ -55,11 +54,13 @@ public class PermissionFetchClient {
     this.restClient = bc02ClientConfig.createBc02RestClient(restClientBuilder);
     this.circuitBreaker =
         bc02ClientConfig.createBc02CircuitBreaker(circuitBreakerRegistry, CB_NAME);
+    this.permissionsPath = bc02ClientConfig.permissionsPath();
   }
 
   PermissionFetchClient(RestClient restClient, CircuitBreaker circuitBreaker) {
     this.restClient = restClient;
     this.circuitBreaker = circuitBreaker;
+    this.permissionsPath = Bc02ClientConfig.DEFAULT_PERMISSIONS_PATH;
   }
 
   /**
@@ -74,7 +75,7 @@ public class PermissionFetchClient {
     validatePluginId(pluginId);
     try {
       return circuitBreaker.executeSupplier(() -> doFetch(pluginId));
-    } catch (CallNotPermittedException e) {
+    } catch (CallNotPermittedException _) {
       log.debug("Circuit breaker open for BC-02 permissions, plugin '{}'", pluginId);
       return Optional.empty();
     } catch (RestClientException e) {
@@ -95,7 +96,7 @@ public class PermissionFetchClient {
     PluginPermissionsResponse response =
         restClient
             .get()
-            .uri(PERMISSIONS_PATH, pluginId)
+            .uri(permissionsPath, pluginId)
             .header(IntegrationHeaders.HEADER_REQUEST_ID, requestId)
             .header(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId)
             .retrieve()

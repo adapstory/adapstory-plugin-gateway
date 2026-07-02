@@ -133,8 +133,7 @@ class PluginSecurityContextTest {
   void should_varyByField_when_recordEquality(
       String description, PluginSecurityContext a, PluginSecurityContext b, boolean expectEqual) {
     if (expectEqual) {
-      assertThat(a).as(description).isEqualTo(b);
-      assertThat(a.hashCode()).as(description).isEqualTo(b.hashCode());
+      assertThat(a).as(description).isEqualTo(b).hasSameHashCodeAs(b);
     } else {
       assertThat(a).as(description).isNotEqualTo(b);
     }

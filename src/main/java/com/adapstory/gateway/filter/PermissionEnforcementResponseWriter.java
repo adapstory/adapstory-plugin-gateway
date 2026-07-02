@@ -10,6 +10,9 @@ import java.util.Map;
 import tools.jackson.databind.ObjectMapper;
 
 final class PermissionEnforcementResponseWriter {
+  private static final String ERROR_FORBIDDEN = "Forbidden";
+  private static final String DETAIL_PLUGIN_ID = "pluginId";
+
   private final ObjectMapper objectMapper;
 
   PermissionEnforcementResponseWriter(ObjectMapper objectMapper) {
@@ -24,7 +27,7 @@ final class PermissionEnforcementResponseWriter {
         response,
         request,
         403,
-        "Forbidden",
+        ERROR_FORBIDDEN,
         "No permission mapping configured for this route",
         buildDetails(pluginContext, null));
   }
@@ -40,7 +43,7 @@ final class PermissionEnforcementResponseWriter {
         response,
         request,
         403,
-        "Forbidden",
+        ERROR_FORBIDDEN,
         String.format(
             "Plugin '%s' does not have permission '%s'",
             extractShortPluginId(pluginContext.pluginId()), requiredPermission),
@@ -51,7 +54,7 @@ final class PermissionEnforcementResponseWriter {
       HttpServletRequest request, HttpServletResponse response, String pluginId, String errorCode)
       throws IOException {
     Map<String, Object> details = new LinkedHashMap<>();
-    details.put("pluginId", pluginId);
+    details.put(DETAIL_PLUGIN_ID, pluginId);
     details.put("errorCode", errorCode);
     GatewayErrorWriter.writeError(
         objectMapper,
@@ -71,7 +74,7 @@ final class PermissionEnforcementResponseWriter {
       String errorCode)
       throws IOException {
     Map<String, Object> details = new LinkedHashMap<>();
-    details.put("pluginId", pluginId);
+    details.put(DETAIL_PLUGIN_ID, pluginId);
     details.put("requiredPermission", requiredPermission);
     details.put("errorCode", errorCode);
     GatewayErrorWriter.writeError(
@@ -79,7 +82,7 @@ final class PermissionEnforcementResponseWriter {
         response,
         request,
         403,
-        "Forbidden",
+        ERROR_FORBIDDEN,
         String.format("Permission '%s' has been revoked", requiredPermission),
         details);
   }
@@ -96,7 +99,7 @@ final class PermissionEnforcementResponseWriter {
       PluginSecurityContext pluginContext, String requiredPermission) {
     Map<String, Object> details = new LinkedHashMap<>();
     if (pluginContext != null) {
-      details.put("pluginId", pluginContext.pluginId());
+      details.put(DETAIL_PLUGIN_ID, pluginContext.pluginId());
       if (requiredPermission != null) {
         details.put("requiredPermission", requiredPermission);
       }

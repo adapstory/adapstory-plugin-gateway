@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -109,10 +108,7 @@ class PermissionCacheServiceTest {
 
       // Assert
       verify(cacheStore)
-          .put(
-              eq("plugin:permissions:test-plugin"),
-              eq("content.read,grade.write"),
-              eq(Duration.ofMinutes(5)));
+          .put("plugin:permissions:test-plugin", "content.read,grade.write", Duration.ofMinutes(5));
     }
 
     @Test
@@ -147,8 +143,8 @@ class PermissionCacheServiceTest {
     @DisplayName("should throw when permission name contains separator")
     void should_throw_when_permissionContainsSeparator() {
       // Act & Assert
-      assertThatThrownBy(
-              () -> cacheService.cachePermissions("test-plugin", List.of("content,read")))
+      List<String> invalidPermissions = List.of("content,read");
+      assertThatThrownBy(() -> cacheService.cachePermissions("test-plugin", invalidPermissions))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Permission name must not contain separator");
     }
@@ -182,10 +178,7 @@ class PermissionCacheServiceTest {
       assertThat(result).isPresent();
       assertThat(result.get()).containsExactly("content.read", "grade.write");
       verify(cacheStore)
-          .put(
-              eq("plugin:permissions:test-plugin"),
-              eq("content.read,grade.write"),
-              eq(Duration.ofMinutes(5)));
+          .put("plugin:permissions:test-plugin", "content.read,grade.write", Duration.ofMinutes(5));
     }
 
     @Test
@@ -201,10 +194,7 @@ class PermissionCacheServiceTest {
       assertThat(result).isEmpty();
       // Negative cache sentinel should be stored with short TTL (30s)
       verify(cacheStore)
-          .put(
-              eq("plugin:permissions:test-plugin"),
-              eq("__UNAVAILABLE__"),
-              eq(Duration.ofSeconds(30)));
+          .put("plugin:permissions:test-plugin", "__UNAVAILABLE__", Duration.ofSeconds(30));
     }
 
     @Test
@@ -293,7 +283,7 @@ class PermissionCacheServiceTest {
       void should_skipDuplicateEvent() {
         // Arrange — first call returns false (key already exists)
         when(valueOperations.setIfAbsent(
-                eq("revoked-event-processed:ce-uuid-123"), eq("1"), eq(Duration.ofHours(24))))
+                "revoked-event-processed:ce-uuid-123", "1", Duration.ofHours(24)))
             .thenReturn(false);
 
         // Act
@@ -308,7 +298,7 @@ class PermissionCacheServiceTest {
       void should_processFirstEvent_and_setDedupKey() {
         // Arrange
         when(valueOperations.setIfAbsent(
-                eq("revoked-event-processed:ce-uuid-123"), eq("1"), eq(Duration.ofHours(24))))
+                "revoked-event-processed:ce-uuid-123", "1", Duration.ofHours(24)))
             .thenReturn(true);
 
         // Act

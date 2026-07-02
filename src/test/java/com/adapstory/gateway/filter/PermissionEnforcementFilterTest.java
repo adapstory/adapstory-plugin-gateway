@@ -134,8 +134,9 @@ class PermissionEnforcementFilterTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.message()).isEqualTo("Permission 'content.read' has been revoked");
-      assertThat(error.details().get("errorCode")).isEqualTo("ADAP-SEC-0010");
-      assertThat(error.details().get("pluginId")).isEqualTo("adapstory.education_module.ai-grader");
+      assertThat(error.details())
+          .containsEntry("errorCode", "ADAP-SEC-0010")
+          .containsEntry("pluginId", "adapstory.education_module.ai-grader");
 
       assertThat(
               meterRegistry
@@ -225,7 +226,7 @@ class PermissionEnforcementFilterTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.message()).isEqualTo("Unable to verify plugin permissions");
-      assertThat(error.details().get("errorCode")).isEqualTo("ADAP-SEC-0011");
+      assertThat(error.details()).containsEntry("errorCode", "ADAP-SEC-0011");
 
       assertThat(
               meterRegistry
@@ -261,7 +262,7 @@ class PermissionEnforcementFilterTest {
 
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
-      assertThat(error.details().get("errorCode")).isEqualTo("ADAP-SEC-0010");
+      assertThat(error.details()).containsEntry("errorCode", "ADAP-SEC-0010");
     }
   }
 

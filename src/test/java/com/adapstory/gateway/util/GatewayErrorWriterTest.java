@@ -179,9 +179,10 @@ class GatewayErrorWriterTest {
       MockHttpServletRequest request = new MockHttpServletRequest();
 
       String result = GatewayErrorWriter.getOrGenerateRequestId(request);
-      assertThat(result).isNotNull().isNotBlank();
-      // Verify it looks like a UUID
-      assertThat(result).matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+      assertThat(result)
+          .isNotNull()
+          .isNotBlank()
+          .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
     }
 
     @Test
@@ -191,8 +192,11 @@ class GatewayErrorWriterTest {
       request.addHeader("X-Request-Id", "my-request-id");
 
       String result = GatewayErrorWriter.getOrGenerateRequestId(request);
-      assertThat(result).isNotNull().isNotBlank().isNotEqualTo("my-request-id");
-      assertThat(result).matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
+      assertThat(result)
+          .isNotNull()
+          .isNotBlank()
+          .isNotEqualTo("my-request-id")
+          .matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}");
     }
   }
 }

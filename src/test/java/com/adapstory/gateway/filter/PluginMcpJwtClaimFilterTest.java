@@ -117,7 +117,7 @@ class PluginMcpJwtClaimFilterTest {
       assertThat(error.error()).isEqualTo("Forbidden");
       assertThat(error.message()).contains("course-builder");
       assertThat(error.message()).contains("not authorized");
-      assertThat(error.details().get("error_code")).isEqualTo("MCP_TOOL_UNAUTHORIZED");
+      assertThat(error.details()).containsEntry("error_code", "MCP_TOOL_UNAUTHORIZED");
     }
 
     @Test

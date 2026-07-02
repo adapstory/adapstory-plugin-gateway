@@ -45,6 +45,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
 
   private static final Logger log = LoggerFactory.getLogger(PluginAuthFilter.class);
   private static final String BEARER_PREFIX = "Bearer ";
+  private static final String ERROR_UNAUTHORIZED = "Unauthorized";
   public static final String PLUGIN_SECURITY_CONTEXT_ATTR = "pluginSecurityContext";
 
   private final GatewayProperties properties;
@@ -98,7 +99,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
           response,
           request,
           401,
-          "Unauthorized",
+          ERROR_UNAUTHORIZED,
           "Missing or invalid Authorization header",
           Map.of());
       return;
@@ -114,7 +115,12 @@ public class PluginAuthFilter extends OncePerRequestFilter {
 
       if (pluginContext == null) {
         writeError(
-            response, request, 401, "Unauthorized", "JWT missing required plugin claims", Map.of());
+            response,
+            request,
+            401,
+            ERROR_UNAUTHORIZED,
+            "JWT missing required plugin claims",
+            Map.of());
         return;
       }
 
@@ -141,7 +147,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
       }
       log.warn("Plugin JWT validation failed: {}", ex.getMessage());
       writeError(
-          response, request, 401, "Unauthorized", "Invalid or expired plugin token", Map.of());
+          response, request, 401, ERROR_UNAUTHORIZED, "Invalid or expired plugin token", Map.of());
     } finally {
       SecurityContextHolder.clearContext();
     }
@@ -165,7 +171,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
             response,
             request,
             401,
-            "Unauthorized",
+            ERROR_UNAUTHORIZED,
             "BFF user token is missing tenant claim",
             Map.of());
         return true;

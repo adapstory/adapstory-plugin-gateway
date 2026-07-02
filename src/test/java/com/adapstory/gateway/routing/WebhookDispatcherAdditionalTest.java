@@ -8,6 +8,8 @@ import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,53 +28,18 @@ class WebhookDispatcherAdditionalTest {
   @DisplayName("pluginShortId validation")
   class PluginShortIdValidation {
 
-    @Test
-    @DisplayName("should return 400 for pluginShortId with special characters")
-    void should_return400_when_pluginShortIdHasSpecialChars() {
-      // Arrange
+    @ParameterizedTest
+    @CsvSource({"'../../etc/passwd',400", "'ai grader',400", "'ai-grader-v2',202"})
+    @DisplayName("should validate pluginShortId before dispatch")
+    void should_validatePluginShortId_when_dispatching(String pluginShortId, int expectedStatus) {
       WebhookDispatcher dispatcher = createDispatcher(null);
       byte[] payload = "{}".getBytes();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
 
-      // Act
-      ResponseEntity<Void> result =
-          dispatcher.dispatchWebhook("../../etc/passwd", payload, headers);
+      ResponseEntity<Void> result = dispatcher.dispatchWebhook(pluginShortId, payload, headers);
 
-      // Assert
-      assertThat(result.getStatusCode().value()).isEqualTo(400);
-    }
-
-    @Test
-    @DisplayName("should return 400 for pluginShortId with spaces")
-    void should_return400_when_pluginShortIdHasSpaces() {
-      // Arrange
-      WebhookDispatcher dispatcher = createDispatcher(null);
-      byte[] payload = "{}".getBytes();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-
-      // Act
-      ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai grader", payload, headers);
-
-      // Assert
-      assertThat(result.getStatusCode().value()).isEqualTo(400);
-    }
-
-    @Test
-    @DisplayName("should accept valid pluginShortId with hyphens")
-    void should_accept_validPluginShortId() {
-      // Arrange
-      WebhookDispatcher dispatcher = createDispatcher(null);
-      byte[] payload = "{}".getBytes();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-
-      // Act
-      ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader-v2", payload, headers);
-
-      // Assert — 202 regardless of dispatch result (async)
-      assertThat(result.getStatusCode().value()).isEqualTo(202);
+      assertThat(result.getStatusCode().value()).isEqualTo(expectedStatus);
     }
   }
 
@@ -80,86 +47,28 @@ class WebhookDispatcherAdditionalTest {
   @DisplayName("Internal secret validation")
   class InternalSecretValidation {
 
-    @Test
-    @DisplayName("should return 403 when internal secret is configured but not provided")
-    void should_return403_when_secretRequired_butNotProvided() {
-      // Arrange
-      WebhookDispatcher dispatcher = createDispatcher("my-secret-123");
+    @ParameterizedTest
+    @CsvSource({
+      "'my-secret-123',,403",
+      "'my-secret-123','wrong-secret',403",
+      "'my-secret-123','my-secret-123',202",
+      ",,202",
+      "'  ',,202"
+    })
+    @DisplayName("should enforce internal secret only when configured")
+    void should_enforceInternalSecret_when_dispatching(
+        String configuredSecret, String providedSecret, int expectedStatus) {
+      WebhookDispatcher dispatcher = createDispatcher(configuredSecret);
       byte[] payload = "{}".getBytes();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
+      if (providedSecret != null && !providedSecret.isBlank()) {
+        headers.set(IntegrationHeaders.HEADER_INTERNAL_SECRET, providedSecret);
+      }
 
-      // Act
       ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
 
-      // Assert
-      assertThat(result.getStatusCode().value()).isEqualTo(403);
-    }
-
-    @Test
-    @DisplayName("should return 403 when internal secret is configured but wrong value provided")
-    void should_return403_when_wrongSecretProvided() {
-      // Arrange
-      WebhookDispatcher dispatcher = createDispatcher("my-secret-123");
-      byte[] payload = "{}".getBytes();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-      headers.set(IntegrationHeaders.HEADER_INTERNAL_SECRET, "wrong-secret");
-
-      // Act
-      ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
-
-      // Assert
-      assertThat(result.getStatusCode().value()).isEqualTo(403);
-    }
-
-    @Test
-    @DisplayName("should return 202 when correct internal secret provided")
-    void should_return202_when_correctSecretProvided() {
-      // Arrange
-      WebhookDispatcher dispatcher = createDispatcher("my-secret-123");
-      byte[] payload = "{}".getBytes();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-      headers.set(IntegrationHeaders.HEADER_INTERNAL_SECRET, "my-secret-123");
-
-      // Act
-      ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
-
-      // Assert
-      assertThat(result.getStatusCode().value()).isEqualTo(202);
-    }
-
-    @Test
-    @DisplayName("should skip secret check when no internal secret configured")
-    void should_skip_secretCheck_when_notConfigured() {
-      // Arrange — null secret
-      WebhookDispatcher dispatcher = createDispatcher(null);
-      byte[] payload = "{}".getBytes();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-
-      // Act
-      ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
-
-      // Assert
-      assertThat(result.getStatusCode().value()).isEqualTo(202);
-    }
-
-    @Test
-    @DisplayName("should skip secret check when internal secret is blank")
-    void should_skip_secretCheck_when_blank() {
-      // Arrange — blank secret
-      WebhookDispatcher dispatcher = createDispatcher("  ");
-      byte[] payload = "{}".getBytes();
-      HttpHeaders headers = new HttpHeaders();
-      headers.setContentType(MediaType.APPLICATION_JSON);
-
-      // Act
-      ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
-
-      // Assert
-      assertThat(result.getStatusCode().value()).isEqualTo(202);
+      assertThat(result.getStatusCode().value()).isEqualTo(expectedStatus);
     }
   }
 

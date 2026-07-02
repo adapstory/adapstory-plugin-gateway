@@ -103,4 +103,32 @@ class PluginAuthenticationTokenTest {
     // Assert
     assertThat(token.isAuthenticated()).isTrue();
   }
+
+  @Test
+  @DisplayName("should satisfy equals and hashCode for identical authenticated tokens")
+  void should_satisfyEqualsAndHashCode_for_identicalTokens() {
+    PluginSecurityContext ctx =
+        new PluginSecurityContext("adapstory.assessment.quiz", "tenant-1", List.of(), "CORE");
+    var authorities = List.of(new SimpleGrantedAuthority("content.read"));
+
+    PluginAuthenticationToken left = new PluginAuthenticationToken(ctx, authorities);
+    left.setAuthenticated(true);
+    PluginAuthenticationToken right = new PluginAuthenticationToken(ctx, authorities);
+    right.setAuthenticated(true);
+
+    assertThat(left).isEqualTo(left).isEqualTo(right).hasSameHashCodeAs(right);
+  }
+
+  @Test
+  @DisplayName("should not equal other type or token with different authentication state")
+  void should_notEqual_when_contractDiffers() {
+    PluginSecurityContext ctx =
+        new PluginSecurityContext("adapstory.assessment.quiz", "tenant-1", List.of(), "CORE");
+
+    PluginAuthenticationToken unauthenticated = new PluginAuthenticationToken(ctx, List.of());
+    PluginAuthenticationToken authenticated = new PluginAuthenticationToken(ctx, List.of());
+    authenticated.setAuthenticated(true);
+
+    assertThat(unauthenticated).isNotEqualTo("token").isNotEqualTo(authenticated);
+  }
 }

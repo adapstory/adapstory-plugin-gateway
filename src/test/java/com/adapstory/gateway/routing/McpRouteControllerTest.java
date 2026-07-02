@@ -242,7 +242,7 @@ class McpRouteControllerTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.error()).isEqualTo("Bad Gateway");
-      assertThat(error.details().get("slug")).isEqualTo("course-builder");
+      assertThat(error.details()).containsEntry("slug", "course-builder");
 
       // Restart for tearDown
       wireMockServer.start();

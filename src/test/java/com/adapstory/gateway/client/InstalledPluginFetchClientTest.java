@@ -18,6 +18,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
@@ -31,6 +33,32 @@ import tools.jackson.databind.ObjectMapper;
  */
 @DisplayName("InstalledPluginFetchClient")
 class InstalledPluginFetchClientTest {
+
+  private enum InstalledStatusCase {
+    INSTALLED(
+        """
+        {"data": {"installed": true, "version": "1.0.0"}, "messages": [], "error": null}
+        """,
+        true),
+    NOT_INSTALLED(
+        """
+        {"data": {"installed": false}, "messages": [], "error": null}
+        """,
+        false),
+    NULL_DATA(
+        """
+        {"data": null, "messages": [], "error": null}
+        """,
+        false);
+
+    private final String responseBody;
+    private final boolean installed;
+
+    InstalledStatusCase(String responseBody, boolean installed) {
+      this.responseBody = responseBody;
+      this.installed = installed;
+    }
+  }
 
   private static final String PLUGIN_ID = "adapstory.assessment.quiz";
   private static final String TENANT_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
@@ -87,43 +115,17 @@ class InstalledPluginFetchClientTest {
       mockServer.verify();
     }
 
-    @Test
-    @DisplayName("should return false when plugin is not installed")
-    void should_returnFalse_when_pluginNotInstalled() {
-      // Arrange
-      String response =
-          """
-          {"data": {"installed": false}, "messages": [], "error": null}
-          """;
+    @ParameterizedTest
+    @EnumSource(InstalledStatusCase.class)
+    @DisplayName("should map installed response payloads to the expected flag")
+    void should_mapInstalledResponsePayloads_when_requested(InstalledStatusCase statusCase) {
       mockServer
           .expect(requestTo(INSTALLED_URI))
-          .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
+          .andRespond(withSuccess(statusCase.responseBody, MediaType.APPLICATION_JSON));
 
-      // Act
       Optional<Boolean> result = client.fetchInstalledStatus(PLUGIN_ID, TENANT_ID);
 
-      // Assert
-      assertThat(result).isPresent().contains(false);
-      mockServer.verify();
-    }
-
-    @Test
-    @DisplayName("should return false when data is null (M-10)")
-    void should_returnFalse_when_dataIsNull() {
-      // Arrange
-      String response =
-          """
-          {"data": null, "messages": [], "error": null}
-          """;
-      mockServer
-          .expect(requestTo(INSTALLED_URI))
-          .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
-
-      // Act
-      Optional<Boolean> result = client.fetchInstalledStatus(PLUGIN_ID, TENANT_ID);
-
-      // Assert
-      assertThat(result).isPresent().contains(false);
+      assertThat(result).isPresent().contains(statusCase.installed);
       mockServer.verify();
     }
 

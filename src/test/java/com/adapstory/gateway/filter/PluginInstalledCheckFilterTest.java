@@ -158,9 +158,10 @@ class PluginInstalledCheckFilterTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.message()).isEqualTo("Plugin is not installed for this tenant");
-      assertThat(error.details().get("error_code")).isEqualTo("PLUGIN_NOT_INSTALLED");
-      assertThat(error.details().get("plugin_id")).isEqualTo(PLUGIN_ID);
-      assertThat(error.details().get("tenant_id")).isEqualTo(TENANT_ID);
+      assertThat(error.details())
+          .containsEntry("error_code", "PLUGIN_NOT_INSTALLED")
+          .containsEntry("plugin_id", PLUGIN_ID)
+          .containsEntry("tenant_id", TENANT_ID);
     }
 
     @Test
@@ -206,7 +207,7 @@ class PluginInstalledCheckFilterTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.message()).isEqualTo("Unable to verify plugin installation");
-      assertThat(error.details().get("error_code")).isEqualTo("ADAP-SEC-0011");
+      assertThat(error.details()).containsEntry("error_code", "ADAP-SEC-0011");
     }
 
     @Test
@@ -232,7 +233,7 @@ class PluginInstalledCheckFilterTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.message()).isEqualTo("Unable to verify plugin installation");
-      assertThat(error.details().get("error_code")).isEqualTo("ADAP-SEC-0011");
+      assertThat(error.details()).containsEntry("error_code", "ADAP-SEC-0011");
     }
 
     @Test

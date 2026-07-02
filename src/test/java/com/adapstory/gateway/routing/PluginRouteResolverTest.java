@@ -373,7 +373,7 @@ class PluginRouteResolverTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.error()).isEqualTo("Bad Gateway");
-      assertThat(error.details().get("route")).isEqualTo("content");
+      assertThat(error.details()).containsEntry("route", "content");
 
       // Restart for tearDown
       wireMockServer.start();
@@ -398,8 +398,9 @@ class PluginRouteResolverTest {
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
       assertThat(error.error()).isEqualTo("Service Unavailable");
-      assertThat(error.details().get("route")).isEqualTo("content");
-      assertThat(error.details().get("circuitBreakerState")).isEqualTo("OPEN");
+      assertThat(error.details())
+          .containsEntry("route", "content")
+          .containsEntry("circuitBreakerState", "OPEN");
     }
 
     @Test
@@ -422,7 +423,7 @@ class PluginRouteResolverTest {
       assertThat(response.getStatus()).isEqualTo(404);
       GatewayErrorResponse error =
           objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
-      assertThat(error.details().get("pluginId")).isEqualTo("adapstory.education_module.ai-grader");
+      assertThat(error.details()).containsEntry("pluginId", "adapstory.education_module.ai-grader");
     }
   }
 

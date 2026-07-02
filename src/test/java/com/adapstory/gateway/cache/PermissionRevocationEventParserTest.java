@@ -2,7 +2,6 @@ package com.adapstory.gateway.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -14,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import tools.jackson.core.JacksonException;
@@ -118,8 +119,7 @@ class PermissionRevocationEventParserTest {
     @DisplayName("First event (setIfAbsent returns true) is not a duplicate")
     void should_beNotDuplicate_when_firstEvent() {
       // Arrange
-      when(valueOperations.setIfAbsent(
-              eq("revoked-event-processed:ce-123"), eq("1"), eq(Duration.ofHours(24))))
+      when(valueOperations.setIfAbsent("revoked-event-processed:ce-123", "1", Duration.ofHours(24)))
           .thenReturn(true);
 
       // Act
@@ -128,15 +128,14 @@ class PermissionRevocationEventParserTest {
       // Assert
       assertThat(duplicate).isFalse();
       verify(valueOperations)
-          .setIfAbsent(eq("revoked-event-processed:ce-123"), eq("1"), eq(Duration.ofHours(24)));
+          .setIfAbsent("revoked-event-processed:ce-123", "1", Duration.ofHours(24));
     }
 
     @Test
     @DisplayName("Already-processed event (setIfAbsent returns false) is a duplicate")
     void should_beDuplicate_when_alreadyProcessed() {
       // Arrange — key already exists
-      when(valueOperations.setIfAbsent(
-              eq("revoked-event-processed:ce-123"), eq("1"), eq(Duration.ofHours(24))))
+      when(valueOperations.setIfAbsent("revoked-event-processed:ce-123", "1", Duration.ofHours(24)))
           .thenReturn(false);
 
       // Act
@@ -276,33 +275,17 @@ class PermissionRevocationEventParserTest {
       assertThat(eventParser.extractPluginIdFromData(data)).isEqualTo("test-plugin");
     }
 
-    @Test
-    @DisplayName("returns null when pluginId missing")
-    void should_missing_when_extractPluginId() throws Exception {
-      // Arrange
-      var data = mapper.readTree("{\"other\":\"value\"}");
+    @ParameterizedTest
+    @ValueSource(
+        strings = {
+          "{\"other\":\"value\"}",
+          "{\"pluginId\":\"../../etc/passwd\"}",
+          "{\"pluginId\":\" \"}"
+        })
+    @DisplayName("returns null when pluginId is missing or invalid")
+    void should_returnNull_when_pluginIdMissingOrInvalid(String json) throws Exception {
+      var data = mapper.readTree(json);
 
-      // Act & Assert
-      assertThat(eventParser.extractPluginIdFromData(data)).isNull();
-    }
-
-    @Test
-    @DisplayName("returns null for invalid pluginId format (M-2 — path traversal)")
-    void should_invalidFormat_when_extractPluginId() throws Exception {
-      // Arrange
-      var data = mapper.readTree("{\"pluginId\":\"../../etc/passwd\"}");
-
-      // Act & Assert
-      assertThat(eventParser.extractPluginIdFromData(data)).isNull();
-    }
-
-    @Test
-    @DisplayName("returns null for blank pluginId value (M-2)")
-    void should_blank_when_extractPluginId() throws Exception {
-      // Arrange
-      var data = mapper.readTree("{\"pluginId\":\" \"}");
-
-      // Act & Assert
       assertThat(eventParser.extractPluginIdFromData(data)).isNull();
     }
   }

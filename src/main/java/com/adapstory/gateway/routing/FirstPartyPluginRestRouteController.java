@@ -27,6 +27,7 @@ public class FirstPartyPluginRestRouteController {
   private static final Logger log =
       LoggerFactory.getLogger(FirstPartyPluginRestRouteController.class);
   private static final Pattern PLUGIN_SLUG_PATTERN = Pattern.compile("[a-z0-9][a-z0-9-]{0,62}");
+  private static final String DETAIL_PLUGIN_SLUG = "pluginSlug";
 
   private final McpProxyService mcpProxyService;
   private final ProxyExecutionService proxyExecutionService;
@@ -58,7 +59,12 @@ public class FirstPartyPluginRestRouteController {
       throws IOException {
     if (!PLUGIN_SLUG_PATTERN.matcher(slug).matches()) {
       writeError(
-          response, request, 400, "Bad Request", "Invalid plugin slug", Map.of("pluginSlug", slug));
+          response,
+          request,
+          400,
+          "Bad Request",
+          "Invalid plugin slug",
+          Map.of(DETAIL_PLUGIN_SLUG, slug));
       return;
     }
 
@@ -82,7 +88,7 @@ public class FirstPartyPluginRestRouteController {
           503,
           "Service Unavailable",
           "Plugin backend is temporarily unavailable",
-          Map.of("pluginSlug", slug, "circuitBreakerState", "OPEN"));
+          Map.of(DETAIL_PLUGIN_SLUG, slug, "circuitBreakerState", "OPEN"));
     } catch (UncheckedIOException ex) {
       if (response.isCommitted()) {
         log.error("Plugin REST proxy error after response committed for slug '{}'", slug, ex);
@@ -95,7 +101,7 @@ public class FirstPartyPluginRestRouteController {
           502,
           "Bad Gateway",
           "Error proxying to plugin backend",
-          Map.of("pluginSlug", slug));
+          Map.of(DETAIL_PLUGIN_SLUG, slug));
     }
   }
 

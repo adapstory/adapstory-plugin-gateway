@@ -111,7 +111,7 @@ public class PermissionRevocationEventParser {
     }
     try {
       FetchClientUtils.validatePluginId(value);
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalArgumentException _) {
       log.warn("Rejected PluginPermissionsRevoked event: invalid pluginId format '{}'", value);
       return null;
     }

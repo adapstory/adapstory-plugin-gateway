@@ -48,7 +48,7 @@ class JwksHealthIndicatorTest {
 
     // Assert
     assertThat(health.getStatus()).isEqualTo(Status.UP);
-    assertThat(health.getDetails().get("jwksUri")).isEqualTo(wireMockServer.baseUrl() + "/certs");
+    assertThat(health.getDetails()).containsEntry("jwksUri", wireMockServer.baseUrl() + "/certs");
   }
 
   @Test
@@ -66,7 +66,7 @@ class JwksHealthIndicatorTest {
 
     // Assert
     assertThat(health.getStatus()).isEqualTo(Status.DOWN);
-    assertThat(health.getDetails().get("jwksUri")).isEqualTo(wireMockServer.baseUrl() + "/certs");
+    assertThat(health.getDetails()).containsEntry("jwksUri", wireMockServer.baseUrl() + "/certs");
     assertThat(health.getDetails().get("error")).isNotNull();
   }
 

@@ -38,6 +38,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
   private static final String METRIC_CACHE_HIT = "plugin_gateway_permission_cache_hit_total";
   private static final String METRIC_DENIED = "plugin_gateway_permission_denied_total";
   private static final String METRIC_UNAVAILABLE = "plugin_gateway_permission_unavailable_total";
+  private static final String TAG_PLUGIN_ID = "pluginId";
 
   private final PermissionIntersectionService intersectionService;
   private final MeterRegistry meterRegistry;
@@ -86,7 +87,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
           requiredPermission,
           jwtPermissions);
       meterRegistry
-          .counter(METRIC_DENIED, "pluginId", pluginId, "errorCode", "JWT_MISSING")
+          .counter(METRIC_DENIED, TAG_PLUGIN_ID, pluginId, "errorCode", "JWT_MISSING")
           .increment();
       responseWriter.writeJwtDenied(request, response, pluginContext, requiredPermission);
       return;
@@ -97,7 +98,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
       log.warn(
           "Permission verification unavailable for plugin {}: Redis miss and BC-02 fetch failed",
           pluginId);
-      meterRegistry.counter(METRIC_UNAVAILABLE, "pluginId", pluginId).increment();
+      meterRegistry.counter(METRIC_UNAVAILABLE, TAG_PLUGIN_ID, pluginId).increment();
       responseWriter.writeUnavailable(
           request, response, pluginId, ERROR_CODE_PERMISSION_UNAVAILABLE);
       return;
@@ -110,7 +111,8 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
           pluginId,
           result.getRequiredPermission());
       meterRegistry
-          .counter(METRIC_DENIED, "pluginId", pluginId, "errorCode", ERROR_CODE_PERMISSION_REVOKED)
+          .counter(
+              METRIC_DENIED, TAG_PLUGIN_ID, pluginId, "errorCode", ERROR_CODE_PERMISSION_REVOKED)
           .increment();
       responseWriter.writeManifestDenied(
           request,
@@ -122,7 +124,7 @@ public class PermissionEnforcementFilter extends OncePerRequestFilter {
     }
 
     // Cache hit metric — if we got here via cache, the service handled it
-    meterRegistry.counter(METRIC_CACHE_HIT, "pluginId", pluginId).increment();
+    meterRegistry.counter(METRIC_CACHE_HIT, TAG_PLUGIN_ID, pluginId).increment();
 
     filterChain.doFilter(request, response);
   }

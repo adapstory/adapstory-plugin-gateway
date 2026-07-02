@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -32,8 +33,6 @@ public class InstalledPluginFetchClient {
 
   private static final Logger log = LoggerFactory.getLogger(InstalledPluginFetchClient.class);
   private static final String CB_NAME = "bc02-installed-check";
-  private static final String INSTALLED_PATH =
-      "/api/bc-02/plugin-lifecycle/v1/{pluginId}/installed";
 
   private static final Pattern UUID_PATTERN =
       Pattern.compile(
@@ -42,6 +41,7 @@ public class InstalledPluginFetchClient {
   private final RestClient restClient;
   private final CircuitBreaker circuitBreaker;
   private final ObjectMapper objectMapper;
+  private final String installedPath;
 
   /**
    * Создаёт клиент с RestClient + Circuit Breaker, используя {@link Bc02ClientConfig} фабрику.
@@ -64,6 +64,7 @@ public class InstalledPluginFetchClient {
     this.restClient = bc02ClientConfig.createBc02RestClient(restClientBuilder);
     this.circuitBreaker =
         bc02ClientConfig.createBc02CircuitBreaker(circuitBreakerRegistry, CB_NAME);
+    this.installedPath = bc02ClientConfig.installedPath();
   }
 
   /** Конструктор для тестов — принимает готовые RestClient и CircuitBreaker. */
@@ -72,6 +73,7 @@ public class InstalledPluginFetchClient {
     this.restClient = restClient;
     this.circuitBreaker = circuitBreaker;
     this.objectMapper = objectMapper;
+    this.installedPath = Bc02ClientConfig.DEFAULT_INSTALLED_PATH;
   }
 
   /**
@@ -139,7 +141,7 @@ public class InstalledPluginFetchClient {
       responseBody =
           restClient
               .get()
-              .uri(INSTALLED_PATH, pluginId)
+              .uri(installedPath, pluginId)
               .header(IntegrationHeaders.HEADER_TENANT_ID, tenantId)
               .header(IntegrationHeaders.HEADER_REQUEST_ID, requestId)
               .header(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId)
@@ -172,9 +174,9 @@ public class InstalledPluginFetchClient {
       }
       boolean installed = data.get("installed") != null && data.get("installed").booleanValue();
       return Optional.of(installed);
-    } catch (Exception e) {
+    } catch (JacksonException _) {
       // C-2: parse failure → verification unavailable (not "not installed")
-      log.warn("Failed to parse BC-02 installed response: {}", e.getMessage());
+      log.warn("Failed to parse BC-02 installed response");
       return Optional.empty();
     }
   }

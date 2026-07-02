@@ -26,6 +26,10 @@ public class Bc02ClientConfig {
 
   private static final String TARGET_AUDIENCE = "adapstory-bc02-service";
   private static final String DEFAULT_CLIENT_ID = "adapstory-plugin-gateway";
+  public static final String DEFAULT_INSTALLED_PATH =
+      "/api/bc-02/plugin-lifecycle/v1/{pluginId}/installed";
+  public static final String DEFAULT_PERMISSIONS_PATH =
+      "/api/bc-02/plugin-lifecycle/v1/{pluginId}/permissions";
 
   private static final int CONNECT_TIMEOUT_MS = 3000;
   private static final int READ_TIMEOUT_MS = 3000;
@@ -43,14 +47,21 @@ public class Bc02ClientConfig {
   private final GatewayProperties properties;
   private final ObjectProvider<ServiceTokenPort> serviceTokenPort;
   private final String clientId;
+  private final String installedPath;
+  private final String permissionsPath;
 
   public Bc02ClientConfig(
       GatewayProperties properties,
       ObjectProvider<ServiceTokenPort> serviceTokenPort,
-      @Value("${adapstory.service-auth.client-id:" + DEFAULT_CLIENT_ID + "}") String clientId) {
+      @Value("${adapstory.service-auth.client-id:" + DEFAULT_CLIENT_ID + "}") String clientId,
+      @Value("${gateway.bc02.installed-path:" + DEFAULT_INSTALLED_PATH + "}") String installedPath,
+      @Value("${gateway.bc02.permissions-path:" + DEFAULT_PERMISSIONS_PATH + "}")
+          String permissionsPath) {
     this.properties = properties;
     this.serviceTokenPort = serviceTokenPort;
     this.clientId = clientId;
+    this.installedPath = installedPath;
+    this.permissionsPath = permissionsPath;
   }
 
   /**
@@ -96,6 +107,14 @@ public class Bc02ClientConfig {
    */
   public CircuitBreaker createBc02CircuitBreaker(CircuitBreakerRegistry registry, String name) {
     return registry.circuitBreaker(name, BC02_CB_CONFIG);
+  }
+
+  public String installedPath() {
+    return installedPath;
+  }
+
+  public String permissionsPath() {
+    return permissionsPath;
   }
 
   /** Returns the shared BC-02 circuit breaker configuration. */

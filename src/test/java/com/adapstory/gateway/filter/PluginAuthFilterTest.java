@@ -29,6 +29,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpHeaders;
@@ -63,7 +65,7 @@ class PluginAuthFilterTest {
   private ObjectMapper objectMapper;
 
   @BeforeEach
-  void setUp() throws Exception {
+  void setUp() {
     objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
 
     properties =
@@ -829,26 +831,12 @@ class PluginAuthFilterTest {
       assertThat(filter.shouldNotFilter(grouped)).isTrue();
     }
 
-    @Test
-    @DisplayName("should filter normal API paths")
-    void should_filter_normalApiPaths_when_called() {
-      MockHttpServletRequest request =
-          new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
-      assertThat(filter.shouldNotFilter(request)).isFalse();
-    }
-
-    @Test
-    @DisplayName("should filter root path")
-    void should_filter_rootPath_when_called() {
-      MockHttpServletRequest request = new MockHttpServletRequest("GET", "/");
-      assertThat(filter.shouldNotFilter(request)).isFalse();
-    }
-
-    @Test
-    @DisplayName("should filter path that only contains /actuator prefix but not /actuator/")
-    void should_filter_actuatorWithoutTrailingSlash_when_called() {
-      // "/actuator-health" does NOT start with "/actuator/"
-      MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator-health");
+    @ParameterizedTest
+    @ValueSource(
+        strings = {"/api/bc-02/gateway/v1/api/content/v1/materials", "/", "/actuator-health"})
+    @DisplayName("should filter ordinary request paths")
+    void should_filter_ordinaryPaths_when_called(String path) {
+      MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
       assertThat(filter.shouldNotFilter(request)).isFalse();
     }
   }
@@ -1191,7 +1179,8 @@ class PluginAuthFilterTest {
               request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
       assertThat(ctx.permissions()).containsExactly("content.read", "submission.write");
       // Verify it's an immutable copy
-      assertThatThrownBy(() -> ctx.permissions().add("new.permission"))
+      List<String> permissions = ctx.permissions();
+      assertThatThrownBy(() -> permissions.add("new.permission"))
           .isInstanceOf(UnsupportedOperationException.class);
     }
   }

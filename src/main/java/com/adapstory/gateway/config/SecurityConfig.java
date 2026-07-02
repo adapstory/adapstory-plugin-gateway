@@ -5,6 +5,7 @@ import com.adapstory.gateway.filter.PermissionEnforcementFilter;
 import com.adapstory.gateway.filter.PluginAuthFilter;
 import com.adapstory.gateway.filter.PluginInstalledCheckFilter;
 import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
+import java.util.UUID;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,8 +14,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -29,11 +30,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @EnableWebSecurity
 public class SecurityConfig {
 
+  private static final String DISABLED_AUTHORITY = "AUTH_DISABLED";
+
   @Bean
   UserDetailsService failClosedUserDetailsService() {
-    return username -> {
-      throw new UsernameNotFoundException("Password-based users are disabled");
-    };
+    return username ->
+        User.withUsername("disabled-password-auth")
+            .password("{noop}" + UUID.randomUUID())
+            .authorities(DISABLED_AUTHORITY)
+            .disabled(true)
+            .build();
   }
 
   @Bean

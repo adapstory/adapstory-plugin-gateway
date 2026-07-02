@@ -1,9 +1,9 @@
 package com.adapstory.gateway.cache;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -135,7 +135,7 @@ class InstalledPluginCacheServiceTest {
 
       // Assert
       assertThat(result).isPresent().contains(true);
-      verify(cacheStore).put(eq(CACHE_KEY), eq("true"), eq(Duration.ofMinutes(5)));
+      verify(cacheStore).put(CACHE_KEY, "true", Duration.ofMinutes(5));
     }
 
     @Test
@@ -150,7 +150,7 @@ class InstalledPluginCacheServiceTest {
 
       // Assert
       assertThat(result).isPresent().contains(false);
-      verify(cacheStore).put(eq(CACHE_KEY), eq("false"), eq(Duration.ofMinutes(5)));
+      verify(cacheStore).put(CACHE_KEY, "false", Duration.ofMinutes(5));
     }
 
     @Test
@@ -165,7 +165,7 @@ class InstalledPluginCacheServiceTest {
 
       // Assert
       assertThat(result).isEmpty();
-      verify(cacheStore).put(eq(CACHE_KEY), eq("__UNAVAILABLE__"), eq(Duration.ofSeconds(30)));
+      verify(cacheStore).put(CACHE_KEY, "__UNAVAILABLE__", Duration.ofSeconds(30));
     }
 
     @Test
@@ -211,7 +211,7 @@ class InstalledPluginCacheServiceTest {
       when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
       org.mockito.Mockito.doThrow(new RedisConnectionFailureException("Connection refused"))
           .when(cacheStore)
-          .put(eq(CACHE_KEY), eq("true"), eq(Duration.ofMinutes(5)));
+          .put(CACHE_KEY, "true", Duration.ofMinutes(5));
 
       // Act — should not throw
       Optional<Boolean> result = cacheService.isInstalled(PLUGIN_ID, TENANT_ID);
@@ -243,8 +243,8 @@ class InstalledPluginCacheServiceTest {
           .when(cacheStore)
           .delete(anyString());
 
-      // Act — should not throw
-      cacheService.evict(PLUGIN_ID, TENANT_ID);
+      // Act & Assert
+      assertThatCode(() -> cacheService.evict(PLUGIN_ID, TENANT_ID)).doesNotThrowAnyException();
     }
   }
 
