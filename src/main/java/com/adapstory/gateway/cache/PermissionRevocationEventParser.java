@@ -1,14 +1,14 @@
 package com.adapstory.gateway.cache;
 
 import com.adapstory.gateway.util.FetchClientUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Парсит и валидирует CloudEvents {@code PluginPermissionsRevoked}.
@@ -49,9 +49,9 @@ public class PermissionRevocationEventParser {
    *
    * @param message raw JSON string
    * @return parsed JsonNode tree
-   * @throws JacksonException при ошибке парсинга
+   * @throws JsonProcessingException при ошибке парсинга
    */
-  public JsonNode parseEvent(String message) throws JacksonException {
+  public JsonNode parseEvent(String message) throws JsonProcessingException {
     return objectMapper.readTree(message);
   }
 
@@ -61,7 +61,7 @@ public class PermissionRevocationEventParser {
     if (idNode.isMissingNode() || idNode.isNull()) {
       return null;
     }
-    return idNode.asString();
+    return idNode.asText();
   }
 
   /** Проверяет, обработано ли событие ранее (idempotency via Redis dedup key). */
@@ -83,10 +83,10 @@ public class PermissionRevocationEventParser {
     }
     if (revokedNode.isArray()) {
       for (JsonNode scope : revokedNode) {
-        if (scope.isString() && scope.asString().length() > MAX_SCOPE_LENGTH) {
+        if (scope.isTextual() && scope.asText().length() > MAX_SCOPE_LENGTH) {
           log.warn(
               "Rejected PluginPermissionsRevoked event: scope length {} exceeds limit {}",
-              scope.asString().length(),
+              scope.asText().length(),
               MAX_SCOPE_LENGTH);
           return false;
         }
@@ -104,7 +104,7 @@ public class PermissionRevocationEventParser {
     if (pluginIdNode.isMissingNode()) {
       return null;
     }
-    String value = pluginIdNode.asString();
+    String value = pluginIdNode.asText();
     if (value == null || value.isBlank()) {
       log.warn("Rejected PluginPermissionsRevoked event: pluginId is blank");
       return null;

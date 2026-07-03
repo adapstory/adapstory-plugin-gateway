@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.event.PermissionCacheInvalidationListener;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.List;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import tools.jackson.databind.ObjectMapper;
 
 @DisplayName("PermissionCacheService")
 class PermissionCacheServiceTest {

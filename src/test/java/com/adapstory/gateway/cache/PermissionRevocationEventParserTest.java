@@ -6,6 +6,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -17,9 +20,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 @DisplayName("PermissionRevocationEventParser")
 class PermissionRevocationEventParserTest {
@@ -46,7 +46,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Valid JSON returns parsed JsonNode tree")
-    void should_returnTree_when_validJson() throws JacksonException {
+    void should_returnTree_when_validJson() throws JsonProcessingException {
       // Arrange
       String json = "{\"specversion\":\"1.0\",\"id\":\"ce-123\",\"data\":{}}";
 
@@ -54,16 +54,16 @@ class PermissionRevocationEventParserTest {
       JsonNode tree = eventParser.parseEvent(json);
 
       // Assert
-      assertThat(tree.path("specversion").asString()).isEqualTo("1.0");
-      assertThat(tree.path("id").asString()).isEqualTo("ce-123");
+      assertThat(tree.path("specversion").asText()).isEqualTo("1.0");
+      assertThat(tree.path("id").asText()).isEqualTo("ce-123");
     }
 
     @Test
-    @DisplayName("Invalid JSON throws JacksonException")
+    @DisplayName("Invalid JSON throws JsonProcessingException")
     void should_throwException_when_invalidJson() {
       // Act & Assert
       assertThatThrownBy(() -> eventParser.parseEvent("not-valid-json{{{"))
-          .isInstanceOf(JacksonException.class);
+          .isInstanceOf(JsonProcessingException.class);
     }
   }
 
@@ -73,7 +73,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Returns ce-id when present")
-    void should_returnValue_when_presentId() throws JacksonException {
+    void should_returnValue_when_presentId() throws JsonProcessingException {
       // Arrange
       JsonNode tree = objectMapper.readTree("{\"id\":\"ce-uuid-123\"}");
 
@@ -86,7 +86,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Returns null when id field is missing")
-    void should_returnNull_when_missingId() throws JacksonException {
+    void should_returnNull_when_missingId() throws JsonProcessingException {
       // Arrange
       JsonNode tree = objectMapper.readTree("{\"specversion\":\"1.0\"}");
 
@@ -99,7 +99,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Returns null when id field is null")
-    void should_returnNull_when_nullId() throws JacksonException {
+    void should_returnNull_when_nullId() throws JsonProcessingException {
       // Arrange
       JsonNode tree = objectMapper.readTree("{\"id\":null}");
 
@@ -152,7 +152,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Valid payload with reasonable permissions returns true")
-    void should_returnTrue_when_validPayload() throws JacksonException {
+    void should_returnTrue_when_validPayload() throws JsonProcessingException {
       // Arrange
       JsonNode dataNode =
           objectMapper.readTree(
@@ -167,7 +167,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Rejects oversized payload with >100 permissions")
-    void should_reject_oversized_payload_when_invoked() throws JacksonException {
+    void should_reject_oversized_payload_when_invoked() throws JsonProcessingException {
       // Arrange
       String permissions =
           IntStream.range(0, 101)
@@ -186,7 +186,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Rejects scope exceeding max length (255 chars)")
-    void should_reject_scope_exceeding_max_length_when_invoked() throws JacksonException {
+    void should_reject_scope_exceeding_max_length_when_invoked() throws JsonProcessingException {
       // Arrange
       String longScope = "x".repeat(256);
       JsonNode dataNode =
@@ -202,7 +202,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Returns true when revokedPermissions is missing")
-    void should_returnTrue_when_missingRevokedPermissions() throws JacksonException {
+    void should_returnTrue_when_missingRevokedPermissions() throws JsonProcessingException {
       // Arrange
       JsonNode dataNode = objectMapper.readTree("{\"pluginId\":\"test-plugin\"}");
 
@@ -215,7 +215,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Accepts payload with exactly 100 permissions (at limit)")
-    void should_returnTrue_when_exactlyAtLimit() throws JacksonException {
+    void should_returnTrue_when_exactlyAtLimit() throws JsonProcessingException {
       // Arrange
       String permissions =
           IntStream.range(0, 100)
@@ -234,7 +234,7 @@ class PermissionRevocationEventParserTest {
 
     @Test
     @DisplayName("Accepts scope at exactly 255 chars (at limit)")
-    void should_returnTrue_when_scopeAtMaxLength() throws JacksonException {
+    void should_returnTrue_when_scopeAtMaxLength() throws JsonProcessingException {
       // Arrange
       String scopeAtLimit = "x".repeat(255);
       JsonNode dataNode =

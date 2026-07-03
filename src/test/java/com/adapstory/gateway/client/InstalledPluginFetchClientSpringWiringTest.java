@@ -11,13 +11,13 @@ import com.adapstory.gateway.config.GatewayProperties.McpConfig;
 import com.adapstory.gateway.config.GatewayProperties.PermissionCacheConfig;
 import com.adapstory.gateway.config.GatewayProperties.PermissionsConfig;
 import com.adapstory.gateway.config.GatewayProperties.WebhookConfig;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.web.client.RestClient;
-import tools.jackson.databind.ObjectMapper;
 
 @DisplayName("InstalledPluginFetchClient — Spring wiring")
 class InstalledPluginFetchClientSpringWiringTest {

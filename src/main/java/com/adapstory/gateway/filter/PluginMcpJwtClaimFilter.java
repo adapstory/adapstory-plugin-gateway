@@ -2,6 +2,7 @@ package com.adapstory.gateway.filter;
 
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Фильтр валидации JWT claims для MCP маршрутов.

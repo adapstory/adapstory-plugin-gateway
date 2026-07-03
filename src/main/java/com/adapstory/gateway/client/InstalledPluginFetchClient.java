@@ -3,6 +3,9 @@ package com.adapstory.gateway.client;
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.Bc02ClientConfig;
 import com.adapstory.gateway.util.FetchClientUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -16,9 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * REST-клиент для проверки установки плагина для тенанта через BC-02.
@@ -174,7 +174,7 @@ public class InstalledPluginFetchClient {
       }
       boolean installed = data.get("installed") != null && data.get("installed").booleanValue();
       return Optional.of(installed);
-    } catch (JacksonException _) {
+    } catch (JsonProcessingException _) {
       // C-2: parse failure → verification unavailable (not "not installed")
       log.warn("Failed to parse BC-02 installed response");
       return Optional.empty();

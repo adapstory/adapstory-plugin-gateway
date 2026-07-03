@@ -3,6 +3,7 @@ package com.adapstory.gateway.filter;
 import com.adapstory.gateway.cache.InstalledPluginCacheService;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
@@ -18,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Фильтр проверки установки плагина для тенанта перед маршрутизацией запроса.

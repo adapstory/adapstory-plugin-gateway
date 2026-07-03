@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.adapstory.gateway.dto.GatewayErrorResponse;
 import com.adapstory.gateway.dto.PluginSecurityContext;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.servlet.FilterChain;
 import java.util.List;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Тесты PluginMcpJwtClaimFilter: валидация JWT claim plugin_tools для MCP маршрутов.
@@ -35,7 +35,8 @@ class PluginMcpJwtClaimFilterTest {
 
   @BeforeEach
   void setUp() {
-    objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
+    objectMapper =
+        com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     filterChain = mock(FilterChain.class);
     meterRegistry = new SimpleMeterRegistry();
 

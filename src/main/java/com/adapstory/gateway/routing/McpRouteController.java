@@ -3,6 +3,7 @@ package com.adapstory.gateway.routing;
 import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
 import com.adapstory.gateway.util.GatewayErrorWriter;
 import com.adapstory.gateway.util.PluginSlugValidator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.swagger.v3.oas.annotations.Hidden;
@@ -19,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * MCP маршрутизатор: проксирует JSON-RPC MCP вызовы к plugin backend.

@@ -2,13 +2,13 @@ package com.adapstory.gateway.util;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.dto.GatewayErrorResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import org.springframework.http.MediaType;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Утилита для записи стандартизированных ошибок Gateway в формате Pattern 8.
