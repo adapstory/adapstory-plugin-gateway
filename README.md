@@ -8,7 +8,7 @@ Single ingress for plugin traffic into the Adapstory platform core. Validates JW
 
 ## Stack
 
-- Java 25 + Spring Boot 4 (managed by `adapstory-master-pom`)
+- Java 25 + Spring Boot 3.5.16 (managed by `adapstory-master-pom`)
 - nimbus-jose-jwt, Resilience4j (Spring Cloud CircuitBreaker)
 - OpenTelemetry (OTLP)
 
