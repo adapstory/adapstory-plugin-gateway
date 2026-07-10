@@ -11,6 +11,7 @@ public class BffUserJwtProperties {
   private boolean enabled = true;
   private List<String> audiences =
       new ArrayList<>(List.of("adapstory-bff-school", "adapstory-api", "lms-client", "account"));
+  private List<String> trustedIssuers = new ArrayList<>();
   private List<String> allowedRoles =
       new ArrayList<>(
           List.of(
@@ -45,6 +46,15 @@ public class BffUserJwtProperties {
 
   public void setAudiences(List<String> audiences) {
     this.audiences = audiences == null ? new ArrayList<>() : new ArrayList<>(audiences);
+  }
+
+  public List<String> getTrustedIssuers() {
+    return trustedIssuers;
+  }
+
+  public void setTrustedIssuers(List<String> trustedIssuers) {
+    this.trustedIssuers =
+        trustedIssuers == null ? new ArrayList<>() : new ArrayList<>(trustedIssuers);
   }
 
   public List<String> getAllowedRoles() {

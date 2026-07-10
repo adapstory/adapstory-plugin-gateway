@@ -20,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,7 +54,7 @@ public class PluginAuthFilter extends OncePerRequestFilter {
   private final ObjectMapper objectMapper;
   private final JwtProcessorFactory jwtProcessorFactory;
   private ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
-  private ConfigurableJWTProcessor<SecurityContext> bffUserJwtProcessor;
+  private List<ConfigurableJWTProcessor<SecurityContext>> bffUserJwtProcessors = List.of();
 
   public PluginAuthFilter(
       GatewayProperties properties,
@@ -78,13 +79,17 @@ public class PluginAuthFilter extends OncePerRequestFilter {
   void init() throws java.net.MalformedURLException {
     this.jwtProcessor = jwtProcessorFactory.createJwtProcessor(properties.jwt());
     if (bffUserJwtProperties.isEnabled() && !bffUserJwtProperties.getAudiences().isEmpty()) {
-      this.bffUserJwtProcessor =
-          jwtProcessorFactory.createJwtProcessor(
-              properties.jwt().jwksUri(),
-              properties.jwt().issuer(),
-              Set.copyOf(bffUserJwtProperties.getAudiences()),
-              Set.of("iss", "aud", "exp"),
-              properties.jwt().jwksCacheTtlMinutes());
+      List<ConfigurableJWTProcessor<SecurityContext>> processors = new ArrayList<>();
+      for (String issuer : trustedBffUserJwtIssuers()) {
+        processors.add(
+            jwtProcessorFactory.createJwtProcessor(
+                properties.jwt().jwksUri(),
+                issuer,
+                Set.copyOf(bffUserJwtProperties.getAudiences()),
+                Set.of("iss", "aud", "exp"),
+                properties.jwt().jwksCacheTtlMinutes()));
+      }
+      this.bffUserJwtProcessors = List.copyOf(processors);
     }
   }
 
@@ -157,55 +162,88 @@ public class PluginAuthFilter extends OncePerRequestFilter {
       String token, HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws IOException, ServletException {
     String pluginId = pluginSlug(request.getRequestURI());
-    if (bffUserJwtProcessor == null || pluginId == null) {
+    if (bffUserJwtProcessors.isEmpty() || pluginId == null) {
       return false;
     }
 
-    try {
-      JWTClaimsSet claims = bffUserJwtProcessor.process(token, null);
-      String tenantId =
-          firstNonBlank(
-              stringClaim(claims, "adapstory_tenant_id"), stringClaim(claims, "tenant_id"));
-      if (tenantId == null) {
-        writeError(
-            response,
-            request,
-            401,
-            ERROR_UNAUTHORIZED,
-            "BFF user token is missing tenant claim",
-            Map.of());
+    Exception lastValidationFailure = null;
+    for (ConfigurableJWTProcessor<SecurityContext> bffUserJwtProcessor : bffUserJwtProcessors) {
+      try {
+        JWTClaimsSet claims = bffUserJwtProcessor.process(token, null);
+        handleBffUserClaims(claims, pluginId, request, response, chain);
         return true;
+      } catch (BadJOSEException | JOSEException | ParseException fallbackEx) {
+        lastValidationFailure = fallbackEx;
+        log.debug(
+            "BFF user JWT validation failed for one trusted issuer: {}", fallbackEx.getMessage());
       }
-      List<String> roles = extractRoles(claims);
-      if (roles.stream().noneMatch(bffUserJwtProperties.getAllowedRoles()::contains)) {
-        writeError(
-            response,
-            request,
-            403,
-            "Forbidden",
-            "BFF user token does not contain a role allowed for plugin REST access",
-            Map.of());
-        return true;
-      }
-
-      PluginSecurityContext pluginContext =
-          new PluginSecurityContext(canonicalPluginId(pluginId), tenantId, List.of(), "BFF_USER");
-      request.setAttribute(PLUGIN_SECURITY_CONTEXT_ATTR, pluginContext);
-
-      AbstractAuthenticationToken authentication =
-          new PluginAuthenticationToken(pluginContext, List.of());
-      authentication.setAuthenticated(true);
-      SecurityContextHolder.getContext().setAuthentication(authentication);
-
-      Span.current().setAttribute("plugin.id", pluginContext.pluginId());
-      Span.current().setAttribute("tenant.id", pluginContext.tenantId());
-
-      chain.doFilter(request, response);
-      return true;
-    } catch (BadJOSEException | JOSEException | ParseException fallbackEx) {
-      log.warn("BFF user JWT validation failed: {}", fallbackEx.getMessage());
-      return false;
     }
+
+    if (lastValidationFailure != null) {
+      log.warn(
+          "BFF user JWT validation failed for all trusted issuers: {}",
+          lastValidationFailure.getMessage());
+    }
+    return false;
+  }
+
+  private void handleBffUserClaims(
+      JWTClaimsSet claims,
+      String pluginId,
+      HttpServletRequest request,
+      HttpServletResponse response,
+      FilterChain chain)
+      throws IOException, ServletException, ParseException {
+    String tenantId =
+        firstNonBlank(stringClaim(claims, "adapstory_tenant_id"), stringClaim(claims, "tenant_id"));
+    if (tenantId == null) {
+      writeError(
+          response,
+          request,
+          401,
+          ERROR_UNAUTHORIZED,
+          "BFF user token is missing tenant claim",
+          Map.of());
+      return;
+    }
+    List<String> roles = extractRoles(claims);
+    if (roles.stream().noneMatch(bffUserJwtProperties.getAllowedRoles()::contains)) {
+      writeError(
+          response,
+          request,
+          403,
+          "Forbidden",
+          "BFF user token does not contain a role allowed for plugin REST access",
+          Map.of());
+      return;
+    }
+
+    PluginSecurityContext pluginContext =
+        new PluginSecurityContext(canonicalPluginId(pluginId), tenantId, List.of(), "BFF_USER");
+    request.setAttribute(PLUGIN_SECURITY_CONTEXT_ATTR, pluginContext);
+
+    AbstractAuthenticationToken authentication =
+        new PluginAuthenticationToken(pluginContext, List.of());
+    authentication.setAuthenticated(true);
+    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+    Span.current().setAttribute("plugin.id", pluginContext.pluginId());
+    Span.current().setAttribute("tenant.id", pluginContext.tenantId());
+
+    chain.doFilter(request, response);
+  }
+
+  private List<String> trustedBffUserJwtIssuers() {
+    LinkedHashSet<String> issuers = new LinkedHashSet<>();
+    for (String issuer : bffUserJwtProperties.getTrustedIssuers()) {
+      if (issuer != null && !issuer.isBlank()) {
+        issuers.add(issuer.trim());
+      }
+    }
+    if (issuers.isEmpty()) {
+      issuers.add(properties.jwt().issuer());
+    }
+    return List.copyOf(issuers);
   }
 
   private static String pluginSlug(String path) {

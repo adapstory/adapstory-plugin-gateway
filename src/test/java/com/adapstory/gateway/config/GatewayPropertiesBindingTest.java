@@ -62,6 +62,25 @@ class GatewayPropertiesBindingTest {
   }
 
   @Test
+  @DisplayName("binds BFF user JWT trusted issuers")
+  void bindsBffUserJwtTrustedIssuers() {
+    contextRunner
+        .withPropertyValues(
+            "gateway.bff-user-jwt.trusted-issuers[0]=https://auth.adapstory.com/realms/adapstory",
+            "gateway.bff-user-jwt.trusted-issuers[1]=https://auth.adapstory.ru/realms/adapstory")
+        .run(
+            context -> {
+              assertThat(context).hasNotFailed();
+              BffUserJwtProperties properties = context.getBean(BffUserJwtProperties.class);
+
+              assertThat(properties.getTrustedIssuers())
+                  .containsExactly(
+                      "https://auth.adapstory.com/realms/adapstory",
+                      "https://auth.adapstory.ru/realms/adapstory");
+            });
+  }
+
+  @Test
   @DisplayName("binds configured MCP plugin routes with scalar defaults")
   void bindsMcpPluginRoutesWithDefaults() {
     contextRunner
@@ -86,6 +105,6 @@ class GatewayPropertiesBindingTest {
             });
   }
 
-  @EnableConfigurationProperties(GatewayProperties.class)
+  @EnableConfigurationProperties({GatewayProperties.class, BffUserJwtProperties.class})
   static class PropertiesConfig {}
 }
