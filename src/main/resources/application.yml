@@ -89,6 +89,9 @@ gateway:
   kafka:
     topics:
       permission-revocation: GLOBAL_PLUGIN_PERMISSIONS_REVOKED
+    listeners:
+      permission-revocation:
+        auto-startup: ${GATEWAY_KAFKA_PERMISSION_REVOCATION_AUTO_STARTUP:true}
 
   # Permission cache
   permission-cache:

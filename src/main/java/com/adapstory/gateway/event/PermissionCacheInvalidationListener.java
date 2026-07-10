@@ -49,7 +49,8 @@ public class PermissionCacheInvalidationListener {
    */
   @KafkaListener(
       topics = "${gateway.kafka.topics.permission-revocation}",
-      groupId = "plugin-gateway-permissions")
+      groupId = "plugin-gateway-permissions",
+      autoStartup = "${gateway.kafka.listeners.permission-revocation.auto-startup:true}")
   public void onPluginPermissionsRevoked(
       @Payload String message,
       @Header(name = IntegrationHeaders.CORRELATION_ID, required = false) String correlationId,
