@@ -164,4 +164,5 @@ adapstory:
     token-endpoint: ${KEYCLOAK_TOKEN_URI:http://localhost:8180/realms/adapstory/protocol/openid-connect/token}
     client-id: ${KEYCLOAK_CLIENT_ID:adapstory-plugin-gateway}
     client-secret: ${KEYCLOAK_CLIENT_SECRET:}
+    forwarded-base-url: ${ADAPSTORY_SERVICE_AUTH_FORWARDED_BASE_URL:}
     refresh-buffer-seconds: 60
