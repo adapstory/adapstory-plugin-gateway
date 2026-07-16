@@ -9,11 +9,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -23,12 +26,25 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * Фильтр внедрения обязательных заголовков.
  *
  * <p>Инжектирует: request-id (UUID), correlation-id (из входящего или UUID),
- * user-id=plugin:{pluginId}. Пробрасывает существующий correlation-id и сохраняет исходного
- * пользователя отдельно в X-Adapstory-User-Id, когда он пришёл извне.
+ * user-id=plugin:{pluginId}, JWT tenant and signed actor identity. Caller-controlled identity
+ * headers are removed case-insensitively before the request reaches a proxy adapter.
  */
 @Component
 @Order(3)
 public class HeaderInjectionFilter extends OncePerRequestFilter {
+
+  public static final String TRUSTED_TENANT_ID_ATTR = "trustedTenantId";
+  public static final String TRUSTED_USER_ID_ATTR = "trustedUserId";
+  public static final String TRUSTED_ADAPSTORY_USER_ID_ATTR = "trustedAdapstoryUserId";
+  public static final String TRUSTED_USER_ROLES_ATTR = "trustedUserRoles";
+  public static final String HEADER_USER_ROLES = "X-User-Roles";
+
+  private static final Set<String> PROTECTED_IDENTITY_HEADERS =
+      Set.of(
+          IntegrationHeaders.HEADER_TENANT_ID.toLowerCase(java.util.Locale.ROOT),
+          IntegrationHeaders.HEADER_USER_ID.toLowerCase(java.util.Locale.ROOT),
+          IntegrationHeaders.HEADER_ADAPSTORY_USER_ID.toLowerCase(java.util.Locale.ROOT),
+          HEADER_USER_ROLES.toLowerCase(java.util.Locale.ROOT));
 
   @Override
   protected void doFilterInternal(
@@ -49,17 +65,24 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
     }
 
     String userId = resolveUserId(request);
-    String originalUserId = resolveOriginalUserId(request, userId);
+    String tenantId = resolveTenantId(request);
+    String actorId = resolveAuthenticatedActorId(request);
+    String roles = attributeString(request, PluginAuthFilter.AUTHENTICATED_USER_ROLES_ATTR);
+
+    setTrustedAttribute(request, TRUSTED_TENANT_ID_ATTR, tenantId);
+    setTrustedAttribute(request, TRUSTED_USER_ID_ATTR, userId);
+    setTrustedAttribute(request, TRUSTED_ADAPSTORY_USER_ID_ATTR, actorId);
+    setTrustedAttribute(request, TRUSTED_USER_ROLES_ATTR, roles);
 
     MDC.put(IntegrationHeaders.REQUEST_ID, requestId);
     MDC.put(IntegrationHeaders.CORRELATION_ID, correlationId);
     MDC.put(IntegrationHeaders.USER_ID, userId);
-    putIfPresent(IntegrationHeaders.ADAPSTORY_USER_ID, originalUserId);
+    putIfPresent(IntegrationHeaders.ADAPSTORY_USER_ID, actorId);
 
     try {
       MandatoryHeadersRequestWrapper wrappedRequest =
           new MandatoryHeadersRequestWrapper(
-              request, requestId, correlationId, userId, originalUserId);
+              request, requestId, correlationId, tenantId, userId, actorId, roles);
 
       response.setHeader(IntegrationHeaders.HEADER_REQUEST_ID, requestId);
       response.setHeader(IntegrationHeaders.HEADER_RESPONSE_ID, requestId);
@@ -88,16 +111,25 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
     return "anonymous";
   }
 
-  private String resolveOriginalUserId(HttpServletRequest request, String localUserId) {
-    String explicitOriginal = request.getHeader(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID);
-    if (explicitOriginal != null && !explicitOriginal.isBlank()) {
-      return explicitOriginal;
+  private String resolveTenantId(HttpServletRequest request) {
+    PluginSecurityContext pluginContext =
+        (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
+    return pluginContext == null ? null : pluginContext.tenantId();
+  }
+
+  private String resolveAuthenticatedActorId(HttpServletRequest request) {
+    return attributeString(request, PluginAuthFilter.AUTHENTICATED_ACTOR_ID_ATTR);
+  }
+
+  private static String attributeString(HttpServletRequest request, String name) {
+    Object value = request.getAttribute(name);
+    return value instanceof String string && !string.isBlank() ? string : null;
+  }
+
+  private static void setTrustedAttribute(HttpServletRequest request, String name, String value) {
+    if (value != null && !value.isBlank()) {
+      request.setAttribute(name, value);
     }
-    String legacyUserId = request.getHeader(IntegrationHeaders.HEADER_USER_ID);
-    if (legacyUserId != null && !legacyUserId.isBlank() && !legacyUserId.equals(localUserId)) {
-      return legacyUserId;
-    }
-    return null;
   }
 
   private void putIfPresent(String key, String value) {
@@ -115,22 +147,33 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
         HttpServletRequest request,
         String requestId,
         String correlationId,
+        String tenantId,
         String userId,
-        String originalUserId) {
+        String actorId,
+        String roles) {
       super(request);
-      this.injectedHeaders = new LinkedHashMap<>();
+      this.injectedHeaders = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
       this.injectedHeaders.put(IntegrationHeaders.HEADER_REQUEST_ID, requestId);
       this.injectedHeaders.put(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
+      if (tenantId != null && !tenantId.isBlank()) {
+        this.injectedHeaders.put(IntegrationHeaders.HEADER_TENANT_ID, tenantId);
+      }
       this.injectedHeaders.put(IntegrationHeaders.HEADER_USER_ID, userId);
-      if (originalUserId != null && !originalUserId.isBlank()) {
-        this.injectedHeaders.put(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID, originalUserId);
+      if (actorId != null && !actorId.isBlank()) {
+        this.injectedHeaders.put(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID, actorId);
+      }
+      if (roles != null && !roles.isBlank()) {
+        this.injectedHeaders.put(HEADER_USER_ROLES, roles);
       }
     }
 
     @Override
     public String getHeader(String name) {
       String injected = injectedHeaders.get(name);
-      return injected != null ? injected : super.getHeader(name);
+      if (injected != null) {
+        return injected;
+      }
+      return isProtectedIdentityHeader(name) ? null : super.getHeader(name);
     }
 
     @Override
@@ -139,18 +182,34 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
       if (injected != null) {
         return Collections.enumeration(List.of(injected));
       }
-      return super.getHeaders(name);
+      return isProtectedIdentityHeader(name)
+          ? Collections.emptyEnumeration()
+          : super.getHeaders(name);
     }
 
     @Override
     public Enumeration<String> getHeaderNames() {
-      List<String> names = new java.util.ArrayList<>(Collections.list(super.getHeaderNames()));
-      for (String key : injectedHeaders.keySet()) {
-        if (!names.contains(key)) {
-          names.add(key);
+      List<String> names = new ArrayList<>();
+      Set<String> normalizedNames = new HashSet<>();
+      for (String name : Collections.list(super.getHeaderNames())) {
+        String normalized = name.toLowerCase(java.util.Locale.ROOT);
+        if (!PROTECTED_IDENTITY_HEADERS.contains(normalized) && normalizedNames.add(normalized)) {
+          names.add(name);
         }
       }
+      injectedHeaders.forEach(
+          (key, ignored) -> {
+            String normalized = key.toLowerCase(java.util.Locale.ROOT);
+            if (normalizedNames.add(normalized)) {
+              names.add(key);
+            }
+          });
       return Collections.enumeration(names);
+    }
+
+    private static boolean isProtectedIdentityHeader(String name) {
+      return name != null
+          && PROTECTED_IDENTITY_HEADERS.contains(name.toLowerCase(java.util.Locale.ROOT));
     }
   }
 }

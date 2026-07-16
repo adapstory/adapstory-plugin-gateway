@@ -154,11 +154,13 @@ class HeaderInjectionFilterTest {
     }
 
     @Test
-    @DisplayName("should preserve incoming user as X-Adapstory-User-Id when plugin context exists")
-    void should_preserveIncomingUser_when_pluginContextExists() throws Exception {
+    @DisplayName("should ignore forged user headers and inject the JWT subject as actor")
+    void should_injectAuthenticatedActor_when_callerForgesUserHeaders() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
-      request.addHeader(IntegrationHeaders.HEADER_USER_ID, "student-42");
+      request.addHeader("x-uSeR-iD", "forged-user");
+      request.addHeader("X-ADAPSTORY-USER-ID", "forged-actor");
+      request.setAttribute("authenticatedActorId", "student-42");
       PluginSecurityContext ctx =
           new PluginSecurityContext(
               "adapstory.assessment.quiz", "tenant-1", List.of("content.read"), "CORE");
@@ -177,6 +179,59 @@ class HeaderInjectionFilterTest {
           .isEqualTo("plugin:adapstory.assessment.quiz");
       assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID))
           .isEqualTo("student-42");
+    }
+
+    @Test
+    @DisplayName("should never substitute plugin service identity for a missing JWT actor")
+    void should_notConflateServiceIdentityWithActor_whenActorIsMissing() throws Exception {
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
+      request.setAttribute(
+          PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR,
+          new PluginSecurityContext(
+              "adapstory.education.ai-course-generator", "tenant-1", List.of(), "CORE"));
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      filter.doFilterInternal(request, response, filterChain);
+
+      ArgumentCaptor<jakarta.servlet.ServletRequest> requestCaptor =
+          ArgumentCaptor.forClass(jakarta.servlet.ServletRequest.class);
+      verify(filterChain).doFilter(requestCaptor.capture(), any());
+      jakarta.servlet.http.HttpServletRequest wrappedRequest =
+          (jakarta.servlet.http.HttpServletRequest) requestCaptor.getValue();
+
+      assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_USER_ID))
+          .isEqualTo("plugin:adapstory.education.ai-course-generator");
+      assertThat(wrappedRequest.getHeader(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID)).isNull();
+    }
+
+    @Test
+    @DisplayName("should replace mixed-case tenant forgeries with one JWT tenant header")
+    void should_replaceMixedCaseTenantHeaders_withJwtTenant() throws Exception {
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
+      request.addHeader("x-tenant-id", "forged-a");
+      request.addHeader("X-TENANT-ID", "forged-b");
+      request.setAttribute(
+          PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR,
+          new PluginSecurityContext(
+              "adapstory.education.ai-course-generator", "jwt-tenant", List.of(), "BFF_USER"));
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      filter.doFilterInternal(request, response, filterChain);
+
+      ArgumentCaptor<jakarta.servlet.ServletRequest> requestCaptor =
+          ArgumentCaptor.forClass(jakarta.servlet.ServletRequest.class);
+      verify(filterChain).doFilter(requestCaptor.capture(), any());
+      jakarta.servlet.http.HttpServletRequest wrappedRequest =
+          (jakarta.servlet.http.HttpServletRequest) requestCaptor.getValue();
+
+      assertThat(wrappedRequest.getHeader("x-tenant-id")).isEqualTo("jwt-tenant");
+      assertThat(java.util.Collections.list(wrappedRequest.getHeaders("X-TENANT-ID")))
+          .containsExactly("jwt-tenant");
+      assertThat(java.util.Collections.list(wrappedRequest.getHeaderNames()))
+          .filteredOn(name -> name.equalsIgnoreCase("X-Tenant-Id"))
+          .containsExactly(IntegrationHeaders.HEADER_TENANT_ID);
     }
 
     @Test
@@ -333,11 +388,12 @@ class HeaderInjectionFilterTest {
     }
 
     @Test
-    @DisplayName("should expose X-Adapstory-User-Id when incoming user is preserved")
-    void should_includeOriginalActorHeader_when_present() throws Exception {
+    @DisplayName("should expose only an authenticated actor as X-Adapstory-User-Id")
+    void should_includeAuthenticatedActorHeader_when_present() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
-      request.addHeader(IntegrationHeaders.HEADER_USER_ID, "user-abc");
+      request.addHeader(IntegrationHeaders.HEADER_USER_ID, "forged-user");
+      request.setAttribute("authenticatedActorId", "user-abc");
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       filter.doFilterInternal(request, response, filterChain);

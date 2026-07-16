@@ -48,6 +48,8 @@ public class PluginAuthFilter extends OncePerRequestFilter {
   private static final String BEARER_PREFIX = "Bearer ";
   private static final String ERROR_UNAUTHORIZED = "Unauthorized";
   public static final String PLUGIN_SECURITY_CONTEXT_ATTR = "pluginSecurityContext";
+  public static final String AUTHENTICATED_ACTOR_ID_ATTR = "authenticatedActorId";
+  public static final String AUTHENTICATED_USER_ROLES_ATTR = "authenticatedUserRoles";
 
   private final GatewayProperties properties;
   private final BffUserJwtProperties bffUserJwtProperties;
@@ -129,7 +131,20 @@ public class PluginAuthFilter extends OncePerRequestFilter {
         return;
       }
 
+      String actorId = claims.getSubject();
+      if (actorId == null || actorId.isBlank()) {
+        writeError(
+            response,
+            request,
+            401,
+            ERROR_UNAUTHORIZED,
+            "Plugin token is missing subject claim",
+            Map.of());
+        return;
+      }
+
       request.setAttribute(PLUGIN_SECURITY_CONTEXT_ATTR, pluginContext);
+      request.setAttribute(AUTHENTICATED_ACTOR_ID_ATTR, actorId);
       if (pluginTools != null) {
         request.setAttribute(PluginMcpJwtClaimFilter.PLUGIN_TOOLS_ATTR, pluginTools);
       }
@@ -206,6 +221,17 @@ public class PluginAuthFilter extends OncePerRequestFilter {
           Map.of());
       return;
     }
+    String actorId = claims.getSubject();
+    if (actorId == null || actorId.isBlank()) {
+      writeError(
+          response,
+          request,
+          401,
+          ERROR_UNAUTHORIZED,
+          "BFF user token is missing subject claim",
+          Map.of());
+      return;
+    }
     List<String> roles = extractRoles(claims);
     if (roles.stream().noneMatch(bffUserJwtProperties.getAllowedRoles()::contains)) {
       writeError(
@@ -221,6 +247,8 @@ public class PluginAuthFilter extends OncePerRequestFilter {
     PluginSecurityContext pluginContext =
         new PluginSecurityContext(canonicalPluginId(pluginId), tenantId, List.of(), "BFF_USER");
     request.setAttribute(PLUGIN_SECURITY_CONTEXT_ATTR, pluginContext);
+    request.setAttribute(AUTHENTICATED_ACTOR_ID_ATTR, actorId);
+    request.setAttribute(AUTHENTICATED_USER_ROLES_ATTR, String.join(",", roles));
 
     AbstractAuthenticationToken authentication =
         new PluginAuthenticationToken(pluginContext, List.of());

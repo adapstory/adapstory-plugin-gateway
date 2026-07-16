@@ -291,7 +291,7 @@ class PluginRouteResolverTest {
     }
 
     @Test
-    @DisplayName("should copy response headers from target, excluding hop-by-hop")
+    @DisplayName("should copy only allow-listed response headers from target")
     void should_copyResponseHeaders_when_proxying() throws IOException {
       // Arrange
       wireMockServer.stubFor(
@@ -300,6 +300,8 @@ class PluginRouteResolverTest {
                   aResponse()
                       .withStatus(200)
                       .withHeader("X-Custom-Response", "response-value")
+                      .withHeader("Set-Cookie", "upstream-session=must-not-escape")
+                      .withHeader("Cache-Control", "no-store")
                       .withHeader("Content-Type", "application/json")
                       .withBody("{}")));
 
@@ -311,8 +313,10 @@ class PluginRouteResolverTest {
       resolver.proxy(request, response);
 
       // Assert
-      assertThat(response.getHeader("X-Custom-Response")).isEqualTo("response-value");
+      assertThat(response.getHeader("X-Custom-Response")).isNull();
+      assertThat(response.getHeader("Set-Cookie")).isNull();
       assertThat(response.getHeader("Content-Type")).isEqualTo("application/json");
+      assertThat(response.getHeader("Cache-Control")).isEqualTo("no-store");
     }
   }
 

@@ -116,23 +116,28 @@ class FirstPartyPluginRestRouteControllerTest {
                 aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
+                    .withHeader("Set-Cookie", "upstream-session=attacker; HttpOnly")
                     .withBody("{\"items\":[]}")));
 
     MockHttpServletRequest request =
         new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
     request.setQueryString("limit=5");
     request.addHeader("Authorization", "Bearer user-token");
-    request.addHeader("X-Tenant-Id", "00000000-0000-4000-a000-000000000001");
+    request.addHeader("x-tEnAnT-iD", "forged-tenant");
+    request.setAttribute("trustedTenantId", "00000000-0000-4000-a000-000000000001");
     MockHttpServletResponse response = new MockHttpServletResponse();
 
     controller.proxy("ai-course-generator", request, response);
 
     assertThat(response.getStatus()).isEqualTo(200);
     assertThat(response.getContentAsString()).contains("\"items\"");
+    assertThat(response.getHeader("Set-Cookie")).isNull();
     wireMockServer.verify(
         getRequestedFor(urlEqualTo("/api/plugins/ai-course-generator/v1/runs?limit=5"))
             .withoutHeader("Authorization")
             .withHeader("X-Tenant-Id", equalTo("00000000-0000-4000-a000-000000000001")));
+    assertThat(wireMockServer.getAllServeEvents().get(0).getRequest().getHeader("X-Tenant-Id"))
+        .isEqualTo("00000000-0000-4000-a000-000000000001");
   }
 
   @Test
@@ -155,7 +160,8 @@ class FirstPartyPluginRestRouteControllerTest {
     request.setContentType("application/json");
     request.setContent("{\"blocks\":[{\"text\":\"updated\"}]}".getBytes());
     request.addHeader("Authorization", "Bearer user-token");
-    request.addHeader("X-Tenant-Id", "00000000-0000-4000-a000-000000000001");
+    request.addHeader("X-TENANT-ID", "forged-tenant");
+    request.setAttribute("trustedTenantId", "00000000-0000-4000-a000-000000000001");
     MockHttpServletResponse response = new MockHttpServletResponse();
 
     controller.proxy("ai-course-generator", request, response);

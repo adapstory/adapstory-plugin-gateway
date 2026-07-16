@@ -142,6 +142,7 @@ class McpRouteControllerTest {
       request.setAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR, ctx);
       request.setAttribute(PluginMcpJwtClaimFilter.MCP_PLUGIN_SLUG_ATTR, "course-builder");
       request.setAttribute(PluginMcpJwtClaimFilter.MCP_TENANT_ID_ATTR, "tenant-42");
+      request.addHeader("x-TeNaNt-iD", "forged-tenant");
       request.addHeader("X-Request-Id", "req-123");
       request.addHeader("X-Correlation-Id", "corr-456");
 
@@ -157,6 +158,8 @@ class McpRouteControllerTest {
               .withHeader("X-Tenant-Id", equalTo("tenant-42"))
               .withHeader("X-Request-Id", equalTo("req-123"))
               .withHeader("X-Correlation-Id", equalTo("corr-456")));
+      assertThat(wireMockServer.getAllServeEvents().get(0).getRequest().getHeader("X-Tenant-Id"))
+          .isEqualTo("tenant-42");
     }
 
     @Test

@@ -99,9 +99,8 @@ class PluginAuthFilterTest {
   }
 
   @Test
-  @DisplayName(
-      "should accept BFF user JWT without subject for plugin REST route when plugin JWT audience rejects")
-  void should_acceptBffUserJwt_forPluginRestRoute_whenPluginAudienceRejects() throws Exception {
+  @DisplayName("should reject BFF user JWT without subject even when tenant and role are valid")
+  void should_rejectBffUserJwt_withoutAuthenticatedSubject() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
     bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
@@ -129,12 +128,8 @@ class PluginAuthFilterTest {
 
     filter.doFilterInternal(request, response, filterChain);
 
-    PluginSecurityContext ctx =
-        (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
-    assertThat(ctx.pluginId()).isEqualTo("adapstory.ai.coursegenerator");
-    assertThat(ctx.tenantId()).isEqualTo("tenant-42");
-    assertThat(ctx.trustLevel()).isEqualTo("BFF_USER");
-    verify(filterChain).doFilter(request, response);
+    assertThat(response.getStatus()).isEqualTo(401);
+    verifyNoInteractions(filterChain);
   }
 
   @Test
@@ -190,6 +185,7 @@ class PluginAuthFilterTest {
         .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT aud claim rejected"));
     JWTClaimsSet bffClaims =
         new JWTClaimsSet.Builder()
+            .subject("platform-admin-42")
             .issuer("http://localhost:8080/realms/adapstory")
             .audience(List.of("adapstory-api", "account"))
             .claim("adapstory_tenant_id", "tenant-42")
@@ -209,6 +205,8 @@ class PluginAuthFilterTest {
     assertThat(ctx.pluginId()).isEqualTo("adapstory.ai.coursegenerator");
     assertThat(ctx.tenantId()).isEqualTo("tenant-42");
     assertThat(ctx.trustLevel()).isEqualTo("BFF_USER");
+    assertThat(request.getAttribute("authenticatedActorId")).isEqualTo("platform-admin-42");
+    assertThat(request.getAttribute("authenticatedUserRoles")).isEqualTo("platform_admin");
     verify(filterChain).doFilter(request, response);
   }
 
@@ -235,6 +233,7 @@ class PluginAuthFilterTest {
         .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT iss claim rejected"));
     JWTClaimsSet bffClaims =
         new JWTClaimsSet.Builder()
+            .subject("ru-platform-admin-42")
             .issuer("https://auth.adapstory.ru/realms/adapstory")
             .audience(List.of("adapstory-api", "account"))
             .claim("adapstory_tenant_id", "tenant-42")
@@ -254,6 +253,7 @@ class PluginAuthFilterTest {
     assertThat(ctx.pluginId()).isEqualTo("adapstory.ai.coursegenerator");
     assertThat(ctx.tenantId()).isEqualTo("tenant-42");
     assertThat(ctx.trustLevel()).isEqualTo("BFF_USER");
+    assertThat(request.getAttribute("authenticatedActorId")).isEqualTo("ru-platform-admin-42");
     verify(filterChain).doFilter(request, response);
   }
 
@@ -321,6 +321,33 @@ class PluginAuthFilterTest {
   class ValidJwtToken {
 
     @Test
+    @DisplayName("should reject a plugin JWT without a signed subject")
+    void should_rejectPluginJwt_withoutSignedSubject() throws Exception {
+      JWTClaimsSet claims =
+          new JWTClaimsSet.Builder()
+              .claim("plugin_id", "adapstory.ai.course-generator")
+              .claim("adapstory_tenant_id", "tenant-42")
+              .claim("permissions", List.of("content.read"))
+              .claim("adapstory_actor_id", "caller-controlled-legacy-actor")
+              .build();
+
+      when(jwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(claims);
+
+      MockHttpServletRequest request =
+          new MockHttpServletRequest("POST", "/api/plugins/ai-course-generator/v1/mcp");
+      request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+      MockHttpServletResponse response = new MockHttpServletResponse();
+
+      filter.doFilterInternal(request, response, filterChain);
+
+      assertThat(response.getStatus()).isEqualTo(401);
+      GatewayErrorResponse error =
+          objectMapper.readValue(response.getContentAsString(), GatewayErrorResponse.class);
+      assertThat(error.message()).isEqualTo("Plugin token is missing subject claim");
+      verifyNoInteractions(filterChain);
+    }
+
+    @Test
     @DisplayName("should set PluginSecurityContext with correct claims")
     void should_setPluginSecurityContext_withCorrectClaims_when_called() throws Exception {
       // Arrange
@@ -353,6 +380,7 @@ class PluginAuthFilterTest {
       assertThat(ctx.tenantId()).isEqualTo("tenant-42");
       assertThat(ctx.permissions()).containsExactly("content.read", "submission.write");
       assertThat(ctx.trustLevel()).isEqualTo("CORE");
+      assertThat(request.getAttribute("authenticatedActorId")).isEqualTo("plugin-subject");
     }
 
     @Test

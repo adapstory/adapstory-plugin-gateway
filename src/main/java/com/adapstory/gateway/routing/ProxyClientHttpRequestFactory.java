@@ -10,13 +10,22 @@ final class ProxyClientHttpRequestFactory {
   private ProxyClientHttpRequestFactory() {}
 
   static ClientHttpRequestFactory create(Duration connectTimeout, Duration readTimeout) {
+    var factory = createJdkFactory(connectTimeout);
+    factory.setReadTimeout(readTimeout);
+    return factory;
+  }
+
+  /** Creates a connection-bounded client with no response-duration cap for SSE. */
+  static ClientHttpRequestFactory createStreaming(Duration connectTimeout) {
+    return createJdkFactory(connectTimeout);
+  }
+
+  private static JdkClientHttpRequestFactory createJdkFactory(Duration connectTimeout) {
     var httpClient =
         HttpClient.newBuilder()
             .connectTimeout(connectTimeout)
             .version(HttpClient.Version.HTTP_1_1)
             .build();
-    var factory = new JdkClientHttpRequestFactory(httpClient);
-    factory.setReadTimeout(readTimeout);
-    return factory;
+    return new JdkClientHttpRequestFactory(httpClient);
   }
 }
