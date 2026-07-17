@@ -18,18 +18,16 @@ public class BffUserJwtProperties {
               "SCHOOL_OPERATOR",
               "TENANT_OWNER",
               "METHODIST",
-              "INSTRUCTOR",
+              "TEACHER",
               "PLATFORM_ADMIN",
               "SUPER_ADMIN",
               "school_operator",
               "tenant_owner",
               "methodist",
-              "instructor",
               "platform_admin",
               "super_admin",
               "adapstory:school-operator",
               "adapstory:methodist",
-              "adapstory:instructor",
               "adapstory:superadmin"));
 
   public boolean isEnabled() {

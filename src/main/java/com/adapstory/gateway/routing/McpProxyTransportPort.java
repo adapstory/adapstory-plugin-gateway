@@ -8,6 +8,10 @@ import java.net.URI;
 interface McpProxyTransportPort {
 
   void proxy(
-      HttpServletRequest request, HttpServletResponse response, URI targetUrl, String tenantId)
+      HttpServletRequest request,
+      HttpServletResponse response,
+      URI targetUrl,
+      String tenantId,
+      McpProxyResponseObserver responseObserver)
       throws IOException;
 }

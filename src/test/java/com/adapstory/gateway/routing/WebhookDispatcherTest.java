@@ -13,6 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.http.HttpHeaders;
@@ -24,6 +25,7 @@ import org.springframework.web.client.RestClient;
  * Тесты WebhookDispatcher: async dispatch (202), retry on 5xx, no retry on 4xx, endpoint
  * resolution.
  */
+@Isolated
 class WebhookDispatcherTest {
 
   private WireMockServer wireMockServer;

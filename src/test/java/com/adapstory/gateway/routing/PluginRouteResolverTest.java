@@ -29,11 +29,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.client.RestClient;
 
 /** Тесты PluginRouteResolver: route mapping, prefix strip, proxy dispatch, error handling. */
+@Execution(ExecutionMode.SAME_THREAD)
+@Isolated
 class PluginRouteResolverTest {
 
   private WireMockServer wireMockServer;

@@ -14,7 +14,7 @@ adapstory:
     title: Plugin Gateway API
     summary: Internal plugin and MCP gateway API
     description: First-party internal API for BC-02 Plugin Gateway REST proxying, webhook dispatch, and MCP routing for plugin tools.
-    version: 2026.04.1
+    version: 2026.07.1
     api-major: v1
     audience: internal
     ai-ready: true
@@ -48,7 +48,19 @@ gateway:
   mcp:
     plugin-pod-port: 8000
     plugin-host-template: "plugin-%s.plugins.svc.cluster.local"
+    session-affinity-host-template: "plugin-%s-mcp-headless.plugins.svc.cluster.local"
     connect-timeout-ms: 5000
+    streaming-read-timeout-ms: 0
+    session-affinity-ttl-seconds: 86400
+    session-affinity-redis-key-prefix: "gateway:mcp-session-affinity:v1:"
+    grants:
+      authorized-parties: agent-runtime
+      maximum-ttl-seconds: 300
+      minimum-validity-seconds: 5
+      replay-retention-seconds: 60
+      maximum-request-body-bytes: 65536
+      maximum-registration-body-bytes: 65536
+      redis-key-prefix: "gateway:mcp-grant:v1:"
 
   webhook:
     retry-max-attempts: 2

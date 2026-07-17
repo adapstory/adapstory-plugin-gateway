@@ -3,6 +3,7 @@ package com.adapstory.gateway.filter;
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.commons.header.IntegrationIdValidator;
 import com.adapstory.gateway.dto.PluginSecurityContext;
+import com.adapstory.gateway.mcpgrant.McpAccessTokenContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -108,13 +109,26 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
     if (pluginContext != null) {
       return "plugin:" + pluginContext.pluginId();
     }
+    McpAccessTokenContext tokenContext = mcpTokenContext(request);
+    if (tokenContext != null) {
+      return "service:" + tokenContext.authorizedParty();
+    }
     return "anonymous";
   }
 
   private String resolveTenantId(HttpServletRequest request) {
     PluginSecurityContext pluginContext =
         (PluginSecurityContext) request.getAttribute(PluginAuthFilter.PLUGIN_SECURITY_CONTEXT_ATTR);
-    return pluginContext == null ? null : pluginContext.tenantId();
+    if (pluginContext != null) {
+      return pluginContext.tenantId();
+    }
+    McpAccessTokenContext tokenContext = mcpTokenContext(request);
+    return tokenContext == null ? null : tokenContext.tenantId();
+  }
+
+  private static McpAccessTokenContext mcpTokenContext(HttpServletRequest request) {
+    Object value = request.getAttribute(McpGrantJwtAuthenticationFilter.MCP_ACCESS_TOKEN_ATTR);
+    return value instanceof McpAccessTokenContext context ? context : null;
   }
 
   private String resolveAuthenticatedActorId(HttpServletRequest request) {

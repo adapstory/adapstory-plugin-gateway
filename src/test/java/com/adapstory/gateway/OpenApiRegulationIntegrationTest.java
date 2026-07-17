@@ -5,17 +5,23 @@ import static org.springframework.security.test.web.servlet.setup.SecurityMockMv
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.adapstory.gateway.filter.McpGrantJwtAuthenticationFilter;
+import com.adapstory.gateway.filter.PluginAuthFilter;
+import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.Filter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -36,6 +42,8 @@ class OpenApiRegulationIntegrationTest {
 
   @Autowired private WebApplicationContext webApplicationContext;
 
+  @Autowired private FilterChainProxy springSecurityFilterChain;
+
   private MockMvc mockMvc;
 
   @BeforeEach
@@ -52,12 +60,44 @@ class OpenApiRegulationIntegrationTest {
     JsonNode info = root.get("info");
 
     assertThat(info).isNotNull();
-    assertThat(info.get("version").textValue()).isEqualTo("2026.04.1");
+    assertThat(info.get("version").textValue()).isEqualTo("2026.07.1");
     assertThat(info.get("x-adapstory-api-major").textValue()).isEqualTo("v1");
     assertThat(info.get("x-adapstory-api-audience").textValue()).isEqualTo("internal");
     assertThat(info.get("x-adapstory-ai-ready").asBoolean()).isTrue();
     assertThat(root.get("paths").has("/internal/plugins/v1/{slug}/mcp")).isTrue();
+    assertThat(root.get("paths").has("/internal/mcp-grants/v1")).isTrue();
     assertThat(root.get("paths").has("/internal/plugins/{slug}/mcp")).isFalse();
+
+    JsonNode schemas = root.path("components").path("schemas");
+    JsonNode registration = schemas.path("McpGrantRegistrationRequest");
+    assertThat(registration.path("additionalProperties").asBoolean()).isFalse();
+    assertThat(registration.path("required").size()).isEqualTo(1);
+    assertThat(registration.path("required").get(0).textValue()).isEqualTo("providerBindings");
+    JsonNode bindings = registration.path("properties").path("providerBindings");
+    assertThat(bindings.path("minItems").intValue()).isEqualTo(1);
+    assertThat(bindings.path("maxItems").intValue()).isEqualTo(32);
+
+    JsonNode binding = schemas.path("ProviderBindingGrantRequest");
+    assertThat(binding.path("additionalProperties").asBoolean()).isFalse();
+    assertThat(binding.path("required").size()).isEqualTo(12);
+    assertThat(binding.path("properties").path("capability").path("pattern").textValue())
+        .isNotBlank();
+    assertThat(binding.path("properties").path("inputSchemaDigest").path("pattern").textValue())
+        .isEqualTo("^sha256:[0-9a-f]{64}$");
+    assertThat(binding.path("properties").path("description").path("maxLength").intValue())
+        .isEqualTo(4096);
+    assertThat(binding.path("properties").path("description").path("minLength").intValue())
+        .isEqualTo(20);
+
+    JsonNode grantOperation = root.path("paths").path("/internal/mcp-grants/v1").path("post");
+    assertThat(grantOperation.path("security").get(0).has("mcpGatewayBearer")).isTrue();
+    assertThat(root.path("components").path("securitySchemes").has("mcpGatewayBearer")).isTrue();
+    var parameterNames =
+        java.util.stream.StreamSupport.stream(
+                grantOperation.path("parameters").spliterator(), false)
+            .map(parameter -> parameter.path("name").textValue())
+            .collect(java.util.stream.Collectors.toSet());
+    assertThat(parameterNames).contains("X-Tenant-Id", "X-User-Id", "X-Adapstory-User-Id");
   }
 
   @Test
@@ -85,6 +125,26 @@ class OpenApiRegulationIntegrationTest {
   }
 
   @Test
+  @DisplayName("capability grant security should own only the canonical MCP surfaces")
+  void shouldApplyCapabilityGrantSecurityOnlyToCanonicalRoutes() {
+    List<Filter> canonicalFilters =
+        springSecurityFilterChain.getFilters("/internal/plugins/v1/course-builder/mcp");
+    List<Filter> registrationFilters =
+        springSecurityFilterChain.getFilters("/internal/mcp-grants/v1");
+    List<Filter> removedRouteFilters =
+        springSecurityFilterChain.getFilters("/internal/plugins/course-builder/mcp");
+
+    assertThat(canonicalFilters)
+        .anyMatch(McpGrantJwtAuthenticationFilter.class::isInstance)
+        .noneMatch(PluginAuthFilter.class::isInstance);
+    assertThat(canonicalFilters).anyMatch(PluginMcpJwtClaimFilter.class::isInstance);
+    assertThat(registrationFilters)
+        .anyMatch(McpGrantJwtAuthenticationFilter.class::isInstance)
+        .noneMatch(PluginAuthFilter.class::isInstance);
+    assertThat(removedRouteFilters).noneMatch(PluginMcpJwtClaimFilter.class::isInstance);
+  }
+
+  @Test
   @DisplayName("optionally exports raw OpenAPI JSON when openapi.exportDir is set")
   void shouldExportWhenRequested() throws Exception {
     String exportDir = System.getProperty("openapi.exportDir");
@@ -96,7 +156,10 @@ class OpenApiRegulationIntegrationTest {
     Path outputDir = Path.of(exportDir);
     Files.createDirectories(outputDir);
     Files.writeString(outputDir.resolve("openapi.json"), body);
+    // JSON is a valid YAML 1.2 document; keep both regulated artifacts byte-identical.
+    Files.writeString(outputDir.resolve("openapi.yaml"), body);
     assertThat(Files.exists(outputDir.resolve("openapi.json"))).isTrue();
+    assertThat(Files.exists(outputDir.resolve("openapi.yaml"))).isTrue();
   }
 
   private String fetchApiDocs() throws Exception {

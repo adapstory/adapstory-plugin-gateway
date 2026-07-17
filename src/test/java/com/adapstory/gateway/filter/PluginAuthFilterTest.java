@@ -168,6 +168,78 @@ class PluginAuthFilterTest {
   }
 
   @Test
+  @DisplayName("should accept BFF user JWT with the canonical TEACHER role")
+  void should_acceptBffUserJwt_withCanonicalTeacherRole() throws Exception {
+    BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
+    bffUserJwtProperties.setEnabled(true);
+    bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
+    filter =
+        new PluginAuthFilter(
+            properties, bffUserJwtProperties, objectMapper, new JwtProcessorFactory());
+    ReflectionTestUtils.setField(filter, "jwtProcessor", jwtProcessor);
+    ReflectionTestUtils.setField(filter, "bffUserJwtProcessors", List.of(bffUserJwtProcessor));
+
+    when(jwtProcessor.process(eq(VALID_TOKEN), any()))
+        .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT aud claim rejected"));
+    JWTClaimsSet bffClaims =
+        new JWTClaimsSet.Builder()
+            .subject("teacher-42")
+            .issuer("http://localhost:8080/realms/adapstory")
+            .audience(List.of("adapstory-api", "account"))
+            .claim("adapstory_tenant_id", "tenant-42")
+            .claim("realm_access", Map.of("roles", List.of("TEACHER")))
+            .build();
+    when(bffUserJwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(bffClaims);
+
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
+    request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat(response.getStatus()).isEqualTo(200);
+    assertThat(request.getAttribute(PluginAuthFilter.AUTHENTICATED_USER_ROLES_ATTR))
+        .isEqualTo("TEACHER");
+    verify(filterChain).doFilter(request, response);
+  }
+
+  @Test
+  @DisplayName("should reject the removed legacy INSTRUCTOR role")
+  void should_rejectBffUserJwt_withLegacyInstructorRole() throws Exception {
+    BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
+    bffUserJwtProperties.setEnabled(true);
+    bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
+    filter =
+        new PluginAuthFilter(
+            properties, bffUserJwtProperties, objectMapper, new JwtProcessorFactory());
+    ReflectionTestUtils.setField(filter, "jwtProcessor", jwtProcessor);
+    ReflectionTestUtils.setField(filter, "bffUserJwtProcessors", List.of(bffUserJwtProcessor));
+
+    when(jwtProcessor.process(eq(VALID_TOKEN), any()))
+        .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("JWT aud claim rejected"));
+    JWTClaimsSet bffClaims =
+        new JWTClaimsSet.Builder()
+            .subject("legacy-instructor-42")
+            .issuer("http://localhost:8080/realms/adapstory")
+            .audience(List.of("adapstory-api", "account"))
+            .claim("adapstory_tenant_id", "tenant-42")
+            .claim("realm_access", Map.of("roles", List.of("INSTRUCTOR")))
+            .build();
+    when(bffUserJwtProcessor.process(eq(VALID_TOKEN), any())).thenReturn(bffClaims);
+
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
+    request.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + VALID_TOKEN);
+    MockHttpServletResponse response = new MockHttpServletResponse();
+
+    filter.doFilterInternal(request, response, filterChain);
+
+    assertThat(response.getStatus()).isEqualTo(403);
+    verifyNoInteractions(filterChain);
+  }
+
+  @Test
   @DisplayName(
       "should accept BFF user JWT for plugin REST route when Keycloak uses lowercase platform_admin role")
   void should_acceptBffUserJwt_forPluginRestRoute_whenKeycloakUsesLowercasePlatformAdminRole()
@@ -384,8 +456,8 @@ class PluginAuthFilterTest {
     }
 
     @Test
-    @DisplayName("should expose plugin_tools claim for MCP authorization")
-    void should_exposePluginTools_forMcpAuthorization_when_claimPresent() throws Exception {
+    @DisplayName("should reject the removed plugin_tools compatibility claim")
+    void should_rejectPluginToolsCompatibilityClaim_when_claimPresent() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -407,9 +479,8 @@ class PluginAuthFilterTest {
       filter.doFilterInternal(request, response, filterChain);
 
       // Assert
-      assertThat(request.getAttribute(PluginMcpJwtClaimFilter.PLUGIN_TOOLS_ATTR))
-          .isEqualTo(List.of("dify-plugin", "edu-knowledge-graph"));
-      verify(filterChain).doFilter(request, response);
+      assertThat(response.getStatus()).isEqualTo(401);
+      verifyNoInteractions(filterChain);
     }
 
     @Test

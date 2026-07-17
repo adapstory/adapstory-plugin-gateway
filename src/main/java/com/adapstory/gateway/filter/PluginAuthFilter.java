@@ -117,8 +117,18 @@ public class PluginAuthFilter extends OncePerRequestFilter {
     try {
       JWTClaimsSet claims = jwtProcessor.process(token, null);
 
+      if (claims.getClaim("plugin_tools") != null) {
+        writeError(
+            response,
+            request,
+            401,
+            ERROR_UNAUTHORIZED,
+            "Legacy MCP authorization claims are not accepted",
+            Map.of());
+        return;
+      }
+
       PluginSecurityContext pluginContext = PluginJwtClaimsMapper.mapClaims(claims);
-      List<String> pluginTools = PluginJwtClaimsMapper.mapPluginTools(claims);
 
       if (pluginContext == null) {
         writeError(
@@ -145,9 +155,6 @@ public class PluginAuthFilter extends OncePerRequestFilter {
 
       request.setAttribute(PLUGIN_SECURITY_CONTEXT_ATTR, pluginContext);
       request.setAttribute(AUTHENTICATED_ACTOR_ID_ATTR, actorId);
-      if (pluginTools != null) {
-        request.setAttribute(PluginMcpJwtClaimFilter.PLUGIN_TOOLS_ATTR, pluginTools);
-      }
 
       List<SimpleGrantedAuthority> authorities =
           pluginContext.permissions().stream().map(SimpleGrantedAuthority::new).toList();

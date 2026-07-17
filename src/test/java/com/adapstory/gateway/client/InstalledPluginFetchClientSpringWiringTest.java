@@ -51,6 +51,7 @@ class InstalledPluginFetchClientSpringWiringTest {
         new InstalledCacheConfig(5, 30),
         new WebhookConfig(3, 100, 2.0, 8000, "plugin-%s", "secret"),
         new Bc02Config("http://plugin-lifecycle:8080"),
-        new McpConfig(8000, "plugin-%s", 3000, java.util.List.of()));
+        new McpConfig(
+            8000, "plugin-%s", "plugin-%s-mcp-headless", 3000, 0, 86400, java.util.List.of()));
   }
 }

@@ -32,10 +32,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Execution;
+import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.client.RestClient;
 
+@Execution(ExecutionMode.SAME_THREAD)
+@Isolated
 class FirstPartyPluginRestRouteControllerTest {
 
   private WireMockServer wireMockServer;
@@ -64,14 +69,22 @@ class FirstPartyPluginRestRouteControllerTest {
             new GatewayProperties.McpConfig(
                 8000,
                 "plugin-%s.plugins.svc.cluster.local",
+                "plugin-%s-mcp-headless.plugins.svc.cluster.local",
                 30000,
+                0,
+                86400,
                 List.of(
                     new GatewayProperties.PluginRoute(
-                        "ai-course-generator", wireMockServer.baseUrl()))));
+                        "ai-course-generator",
+                        wireMockServer.baseUrl(),
+                        wireMockServer.baseUrl()))));
 
     mcpProxyService =
         new McpProxyService(
-            properties, null, new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+            properties,
+            null,
+            mock(McpSessionAffinityRouter.class),
+            new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
     circuitBreakerRegistry =
         CircuitBreakerRegistry.of(
             CircuitBreakerConfig.custom()

@@ -60,6 +60,8 @@ public final class ProxyHeaderUtils {
           IntegrationHeaders.HEADER_REQUEST_ID.toLowerCase(Locale.ROOT),
           IntegrationHeaders.HEADER_RESPONSE_ID.toLowerCase(Locale.ROOT),
           IntegrationHeaders.HEADER_CORRELATION_ID.toLowerCase(Locale.ROOT),
+          McpHttpHeaders.SESSION_ID.toLowerCase(Locale.ROOT),
+          McpHttpHeaders.PROTOCOL_VERSION.toLowerCase(Locale.ROOT),
           "x-accel-buffering");
 
   private ProxyHeaderUtils() {}

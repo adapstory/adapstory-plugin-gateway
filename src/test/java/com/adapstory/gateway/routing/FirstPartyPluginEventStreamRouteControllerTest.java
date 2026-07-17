@@ -6,6 +6,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.adapstory.gateway.config.GatewayProperties;
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -17,11 +18,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.client.RestClient;
 
+@Isolated
 class FirstPartyPluginEventStreamRouteControllerTest {
 
   private static final UUID RUN_ID = UUID.fromString("019ef1b5-3af7-7861-ac6e-7890b2ec21fa");
@@ -48,12 +51,18 @@ class FirstPartyPluginEventStreamRouteControllerTest {
             new GatewayProperties.McpConfig(
                 8000,
                 "plugin-%s.plugins.svc.cluster.local",
+                "plugin-%s-mcp-headless.plugins.svc.cluster.local",
                 3000,
+                0,
+                86400,
                 List.of(
                     new GatewayProperties.PluginRoute(
-                        "ai-course-generator", wireMockServer.baseUrl()))));
+                        "ai-course-generator",
+                        wireMockServer.baseUrl(),
+                        wireMockServer.baseUrl()))));
     McpProxyService mcpProxyService =
-        new McpProxyService(properties, null, new SimpleMeterRegistry());
+        new McpProxyService(
+            properties, null, mock(McpSessionAffinityRouter.class), new SimpleMeterRegistry());
     controller =
         new FirstPartyPluginEventStreamRouteController(
             mcpProxyService, new RestClientEventStreamProxyAdapter(RestClient.builder()));

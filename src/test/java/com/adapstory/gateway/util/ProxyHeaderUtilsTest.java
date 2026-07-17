@@ -1,12 +1,21 @@
 package com.adapstory.gateway.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.adapstory.commons.header.IntegrationHeaders;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 @DisplayName("ProxyHeaderUtils security identity forwarding")
 class ProxyHeaderUtilsTest {
@@ -67,5 +76,50 @@ class ProxyHeaderUtilsTest {
         .containsExactly("00000000-0000-4000-8000-000000000001");
     assertThat(outgoing.get("X-Fingerprint")).containsExactly("deterministic-test-fingerprint");
     assertThat(outgoing.get("Last-Event-ID")).containsExactly("174-0");
+  }
+
+  @Test
+  @DisplayName("should close the upstream SSE body immediately when the client disconnects")
+  void should_closeUpstreamStream_whenDownstreamWriteFails() throws Exception {
+    ClientHttpResponse upstream = mock(ClientHttpResponse.class);
+    TrackingInputStream body = new TrackingInputStream("data: {}\n\n".getBytes());
+    when(upstream.getStatusCode()).thenReturn(HttpStatus.OK);
+    when(upstream.getHeaders()).thenReturn(new HttpHeaders());
+    when(upstream.getBody()).thenReturn(body);
+    OutputStream disconnectedClient =
+        new OutputStream() {
+          @Override
+          public void write(int value) throws IOException {
+            throw new IOException("client disconnected");
+          }
+
+          @Override
+          public void write(byte[] value, int offset, int length) throws IOException {
+            throw new IOException("client disconnected");
+          }
+        };
+
+    assertThatThrownBy(
+            () ->
+                ProxyHeaderUtils.copyStreamingResponse(
+                    upstream, new MockHttpServletResponse(), disconnectedClient))
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("disconnected");
+    assertThat(body.closed).isTrue();
+  }
+
+  private static final class TrackingInputStream extends ByteArrayInputStream {
+
+    private boolean closed;
+
+    private TrackingInputStream(byte[] bytes) {
+      super(bytes);
+    }
+
+    @Override
+    public void close() throws IOException {
+      closed = true;
+      super.close();
+    }
   }
 }

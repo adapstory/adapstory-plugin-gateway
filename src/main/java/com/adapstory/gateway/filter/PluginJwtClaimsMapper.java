@@ -43,20 +43,4 @@ public final class PluginJwtClaimsMapper {
 
     return new PluginSecurityContext(pluginId, tenantId, List.copyOf(permissions), trustLevel);
   }
-
-  /**
-   * Extracts authorized MCP plugin tool slugs from JWT claims.
-   *
-   * @param claims validated JWT claims
-   * @return immutable list of plugin tool slugs, or {@code null} when the optional claim is absent
-   * @throws IllegalArgumentException if the claim has an unexpected type
-   */
-  public static List<String> mapPluginTools(JWTClaimsSet claims) {
-    try {
-      List<String> pluginTools = claims.getStringListClaim("plugin_tools");
-      return pluginTools == null ? null : List.copyOf(pluginTools);
-    } catch (ParseException ex) {
-      throw new IllegalArgumentException("JWT plugin_tools claim has unexpected type", ex);
-    }
-  }
 }

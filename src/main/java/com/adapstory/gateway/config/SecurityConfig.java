@@ -1,6 +1,8 @@
 package com.adapstory.gateway.config;
 
 import com.adapstory.gateway.filter.HeaderInjectionFilter;
+import com.adapstory.gateway.filter.McpGrantJwtAuthenticationFilter;
+import com.adapstory.gateway.filter.McpGrantRegistrationBodyLimitFilter;
 import com.adapstory.gateway.filter.PermissionEnforcementFilter;
 import com.adapstory.gateway.filter.PluginAuthFilter;
 import com.adapstory.gateway.filter.PluginInstalledCheckFilter;
@@ -70,18 +72,22 @@ public class SecurityConfig {
   @Order(1)
   SecurityFilterChain mcpFilterChain(
       HttpSecurity http,
-      PluginAuthFilter pluginAuthFilter,
+      McpGrantJwtAuthenticationFilter mcpGrantJwtAuthenticationFilter,
+      McpGrantRegistrationBodyLimitFilter mcpGrantRegistrationBodyLimitFilter,
       PluginMcpJwtClaimFilter pluginMcpJwtClaimFilter,
       HeaderInjectionFilter headerInjectionFilter) {
     try {
-      return http.securityMatcher("/internal/plugins/*/mcp", "/internal/plugins/v1/*/mcp")
+      return http.securityMatcher("/internal/plugins/v1/*/mcp", "/internal/mcp-grants/v1")
           .csrf(AbstractHttpConfigurer::disable)
           .cors(AbstractHttpConfigurer::disable)
           .sessionManagement(
               session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
           .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-          .addFilterBefore(pluginAuthFilter, UsernamePasswordAuthenticationFilter.class)
-          .addFilterAfter(pluginMcpJwtClaimFilter, PluginAuthFilter.class)
+          .addFilterBefore(
+              mcpGrantJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+          .addFilterAfter(
+              mcpGrantRegistrationBodyLimitFilter, McpGrantJwtAuthenticationFilter.class)
+          .addFilterAfter(pluginMcpJwtClaimFilter, McpGrantRegistrationBodyLimitFilter.class)
           .addFilterAfter(headerInjectionFilter, PluginMcpJwtClaimFilter.class)
           .formLogin(AbstractHttpConfigurer::disable)
           .httpBasic(AbstractHttpConfigurer::disable)
@@ -156,6 +162,19 @@ public class SecurityConfig {
   @Bean
   FilterRegistrationBean<PluginMcpJwtClaimFilter> disableMcpFilterAutoRegistration(
       PluginMcpJwtClaimFilter filter) {
+    return disableAutoRegistration(filter);
+  }
+
+  @Bean
+  FilterRegistrationBean<McpGrantJwtAuthenticationFilter>
+      disableMcpGrantJwtAuthenticationAutoRegistration(McpGrantJwtAuthenticationFilter filter) {
+    return disableAutoRegistration(filter);
+  }
+
+  @Bean
+  FilterRegistrationBean<McpGrantRegistrationBodyLimitFilter>
+      disableMcpGrantRegistrationBodyLimitAutoRegistration(
+          McpGrantRegistrationBodyLimitFilter filter) {
     return disableAutoRegistration(filter);
   }
 

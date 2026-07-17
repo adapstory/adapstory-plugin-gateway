@@ -6,7 +6,6 @@ import com.adapstory.gateway.util.PluginSlugValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
-import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -15,18 +14,23 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 /**
  * MCP маршрутизатор: проксирует JSON-RPC MCP вызовы к plugin backend.
  *
  * <p>Принимает POST {@code /internal/plugins/v1/{slug}/mcp}, валидирует slug, разрешает endpoint
- * plugin pod и делегирует проксирование в {@link McpProxyService}. Legacy alias without explicit
- * version is kept hidden from OpenAPI for backward compatibility. Инжектирует обязательные
+ * plugin pod и делегирует проксирование в {@link McpProxyService}. Инжектирует обязательные
  * заголовки (INT-02): X-Tenant-Id, X-Request-Id, X-Correlation-Id. Тегирует mcp_method (tools/list
  * | tools/call) для observability.
  */
@@ -39,12 +43,14 @@ public class McpRouteController {
   private final McpProxyService mcpProxyService;
   private final ObjectMapper objectMapper;
   private final MeterRegistry meterRegistry;
+  private final AtomicInteger activeStreams = new AtomicInteger();
 
   public McpRouteController(
       McpProxyService mcpProxyService, ObjectMapper objectMapper, MeterRegistry meterRegistry) {
     this.mcpProxyService = mcpProxyService;
     this.objectMapper = objectMapper;
     this.meterRegistry = meterRegistry;
+    meterRegistry.gauge("plugin_gateway_mcp_streams_active", activeStreams);
   }
 
   /**
@@ -63,7 +69,7 @@ public class McpRouteController {
   @ApiResponse(responseCode = "400", description = "Invalid plugin slug format")
   @ApiResponse(responseCode = "502", description = "Plugin pod unreachable or returned error")
   @PostMapping("/internal/plugins/v1/{slug}/mcp")
-  public void proxyMcpVersioned(
+  public void proxyMcp(
       @Parameter(description = "Plugin slug identifier (e.g. 'course-builder')") @PathVariable
           String slug,
       HttpServletRequest request,
@@ -72,16 +78,25 @@ public class McpRouteController {
     proxyMcpInternal(slug, request, response);
   }
 
-  /**
-   * Legacy unversioned MCP route retained for backward compatibility and hidden from OpenAPI.
-   *
-   * @param slug plugin slug
-   * @param request inbound HTTP request
-   * @param response outbound HTTP response
-   */
-  @Hidden
-  @PostMapping("/internal/plugins/{slug}/mcp")
-  public void proxyMcpLegacy(
+  /** Opens or resumes the stateful MCP server-to-client SSE stream. */
+  @GetMapping(
+      path = "/internal/plugins/v1/{slug}/mcp",
+      produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  public StreamingResponseBody proxyMcpStream(
+      @PathVariable String slug, HttpServletRequest request, HttpServletResponse response) {
+    return downstreamBody -> {
+      activeStreams.incrementAndGet();
+      try {
+        proxyMcpInternal(slug, request, response);
+      } finally {
+        activeStreams.decrementAndGet();
+      }
+    };
+  }
+
+  /** Terminates one stateful MCP session on its bound provider pod. */
+  @DeleteMapping("/internal/plugins/v1/{slug}/mcp")
+  public void terminateMcpSession(
       @PathVariable String slug, HttpServletRequest request, HttpServletResponse response)
       throws IOException {
     proxyMcpInternal(slug, request, response);
@@ -115,11 +130,28 @@ public class McpRouteController {
     log.info("Proxying MCP request to plugin '{}' at {}", slug, targetUrl);
 
     try {
-      mcpProxyService.executeMcpProxy(request, response, targetUrl, slug, tenantId);
+      mcpProxyService.executeMcpProxy(request, response, targetUrl, tenantId, slug);
 
+      meterRegistry.counter("plugin_gateway_mcp_proxy_total", "status", "success").increment();
+    } catch (McpSessionRoutingException ex) {
+      if (response.isCommitted()) {
+        log.error("MCP session routing failed after response commit for slug '{}'", slug);
+        return;
+      }
+      meterRegistry.counter("plugin_gateway_mcp_proxy_total", "status", "error").increment();
+      String reason = ex.reason().name().toLowerCase(java.util.Locale.ROOT);
       meterRegistry
-          .counter("plugin_gateway_mcp_proxy_total", "slug", slug, "status", "success")
+          .counter(
+              "plugin_gateway_mcp_session_routing_total", "outcome", "denied", "reason", reason)
           .increment();
+      GatewayErrorWriter.writeError(
+          objectMapper,
+          response,
+          request,
+          ex.httpStatus(),
+          sessionRoutingErrorTitle(ex.httpStatus()),
+          "MCP session routing is unavailable",
+          Map.of("reason", reason));
     } catch (Exception ex) {
       if (response.isCommitted()) {
         log.error(
@@ -128,9 +160,7 @@ public class McpRouteController {
       }
 
       log.error("MCP proxy error for slug '{}': {}", slug, ex.getMessage());
-      meterRegistry
-          .counter("plugin_gateway_mcp_proxy_total", "slug", slug, "status", "error")
-          .increment();
+      meterRegistry.counter("plugin_gateway_mcp_proxy_total", "status", "error").increment();
 
       GatewayErrorWriter.writeError(
           objectMapper,
@@ -141,6 +171,13 @@ public class McpRouteController {
           "Error proxying MCP request to plugin backend",
           Map.of("slug", slug));
     }
+  }
+
+  private static String sessionRoutingErrorTitle(int status) {
+    HttpStatus resolved = HttpStatus.resolve(status);
+    return resolved == null
+        ? HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase()
+        : resolved.getReasonPhrase();
   }
 
   /**

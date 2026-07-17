@@ -1,6 +1,9 @@
 package com.adapstory.gateway.routing;
 
+import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
+import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
+import com.adapstory.gateway.util.McpHttpHeaders;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +14,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 
@@ -37,6 +42,7 @@ public class McpProxyService {
 
   private final GatewayProperties properties;
   private final McpProxyTransportPort proxyTransport;
+  private final McpSessionAffinityRouter sessionAffinityRouter;
   private final MeterRegistry meterRegistry;
 
   /** Test-only URL overrides (slug -> base URL). */
@@ -45,9 +51,11 @@ public class McpProxyService {
   public McpProxyService(
       GatewayProperties properties,
       McpProxyTransportPort proxyTransport,
+      McpSessionAffinityRouter sessionAffinityRouter,
       MeterRegistry meterRegistry) {
     this.properties = properties;
     this.proxyTransport = proxyTransport;
+    this.sessionAffinityRouter = sessionAffinityRouter;
     this.meterRegistry = meterRegistry;
   }
 
@@ -58,7 +66,6 @@ public class McpProxyService {
    * @param request incoming HTTP request
    * @param response outgoing HTTP response
    * @param targetUrl resolved plugin backend URL
-   * @param slug plugin slug for observability
    * @param tenantId tenant identifier (may be null)
    * @throws IOException if an I/O error occurs during proxying
    */
@@ -66,14 +73,35 @@ public class McpProxyService {
       HttpServletRequest request,
       HttpServletResponse response,
       String targetUrl,
-      String slug,
-      String tenantId)
+      String tenantId,
+      String routeSlug)
       throws IOException {
-    proxyTransport.proxy(request, response, URI.create(targetUrl), tenantId);
+    String sessionId = request.getHeader(McpHttpHeaders.SESSION_ID);
+    McpSessionRoute sessionRoute =
+        sessionAffinityRouter.resolve(
+            URI.create(targetUrl),
+            tenantId,
+            routeSlug,
+            sessionId,
+            request.getHeader(IntegrationHeaders.HEADER_REQUEST_ID));
+    var sessionContext =
+        new ProxySessionContext(request, sessionRoute, tenantId, routeSlug, sessionId);
+    proxyTransport.proxy(
+        request,
+        response,
+        sessionRoute.backendEndpoint(),
+        tenantId,
+        (status, headers, backendEndpoint) ->
+            beforeCommit(sessionContext, status, headers, backendEndpoint));
     String mcpMethod = extractMcpMethodFromRequest(request);
     Span.current().setAttribute("mcp.method", mcpMethod);
+    String metricMethod =
+        switch (mcpMethod) {
+          case "tools/list", "tools/call" -> mcpMethod;
+          default -> "other";
+        };
     meterRegistry
-        .counter("plugin_gateway_mcp_method_total", "slug", slug, "mcp_method", mcpMethod)
+        .counter("plugin_gateway_mcp_method_total", "mcp_method", metricMethod)
         .increment();
   }
 
@@ -84,7 +112,18 @@ public class McpProxyService {
    * @return full URL like http://plugin-{slug}.plugins.svc.cluster.local:{port}/mcp
    */
   public String resolvePluginMcpUrl(String slug) {
-    return resolvePluginBaseUrl(slug) + "/mcp";
+    String override = urlOverrides.get(slug);
+    if (override != null) {
+      return withoutTrailingSlash(override) + "/mcp";
+    }
+    GatewayProperties.McpConfig cfg = properties.mcp();
+    for (GatewayProperties.PluginRoute route : cfg.pluginRoutes()) {
+      if (route.slug().equals(slug)) {
+        return withoutTrailingSlash(route.sessionAffinityBaseUrl()) + "/mcp";
+      }
+    }
+    String host = String.format(cfg.sessionAffinityHostTemplate(), slug);
+    return String.format("http://%s:%d/mcp", host, cfg.pluginPodPort());
   }
 
   /**
@@ -134,7 +173,7 @@ public class McpProxyService {
     // The body has already been consumed by the proxy, so we rely on content-type check
     if (request.getContentType() != null
         && request.getContentType().contains(MediaType.APPLICATION_JSON_VALUE)) {
-      String cachedMethod = (String) request.getAttribute("mcp.method");
+      String cachedMethod = (String) request.getAttribute(PluginMcpJwtClaimFilter.MCP_METHOD_ATTR);
       if (cachedMethod != null) {
         return cachedMethod;
       }
@@ -158,4 +197,37 @@ public class McpProxyService {
     }
     return value;
   }
+
+  private void beforeCommit(
+      ProxySessionContext context,
+      HttpStatusCode status,
+      HttpHeaders headers,
+      URI backendEndpoint) {
+    String responseSessionId = headers.getFirst(McpHttpHeaders.SESSION_ID);
+    if (context.sessionRoute().newSession() && status.is2xxSuccessful()) {
+      if (!McpHttpHeaders.isCanonicalSessionId(responseSessionId)) {
+        throw new McpSessionRoutingException(McpSessionRoutingException.Reason.INVALID_SESSION);
+      }
+      sessionAffinityRouter.bind(
+          context.tenantId(), context.routeSlug(), responseSessionId, backendEndpoint);
+      return;
+    }
+    if (!context.sessionRoute().newSession()
+        && responseSessionId != null
+        && !responseSessionId.equals(context.requestSessionId())) {
+      throw new McpSessionRoutingException(McpSessionRoutingException.Reason.INVALID_SESSION);
+    }
+    if ("DELETE".equals(context.request().getMethod())
+        && (status.is2xxSuccessful() || status.value() == 404)) {
+      sessionAffinityRouter.terminate(
+          context.tenantId(), context.routeSlug(), context.requestSessionId());
+    }
+  }
+
+  private record ProxySessionContext(
+      HttpServletRequest request,
+      McpSessionRoute sessionRoute,
+      String tenantId,
+      String routeSlug,
+      String requestSessionId) {}
 }

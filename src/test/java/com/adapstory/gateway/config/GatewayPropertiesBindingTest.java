@@ -87,9 +87,13 @@ class GatewayPropertiesBindingTest {
         .withPropertyValues(
             "gateway.mcp.plugin-pod-port=8000",
             "gateway.mcp.plugin-host-template=plugin-%s.plugins.svc.cluster.local",
+            "gateway.mcp.session-affinity-host-template=plugin-%s-mcp-headless.plugins.svc.cluster.local",
             "gateway.mcp.connect-timeout-ms=30000",
+            "gateway.mcp.streaming-read-timeout-ms=0",
+            "gateway.mcp.session-affinity-ttl-seconds=86400",
             "gateway.mcp.plugin-routes[0].slug=dify-plugin",
-            "gateway.mcp.plugin-routes[0].base-url=http://dev-dify-plugin-svc.env-dev.svc.cluster.local:8000")
+            "gateway.mcp.plugin-routes[0].base-url=http://dev-dify-plugin-svc.env-dev.svc.cluster.local:8000",
+            "gateway.mcp.plugin-routes[0].session-affinity-base-url=http://dev-dify-plugin-mcp-headless.env-dev.svc.cluster.local:8000")
         .run(
             context -> {
               assertThat(context).hasNotFailed();
@@ -101,7 +105,8 @@ class GatewayPropertiesBindingTest {
                   .containsExactly(
                       new GatewayProperties.PluginRoute(
                           "dify-plugin",
-                          "http://dev-dify-plugin-svc.env-dev.svc.cluster.local:8000"));
+                          "http://dev-dify-plugin-svc.env-dev.svc.cluster.local:8000",
+                          "http://dev-dify-plugin-mcp-headless.env-dev.svc.cluster.local:8000"));
             });
   }
 

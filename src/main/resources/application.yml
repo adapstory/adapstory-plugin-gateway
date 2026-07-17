@@ -110,16 +110,31 @@ gateway:
     ttl-minutes: 5
     negative-ttl-seconds: 30
 
-  # MCP route configuration (POST /internal/plugins/{slug}/mcp → plugin backend /mcp)
+  # MCP Streamable HTTP route (POST/GET/DELETE on one canonical endpoint).
   mcp:
     plugin-pod-port: 8000
     plugin-host-template: "plugin-%s.plugins.svc.cluster.local"
+    session-affinity-host-template: "plugin-%s-mcp-headless.plugins.svc.cluster.local"
     connect-timeout-ms: 30000
+    # Zero means no response-duration cap, required for long-lived MCP SSE streams.
+    streaming-read-timeout-ms: ${GATEWAY_MCP_STREAMING_READ_TIMEOUT_MS:0}
+    session-affinity-ttl-seconds: ${GATEWAY_MCP_SESSION_AFFINITY_TTL_SECONDS:86400}
+    session-affinity-redis-key-prefix: ${GATEWAY_MCP_SESSION_AFFINITY_REDIS_KEY_PREFIX:gateway:mcp-session-affinity:v1:}
     # Optional per-slug backend route overrides for deployed plugin services with env-specific names.
     # Used by both MCP and first-party REST plugin proxy routes.
     # Env example: GATEWAY_MCP_PLUGIN_ROUTES_0_SLUG=dify-plugin,
     # GATEWAY_MCP_PLUGIN_ROUTES_0_BASE_URL=http://dev-dify-plugin-svc.env-dev.svc.cluster.local:8000
+    # GATEWAY_MCP_PLUGIN_ROUTES_0_SESSION_AFFINITY_BASE_URL=http://dev-dify-plugin-mcp-headless.env-dev.svc.cluster.local:8000
     plugin-routes: []
+    grants:
+      # Only the OAuth client that performs RFC 8693 exchange may register exact bindings.
+      authorized-parties: ${GATEWAY_MCP_GRANT_AUTHORIZED_PARTIES:adapstory-bc10-gateway-exchange}
+      maximum-ttl-seconds: ${GATEWAY_MCP_GRANT_MAXIMUM_TTL_SECONDS:300}
+      minimum-validity-seconds: ${GATEWAY_MCP_GRANT_MINIMUM_VALIDITY_SECONDS:5}
+      replay-retention-seconds: ${GATEWAY_MCP_GRANT_REPLAY_RETENTION_SECONDS:60}
+      maximum-request-body-bytes: ${GATEWAY_MCP_GRANT_MAXIMUM_REQUEST_BODY_BYTES:65536}
+      maximum-registration-body-bytes: ${GATEWAY_MCP_GRANT_MAXIMUM_REGISTRATION_BODY_BYTES:65536}
+      redis-key-prefix: ${GATEWAY_MCP_GRANT_REDIS_KEY_PREFIX:gateway:mcp-grant:v1:}
 
   # Webhook dispatch
   webhook:
@@ -165,7 +180,7 @@ adapstory:
     title: Plugin Gateway API
     summary: Internal plugin and MCP gateway API
     description: First-party internal API for BC-02 Plugin Gateway REST proxying, webhook dispatch, and MCP routing for plugin tools.
-    version: ${ADAPSTORY_OPENAPI_VERSION:2026.04.1}
+    version: ${ADAPSTORY_OPENAPI_VERSION:2026.07.1}
     api-major: v1
     audience: internal
     ai-ready: true
