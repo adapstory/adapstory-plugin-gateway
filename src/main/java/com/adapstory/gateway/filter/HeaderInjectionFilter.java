@@ -4,6 +4,7 @@ import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.commons.header.IntegrationIdValidator;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.mcpgrant.McpAccessTokenContext;
+import com.adapstory.gateway.util.DelegatedAuthorityHeaders;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,6 +46,11 @@ public class HeaderInjectionFilter extends OncePerRequestFilter {
           IntegrationHeaders.HEADER_TENANT_ID.toLowerCase(java.util.Locale.ROOT),
           IntegrationHeaders.HEADER_USER_ID.toLowerCase(java.util.Locale.ROOT),
           IntegrationHeaders.HEADER_ADAPSTORY_USER_ID.toLowerCase(java.util.Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_RUN_ID.toLowerCase(java.util.Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_NODE_ID.toLowerCase(java.util.Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_POLICY_VERSION.toLowerCase(java.util.Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_GRANT_ID.toLowerCase(java.util.Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_CAPABILITIES.toLowerCase(java.util.Locale.ROOT),
           HEADER_USER_ROLES.toLowerCase(java.util.Locale.ROOT));
 
   @Override

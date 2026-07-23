@@ -66,6 +66,16 @@ public final class McpGrantService {
       String tenantHeader,
       String actorHeader,
       List<ProviderBindingGrant> bindings) {
+    register(token, tenantHeader, actorHeader, bindings, null);
+  }
+
+  /** Validates identity and stores exact bindings plus optional delegated node authority. */
+  public void register(
+      McpAccessTokenContext token,
+      String tenantHeader,
+      String actorHeader,
+      List<ProviderBindingGrant> bindings,
+      DelegatedCapabilityAuthority delegatedAuthority) {
     Objects.requireNonNull(token, "token must not be null");
     if (!token.tenantId().equals(tenantHeader) || !token.subject().equals(actorHeader)) {
       throw new McpGrantRejectedException(
@@ -89,7 +99,11 @@ public final class McpGrantService {
     List<ProviderBindingGrant> immutableBindings = List.copyOf(bindings);
     McpGrantAuthorization authorization =
         new McpGrantAuthorization(
-            token.tenantId(), token.subject(), token.expiresAt(), immutableBindings);
+            token.tenantId(),
+            token.subject(),
+            token.expiresAt(),
+            immutableBindings,
+            delegatedAuthority);
     verifier.verify(token.tenantId(), token.subject(), immutableBindings);
 
     Duration storageTtl = remaining.plus(replayRetention);

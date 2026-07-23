@@ -27,6 +27,8 @@ class ProxyHeaderUtilsTest {
     request.addHeader("x-tenant-id", "forged-tenant");
     request.addHeader("X-uSeR-iD", "forged-user");
     request.addHeader("x-adapstory-user-id", "forged-actor");
+    request.addHeader("X-PDLC-Run-Id", "forged-run");
+    request.addHeader("X-Adapstory-Capability-Grant", "automation.workflow.trigger");
     request.addHeader("X-USER-ROLES", "PLATFORM_ADMIN");
 
     HttpHeaders outgoing = new HttpHeaders();
@@ -35,6 +37,8 @@ class ProxyHeaderUtilsTest {
     assertThat(outgoing.get(IntegrationHeaders.HEADER_TENANT_ID)).isNull();
     assertThat(outgoing.get(IntegrationHeaders.HEADER_USER_ID)).isNull();
     assertThat(outgoing.get(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID)).isNull();
+    assertThat(outgoing.get(DelegatedAuthorityHeaders.HEADER_RUN_ID)).isNull();
+    assertThat(outgoing.get(DelegatedAuthorityHeaders.HEADER_CAPABILITIES)).isNull();
     assertThat(outgoing.get("X-User-Roles")).isNull();
   }
 
@@ -49,6 +53,15 @@ class ProxyHeaderUtilsTest {
     request.setAttribute("trustedUserId", "plugin:ai-course-generator");
     request.setAttribute("trustedAdapstoryUserId", "jwt-subject");
     request.setAttribute("trustedUserRoles", "TENANT_OWNER");
+    request.setAttribute(
+        DelegatedAuthorityHeaders.TRUSTED_RUN_ID_ATTR, "00000000-0000-4000-a000-000000000101");
+    request.setAttribute(DelegatedAuthorityHeaders.TRUSTED_NODE_ID_ATTR, "runtime-smoke");
+    request.setAttribute(
+        DelegatedAuthorityHeaders.TRUSTED_POLICY_VERSION_ATTR, "workflow-delivery@1.0.0");
+    request.setAttribute(
+        DelegatedAuthorityHeaders.TRUSTED_GRANT_ID_ATTR, "00000000-0000-4000-a000-000000000201");
+    request.setAttribute(
+        DelegatedAuthorityHeaders.TRUSTED_CAPABILITIES_ATTR, "automation.workflow.status");
 
     HttpHeaders outgoing = new HttpHeaders();
     ProxyHeaderUtils.copyRequestHeaders(request, outgoing);
@@ -59,6 +72,16 @@ class ProxyHeaderUtilsTest {
     assertThat(outgoing.get(IntegrationHeaders.HEADER_ADAPSTORY_USER_ID))
         .containsExactly("jwt-subject");
     assertThat(outgoing.get("X-User-Roles")).containsExactly("TENANT_OWNER");
+    assertThat(outgoing.get(DelegatedAuthorityHeaders.HEADER_RUN_ID))
+        .containsExactly("00000000-0000-4000-a000-000000000101");
+    assertThat(outgoing.get(DelegatedAuthorityHeaders.HEADER_NODE_ID))
+        .containsExactly("runtime-smoke");
+    assertThat(outgoing.get(DelegatedAuthorityHeaders.HEADER_POLICY_VERSION))
+        .containsExactly("workflow-delivery@1.0.0");
+    assertThat(outgoing.get(DelegatedAuthorityHeaders.HEADER_GRANT_ID))
+        .containsExactly("00000000-0000-4000-a000-000000000201");
+    assertThat(outgoing.get(DelegatedAuthorityHeaders.HEADER_CAPABILITIES))
+        .containsExactly("automation.workflow.status");
   }
 
   @Test

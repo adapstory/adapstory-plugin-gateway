@@ -8,10 +8,20 @@ import java.util.Set;
 
 /** Immutable authorization record shared by every Plugin Gateway replica. */
 public record McpGrantAuthorization(
-    String tenantId, String actorId, Instant expiresAt, List<ProviderBindingGrant> bindings) {
+    String tenantId,
+    String actorId,
+    Instant expiresAt,
+    List<ProviderBindingGrant> bindings,
+    DelegatedCapabilityAuthority delegatedAuthority) {
 
   private static final int MAX_BINDINGS = 32;
   private static final int MAX_ACTOR_LENGTH = 512;
+  private static final String WORKFLOW_CAPABILITY_PREFIX = "automation.workflow.";
+
+  public McpGrantAuthorization(
+      String tenantId, String actorId, Instant expiresAt, List<ProviderBindingGrant> bindings) {
+    this(tenantId, actorId, expiresAt, bindings, null);
+  }
 
   public McpGrantAuthorization {
     tenantId = requireContextValue(tenantId, "tenantId");
@@ -32,6 +42,17 @@ public record McpGrantAuthorization(
         throw new IllegalArgumentException("provider tool bindings must be unique");
       }
     }
+    boolean requiresDelegatedAuthority =
+        capabilities.stream().anyMatch(value -> value.startsWith(WORKFLOW_CAPABILITY_PREFIX));
+    if (requiresDelegatedAuthority && delegatedAuthority == null) {
+      throw new IllegalArgumentException(
+          "workflow capability bindings require delegated node authority");
+    }
+    if (delegatedAuthority != null
+        && !new HashSet<>(delegatedAuthority.capabilities()).containsAll(capabilities)) {
+      throw new IllegalArgumentException(
+          "provider bindings must be a subset of delegated capabilities");
+    }
   }
 
   /** Returns whether this grant permits schema discovery for the exact provider route. */
@@ -45,6 +66,15 @@ public record McpGrantAuthorization(
         .anyMatch(
             binding ->
                 binding.routeSlug().equals(routeSlug) && binding.toolName().equals(toolName));
+  }
+
+  /** Returns the exact route-scoped capability names from this token-bound grant. */
+  public List<String> capabilitiesForRoute(String routeSlug) {
+    return bindings.stream()
+        .filter(binding -> binding.routeSlug().equals(routeSlug))
+        .map(ProviderBindingGrant::capability)
+        .sorted()
+        .toList();
   }
 
   private static String requireActorId(String value) {

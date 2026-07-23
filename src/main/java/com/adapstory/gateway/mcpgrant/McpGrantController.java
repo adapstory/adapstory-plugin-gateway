@@ -1,5 +1,6 @@
 package com.adapstory.gateway.mcpgrant;
 
+import com.adapstory.gateway.dto.DelegatedCapabilityAuthorityRequest;
 import com.adapstory.gateway.dto.McpGrantRegistrationRequest;
 import com.adapstory.gateway.dto.ProviderBindingGrantRequest;
 import com.adapstory.gateway.filter.HeaderInjectionFilter;
@@ -89,7 +90,8 @@ public class McpGrantController {
         token,
         trustedIdentity(request, HeaderInjectionFilter.TRUSTED_TENANT_ID_ATTR),
         trustedIdentity(request, HeaderInjectionFilter.TRUSTED_ADAPSTORY_USER_ID_ATTR),
-        registration.providerBindings().stream().map(McpGrantController::toDomain).toList());
+        registration.providerBindings().stream().map(McpGrantController::toDomain).toList(),
+        toDomain(registration.delegatedAuthority()));
     return ResponseEntity.noContent().build();
   }
 
@@ -107,6 +109,19 @@ public class McpGrantController {
         request.status(),
         request.lastValidatedAt(),
         request.description());
+  }
+
+  private static DelegatedCapabilityAuthority toDomain(
+      DelegatedCapabilityAuthorityRequest request) {
+    if (request == null) {
+      return null;
+    }
+    return new DelegatedCapabilityAuthority(
+        java.util.UUID.fromString(request.runId()),
+        request.nodeId(),
+        java.util.UUID.fromString(request.grantId()),
+        request.policyVersion(),
+        request.capabilities());
   }
 
   private static String trustedIdentity(HttpServletRequest request, String attributeName) {

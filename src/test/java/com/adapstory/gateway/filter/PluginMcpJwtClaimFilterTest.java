@@ -6,11 +6,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.adapstory.gateway.mcpgrant.DelegatedCapabilityAuthority;
 import com.adapstory.gateway.mcpgrant.McpAccessTokenContext;
 import com.adapstory.gateway.mcpgrant.McpGrantAuthorization;
 import com.adapstory.gateway.mcpgrant.McpGrantService;
 import com.adapstory.gateway.mcpgrant.McpGrantStorageException;
 import com.adapstory.gateway.mcpgrant.ProviderBindingGrant;
+import com.adapstory.gateway.util.DelegatedAuthorityHeaders;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.servlet.FilterChain;
@@ -19,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -85,6 +88,60 @@ class PluginMcpJwtClaimFilterTest {
             new String(
                 forwarded.getValue().getInputStream().readAllBytes(), StandardCharsets.UTF_8))
         .isEqualTo(body);
+  }
+
+  @Test
+  @DisplayName("derives trusted route-scoped delegated authority from stored grant")
+  void should_derive_trusted_delegated_authority_from_stored_grant() throws Exception {
+    String body =
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
+            + "\"params\":{\"name\":\"n8n__get_workflow_status\",\"arguments\":{}}}";
+    var request = new MockHttpServletRequest("POST", "/internal/plugins/v1/n8n-plugin/mcp");
+    request.setContent(body.getBytes(StandardCharsets.UTF_8));
+    request.setContentType("application/json");
+    request.setAttribute(McpGrantJwtAuthenticationFilter.MCP_ACCESS_TOKEN_ATTR, token());
+    request.addHeader(DelegatedAuthorityHeaders.HEADER_CAPABILITIES, "automation.workflow.trigger");
+    addSessionHeaders(request);
+    var response = new MockHttpServletResponse();
+    var authority =
+        new DelegatedCapabilityAuthority(
+            UUID.fromString("00000000-0000-4000-a000-000000000101"),
+            "runtime-smoke",
+            UUID.fromString("00000000-0000-4000-a000-000000000201"),
+            "workflow-delivery@1.0.0",
+            List.of("automation.workflow.status", "automation.workflow.trigger"));
+    var authorization =
+        new McpGrantAuthorization(
+            "tenant-123",
+            "actor-456",
+            EXPIRY,
+            List.of(
+                new ProviderBindingGrant(
+                    "automation.workflow.status",
+                    "n8n-plugin",
+                    "n8n__get_workflow_status",
+                    "2026.07.2",
+                    "v1",
+                    "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                    "tenant-service-jwt",
+                    "CORE",
+                    "tenant",
+                    "available",
+                    Instant.parse("2026-07-16T12:00:00Z"),
+                    "Read one tenant-owned durable workflow task status without provider data.")),
+            authority);
+    when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization));
+
+    filter.doFilterInternal(request, response, chain);
+
+    verify(chain)
+        .doFilter(
+            org.mockito.ArgumentMatchers.any(HttpServletRequest.class),
+            org.mockito.ArgumentMatchers.same(response));
+    assertThat(request.getAttribute(DelegatedAuthorityHeaders.TRUSTED_RUN_ID_ATTR))
+        .isEqualTo("00000000-0000-4000-a000-000000000101");
+    assertThat(request.getAttribute(DelegatedAuthorityHeaders.TRUSTED_CAPABILITIES_ATTR))
+        .isEqualTo("automation.workflow.status");
   }
 
   @Test

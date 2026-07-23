@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -118,6 +119,41 @@ class McpGrantAuthorizationTest {
                     "00000000-0000-4000-a000-000000000001", "actor-1", EXPIRY, List.of()))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("1..32");
+  }
+
+  @Test
+  @DisplayName("requires immutable delegated authority for workflow capabilities")
+  void should_require_delegated_authority_for_workflow_capabilities() {
+    var workflowBinding =
+        binding("automation.workflow.status", "n8n-plugin", "n8n__get_workflow_status");
+
+    assertThatThrownBy(
+            () ->
+                new McpGrantAuthorization(
+                    "00000000-0000-4000-a000-000000000001",
+                    "actor-1",
+                    EXPIRY,
+                    List.of(workflowBinding)))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("delegated");
+
+    var authority =
+        new DelegatedCapabilityAuthority(
+            UUID.fromString("00000000-0000-4000-a000-000000000101"),
+            "runtime-smoke",
+            UUID.fromString("00000000-0000-4000-a000-000000000201"),
+            "workflow-delivery@1.0.0",
+            List.of("automation.workflow.status"));
+    var authorization =
+        new McpGrantAuthorization(
+            "00000000-0000-4000-a000-000000000001",
+            "actor-1",
+            EXPIRY,
+            List.of(workflowBinding),
+            authority);
+
+    assertThat(authorization.capabilitiesForRoute("n8n-plugin"))
+        .containsExactly("automation.workflow.status");
   }
 
   private static ProviderBindingGrant binding(

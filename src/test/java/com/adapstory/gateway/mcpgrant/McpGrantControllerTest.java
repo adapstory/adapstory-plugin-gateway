@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.adapstory.gateway.dto.DelegatedCapabilityAuthorityRequest;
 import com.adapstory.gateway.dto.McpGrantRegistrationRequest;
 import com.adapstory.gateway.dto.ProviderBindingGrantRequest;
 import com.adapstory.gateway.filter.HeaderInjectionFilter;
@@ -13,6 +14,7 @@ import com.adapstory.gateway.filter.PluginAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -43,14 +45,30 @@ class McpGrantControllerTest {
         .thenReturn("asserted-actor");
     var binding = binding();
     var requestBinding = requestBinding(binding);
+    var authority =
+        new DelegatedCapabilityAuthority(
+            UUID.fromString("00000000-0000-4000-a000-000000000101"),
+            "runtime-smoke",
+            UUID.fromString("00000000-0000-4000-a000-000000000201"),
+            "workflow-delivery@1.0.0",
+            List.of("knowledge.source.search"));
 
     var response =
         controller.register(
-            new McpGrantRegistrationRequest(List.of(requestBinding)), servletRequest);
+            new McpGrantRegistrationRequest(
+                List.of(requestBinding),
+                new DelegatedCapabilityAuthorityRequest(
+                    authority.runId().toString(),
+                    authority.nodeId(),
+                    authority.grantId().toString(),
+                    authority.policyVersion(),
+                    authority.capabilities())),
+            servletRequest);
 
     assertThat(response.getStatusCode().value()).isEqualTo(204);
     assertThat(response.getBody()).isNull();
-    verify(service).register(token, "asserted-tenant", "asserted-actor", List.of(binding));
+    verify(service)
+        .register(token, "asserted-tenant", "asserted-actor", List.of(binding), authority);
   }
 
   @Test
@@ -91,7 +109,7 @@ class McpGrantControllerTest {
             response,
             (wrapped, ignored) -> controller.register(registration, (HttpServletRequest) wrapped));
 
-    verify(service).register(token, "tenant-123", "actor-456", List.of(binding()));
+    verify(service).register(token, "tenant-123", "actor-456", List.of(binding()), null);
   }
 
   private static ProviderBindingGrant binding() {

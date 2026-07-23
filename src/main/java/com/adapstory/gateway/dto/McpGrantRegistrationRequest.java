@@ -20,7 +20,13 @@ public record McpGrantRegistrationRequest(
                 @Schema(
                     description =
                         "Complete unique capability binding set; partial registration is rejected"))
-        List<ProviderBindingGrantRequest> providerBindings) {
+        List<ProviderBindingGrantRequest> providerBindings,
+    @Schema(description = "Immutable PDLC node authority, required for workflow capabilities")
+        DelegatedCapabilityAuthorityRequest delegatedAuthority) {
+
+  public McpGrantRegistrationRequest(List<ProviderBindingGrantRequest> providerBindings) {
+    this(providerBindings, null);
+  }
 
   public McpGrantRegistrationRequest {
     if (providerBindings == null || providerBindings.isEmpty() || providerBindings.size() > 32) {

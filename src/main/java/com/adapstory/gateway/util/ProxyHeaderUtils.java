@@ -43,6 +43,11 @@ public final class ProxyHeaderUtils {
           IntegrationHeaders.HEADER_TENANT_ID.toLowerCase(Locale.ROOT),
           IntegrationHeaders.HEADER_USER_ID.toLowerCase(Locale.ROOT),
           IntegrationHeaders.HEADER_ADAPSTORY_USER_ID.toLowerCase(Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_RUN_ID.toLowerCase(Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_NODE_ID.toLowerCase(Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_POLICY_VERSION.toLowerCase(Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_GRANT_ID.toLowerCase(Locale.ROOT),
+          DelegatedAuthorityHeaders.HEADER_CAPABILITIES.toLowerCase(Locale.ROOT),
           HeaderInjectionFilter.HEADER_USER_ROLES.toLowerCase(Locale.ROOT));
 
   private static final Set<String> SAFE_RESPONSE_HEADERS =
@@ -107,6 +112,31 @@ public final class ProxyHeaderUtils {
         headers,
         HeaderInjectionFilter.HEADER_USER_ROLES,
         HeaderInjectionFilter.TRUSTED_USER_ROLES_ATTR);
+    copyTrustedIdentity(
+        request,
+        headers,
+        DelegatedAuthorityHeaders.HEADER_RUN_ID,
+        DelegatedAuthorityHeaders.TRUSTED_RUN_ID_ATTR);
+    copyTrustedIdentity(
+        request,
+        headers,
+        DelegatedAuthorityHeaders.HEADER_NODE_ID,
+        DelegatedAuthorityHeaders.TRUSTED_NODE_ID_ATTR);
+    copyTrustedIdentity(
+        request,
+        headers,
+        DelegatedAuthorityHeaders.HEADER_POLICY_VERSION,
+        DelegatedAuthorityHeaders.TRUSTED_POLICY_VERSION_ATTR);
+    copyTrustedIdentity(
+        request,
+        headers,
+        DelegatedAuthorityHeaders.HEADER_GRANT_ID,
+        DelegatedAuthorityHeaders.TRUSTED_GRANT_ID_ATTR);
+    copyTrustedIdentity(
+        request,
+        headers,
+        DelegatedAuthorityHeaders.HEADER_CAPABILITIES,
+        DelegatedAuthorityHeaders.TRUSTED_CAPABILITIES_ATTR);
   }
 
   private static void copyTrustedIdentity(

@@ -4,6 +4,7 @@ import com.adapstory.gateway.mcpgrant.McpAccessTokenContext;
 import com.adapstory.gateway.mcpgrant.McpGrantAuthorization;
 import com.adapstory.gateway.mcpgrant.McpGrantService;
 import com.adapstory.gateway.mcpgrant.McpGrantStorageException;
+import com.adapstory.gateway.util.DelegatedAuthorityHeaders;
 import com.adapstory.gateway.util.GatewayErrorWriter;
 import com.adapstory.gateway.util.McpHttpHeaders;
 import com.fasterxml.jackson.core.JsonParser;
@@ -180,12 +181,7 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
       return;
     }
 
-    request.setAttribute(MCP_TENANT_ID_ATTR, authorization.tenantId());
-    request.setAttribute(MCP_PLUGIN_SLUG_ATTR, slug);
-    request.setAttribute(MCP_METHOD_ATTR, method);
-    meterRegistry
-        .counter(METRIC, "outcome", "allowed", "reason", method.replace('/', '_'))
-        .increment();
+    setAllowedAttributes(request, authorization, slug, method);
     byte[] canonicalBody = objectMapper.writeValueAsBytes(root);
     if (canonicalBody.length > maximumBodyBytes) {
       deny(
@@ -376,6 +372,19 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
     request.setAttribute(MCP_TENANT_ID_ATTR, authorization.tenantId());
     request.setAttribute(MCP_PLUGIN_SLUG_ATTR, slug);
     request.setAttribute(MCP_METHOD_ATTR, method);
+    if (authorization.delegatedAuthority() != null) {
+      var delegated = authorization.delegatedAuthority();
+      request.setAttribute(
+          DelegatedAuthorityHeaders.TRUSTED_RUN_ID_ATTR, delegated.runId().toString());
+      request.setAttribute(DelegatedAuthorityHeaders.TRUSTED_NODE_ID_ATTR, delegated.nodeId());
+      request.setAttribute(
+          DelegatedAuthorityHeaders.TRUSTED_POLICY_VERSION_ATTR, delegated.policyVersion());
+      request.setAttribute(
+          DelegatedAuthorityHeaders.TRUSTED_GRANT_ID_ATTR, delegated.grantId().toString());
+      request.setAttribute(
+          DelegatedAuthorityHeaders.TRUSTED_CAPABILITIES_ATTR,
+          String.join(" ", authorization.capabilitiesForRoute(slug)));
+    }
     meterRegistry
         .counter(METRIC, "outcome", "allowed", "reason", method.replace('/', '_'))
         .increment();
