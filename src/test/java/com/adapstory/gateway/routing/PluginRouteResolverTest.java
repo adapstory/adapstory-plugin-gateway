@@ -85,11 +85,11 @@ class PluginRouteResolverTest {
 
     RouteResolutionService routeResolutionService = new RouteResolutionService(properties);
     // Context: the first real JDK HttpClient exchange against a cold WireMock
-    // error response can exceed the production 3-second read timeout on the
+    // error response can exceed the production 3-second connection/read timeout on the
     // constrained local CI host, while immediate reruns complete in milliseconds.
     // Decision: keep the production timeout unchanged and allow this real-transport
-    // fixture exactly 2x read time; connect time and all response assertions remain
-    // production-equivalent.
+    // fixture exactly 2x connection/read time; all response assertions remain
+    // production-equivalent and no request is retried by the test.
     // Reason: a test-infrastructure cold start is not a gateway 502 contract and a
     // retry must not be required to make the gate pass.
     // Revisit when: the CI host or HTTP fixture removes the cold-start distribution;
@@ -97,7 +97,7 @@ class PluginRouteResolverTest {
     ProxyExecutionService proxyExecutionService =
         new ProxyExecutionService(
             new RestClientProxyExecutionAdapter(
-                RestClient.builder(), Duration.ofSeconds(3), Duration.ofSeconds(6)));
+                RestClient.builder(), Duration.ofSeconds(6), Duration.ofSeconds(6)));
 
     resolver =
         new PluginRouteResolver(

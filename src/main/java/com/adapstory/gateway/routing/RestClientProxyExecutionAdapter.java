@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.time.Duration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.StreamingHttpOutputMessage;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ final class RestClientProxyExecutionAdapter implements ProxyExecutionPort {
 
   private final RestClient restClient;
 
+  @Autowired
   RestClientProxyExecutionAdapter(RestClient.Builder restClientBuilder) {
     this(
         restClientBuilder,
