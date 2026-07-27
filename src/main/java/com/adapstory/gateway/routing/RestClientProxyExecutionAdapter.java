@@ -22,11 +22,17 @@ final class RestClientProxyExecutionAdapter implements ProxyExecutionPort {
   private final RestClient restClient;
 
   RestClientProxyExecutionAdapter(RestClient.Builder restClientBuilder) {
+    this(
+        restClientBuilder,
+        Duration.ofMillis(CONNECT_TIMEOUT_MS),
+        Duration.ofMillis(READ_TIMEOUT_MS));
+  }
+
+  RestClientProxyExecutionAdapter(
+      RestClient.Builder restClientBuilder, Duration connectTimeout, Duration readTimeout) {
     this.restClient =
         restClientBuilder
-            .requestFactory(
-                ProxyClientHttpRequestFactory.create(
-                    Duration.ofMillis(CONNECT_TIMEOUT_MS), Duration.ofMillis(READ_TIMEOUT_MS)))
+            .requestFactory(ProxyClientHttpRequestFactory.create(connectTimeout, readTimeout))
             .build();
   }
 
