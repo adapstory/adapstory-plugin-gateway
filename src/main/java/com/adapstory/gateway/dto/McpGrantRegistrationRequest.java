@@ -10,6 +10,8 @@ import java.util.Set;
 
 /** Strict create-only registration payload sent by Agent Runtime after token exchange. */
 @Schema(
+    description =
+        "Complete token-bound MCP provider binding registration submitted after token exchange",
     requiredProperties = "providerBindings",
     additionalProperties = Schema.AdditionalPropertiesValue.FALSE)
 public record McpGrantRegistrationRequest(

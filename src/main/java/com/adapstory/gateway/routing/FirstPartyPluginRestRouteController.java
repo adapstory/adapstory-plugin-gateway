@@ -5,6 +5,9 @@ import com.adapstory.gateway.filter.PluginAuthFilter;
 import com.adapstory.gateway.util.GatewayErrorWriter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -54,8 +57,19 @@ public class FirstPartyPluginRestRouteController {
    * @throws IOException when target proxy call fails with checked IO errors
    */
   @RequestMapping("/api/plugins/{slug}/v1/**")
+  @Operation(
+      summary = "Proxy a first-party plugin REST request",
+      description =
+          "Routes the browser request to the installed first-party plugin while preserving the "
+              + "governed tenant and identity headers.")
   public void proxy(
-      @PathVariable String slug, HttpServletRequest request, HttpServletResponse response)
+      @Parameter(
+              description = "Installed first-party plugin route slug",
+              schema = @Schema(minLength = 1, maxLength = 63))
+          @PathVariable
+          String slug,
+      HttpServletRequest request,
+      HttpServletResponse response)
       throws IOException {
     if (!PLUGIN_SLUG_PATTERN.matcher(slug).matches()) {
       writeError(

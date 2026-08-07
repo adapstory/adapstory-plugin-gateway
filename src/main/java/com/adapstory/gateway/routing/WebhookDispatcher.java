@@ -66,8 +66,16 @@ public class WebhookDispatcher {
   @ApiResponse(responseCode = "403", description = "Invalid internal secret")
   @PostMapping("/{pluginShortId}")
   public ResponseEntity<Void> dispatchWebhook(
-      @Parameter(description = "Plugin short identifier") @PathVariable String pluginShortId,
-      @RequestBody byte[] payload,
+      @Parameter(
+              description = "Plugin short identifier",
+              schema = @io.swagger.v3.oas.annotations.media.Schema(minLength = 1, maxLength = 63))
+          @PathVariable
+          String pluginShortId,
+      @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "CloudEvents 1.0 webhook payload forwarded to the selected plugin",
+              required = true)
+          @RequestBody
+          byte[] payload,
       @RequestHeader HttpHeaders headers) {
     if (!PluginSlugValidator.isValidSlug(pluginShortId)) {
       log.warn("Webhook dispatch rejected: invalid pluginShortId '{}'", pluginShortId);

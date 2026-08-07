@@ -1,6 +1,11 @@
 package com.adapstory.gateway.routing;
 
 import com.adapstory.gateway.util.ProxyHeaderUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -39,8 +44,22 @@ public class FirstPartyPluginEventStreamRouteController {
   @GetMapping(
       path = "/api/plugins/ai-course-generator/v1/runs/{runId}/events",
       produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @Operation(
+      summary = "Stream AI course-generation run events",
+      description =
+          "Streams replayable server-sent events for one immutable course-generation run.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Replayable course-generation event stream",
+      content = @Content(schema = @Schema(type = "string", description = "SSE event stream")))
   public StreamingResponseBody stream(
-      @PathVariable UUID runId, HttpServletRequest request, HttpServletResponse response) {
+      @Parameter(
+              description = "Immutable course-generation run identifier",
+              schema = @Schema(format = "uuid", minLength = 36, maxLength = 36))
+          @PathVariable
+          UUID runId,
+      HttpServletRequest request,
+      HttpServletResponse response) {
     HttpHeaders requestHeaders = new HttpHeaders();
     ProxyHeaderUtils.copyRequestHeaders(request, requestHeaders);
 

@@ -8,6 +8,8 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
@@ -70,7 +72,10 @@ public class McpRouteController {
   @ApiResponse(responseCode = "502", description = "Plugin pod unreachable or returned error")
   @PostMapping("/internal/plugins/v1/{slug}/mcp")
   public void proxyMcp(
-      @Parameter(description = "Plugin slug identifier (e.g. 'course-builder')") @PathVariable
+      @Parameter(
+              description = "Plugin slug identifier (e.g. 'course-builder')",
+              schema = @Schema(minLength = 1, maxLength = 63))
+          @PathVariable
           String slug,
       HttpServletRequest request,
       HttpServletResponse response)
@@ -82,8 +87,21 @@ public class McpRouteController {
   @GetMapping(
       path = "/internal/plugins/v1/{slug}/mcp",
       produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+  @Operation(
+      summary = "Open or resume an MCP event stream",
+      description = "Opens the stateful server-to-client SSE stream for one plugin MCP session.")
+  @ApiResponse(
+      responseCode = "200",
+      description = "Stateful MCP server event stream",
+      content = @Content(schema = @Schema(type = "string", description = "SSE event stream")))
   public StreamingResponseBody proxyMcpStream(
-      @PathVariable String slug, HttpServletRequest request, HttpServletResponse response) {
+      @Parameter(
+              description = "Plugin slug identifier",
+              schema = @Schema(minLength = 1, maxLength = 63))
+          @PathVariable
+          String slug,
+      HttpServletRequest request,
+      HttpServletResponse response) {
     return downstreamBody -> {
       activeStreams.incrementAndGet();
       try {
@@ -96,8 +114,17 @@ public class McpRouteController {
 
   /** Terminates one stateful MCP session on its bound provider pod. */
   @DeleteMapping("/internal/plugins/v1/{slug}/mcp")
+  @Operation(
+      summary = "Terminate an MCP session",
+      description = "Terminates one stateful MCP session on its bound plugin provider pod.")
   public void terminateMcpSession(
-      @PathVariable String slug, HttpServletRequest request, HttpServletResponse response)
+      @Parameter(
+              description = "Plugin slug identifier",
+              schema = @Schema(minLength = 1, maxLength = 63))
+          @PathVariable
+          String slug,
+      HttpServletRequest request,
+      HttpServletResponse response)
       throws IOException {
     proxyMcpInternal(slug, request, response);
   }

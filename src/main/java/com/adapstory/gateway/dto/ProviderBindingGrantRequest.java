@@ -6,6 +6,7 @@ import java.time.Instant;
 
 /** Wire projection of one exact Lifecycle provider binding submitted for authorization. */
 @Schema(
+    description = "One exact Lifecycle-owned MCP provider binding submitted for authorization",
     requiredProperties = {
       "capability",
       "routeSlug",
@@ -66,21 +67,34 @@ public record ProviderBindingGrantRequest(
         String inputSchemaDigest,
     @Schema(
             description = "Only supported provider authentication policy",
+            example = "tenant-service-jwt",
             allowableValues = "tenant-service-jwt")
         String authPolicy,
     @Schema(
             description = "Lifecycle-assigned provider trust tier",
+            example = "VERIFIED",
             allowableValues = {"CORE", "VERIFIED", "COMMUNITY"})
         String trustLevel,
-    @Schema(description = "Provider data visibility boundary", allowableValues = "tenant")
+    @Schema(
+            description = "Provider data visibility boundary",
+            example = "tenant",
+            allowableValues = "tenant")
         String tenantVisibility,
-    @Schema(description = "Only callable provider state", allowableValues = "available")
+    @Schema(
+            description = "Only callable provider state",
+            example = "available",
+            allowableValues = "available")
         String status,
-    @Schema(description = "Lifecycle validation instant used for stale-binding detection")
+    @Schema(
+            description = "Lifecycle validation instant used for stale-binding detection",
+            example = "2026-07-01T12:00:00Z",
+            minLength = 20,
+            maxLength = 35)
         Instant lastValidatedAt,
     @Schema(
             description =
                 "Exact reviewed tool description; must match Lifecycle and live MCP metadata",
+            example = "Searches the reviewed tenant methodology knowledge base",
             minLength = 20,
             maxLength = 4096,
             pattern = "^[^\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]*$")

@@ -89,6 +89,10 @@ class OpenApiRegulationIntegrationTest {
     assertThat(binding.path("properties").path("description").path("minLength").intValue())
         .isEqualTo(20);
 
+    JsonNode streamingResponseBody = schemas.path("StreamingResponseBody");
+    assertThat(streamingResponseBody.path("type").textValue()).isEqualTo("string");
+    assertThat(streamingResponseBody.path("description").textValue()).isNotBlank();
+
     JsonNode grantOperation = root.path("paths").path("/internal/mcp-grants/v1").path("post");
     assertThat(grantOperation.path("security").get(0).has("mcpGatewayBearer")).isTrue();
     assertThat(root.path("components").path("securitySchemes").has("mcpGatewayBearer")).isTrue();

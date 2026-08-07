@@ -77,7 +77,12 @@ public class McpGrantController {
   })
   @PostMapping("/internal/mcp-grants/v1")
   public ResponseEntity<Void> register(
-      @RequestBody McpGrantRegistrationRequest registration, HttpServletRequest request) {
+      @io.swagger.v3.oas.annotations.parameters.RequestBody(
+              description = "Complete exact provider binding set for the exchanged access token",
+              required = true)
+          @RequestBody
+          McpGrantRegistrationRequest registration,
+      HttpServletRequest request) {
     McpAccessTokenContext token =
         (McpAccessTokenContext)
             request.getAttribute(McpGrantJwtAuthenticationFilter.MCP_ACCESS_TOKEN_ATTR);
