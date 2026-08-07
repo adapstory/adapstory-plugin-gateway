@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd https://dependency-check.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+    <!-- Standalone reactor false-positive surface. Keep present even when empty. -->
+    <!--
+        Context: CVE-2026-66299 affects Tomcat's deployable WebSocket chat example.
+        Decision: suppress only embedded core/WebSocket 10.1.57 archives.
+        Reason: this reactor consumes embedded libraries and never packages the examples webapp.
+        Revisit: remove when managed Tomcat reaches 10.1.58 or later.
+    -->
+    <suppress>
+        <notes>FP: category=wrong-component; rationale=CVE-2026-66299 affects Tomcat's deployable WebSocket chat example, which is not contained in the embedded core or WebSocket libraries consumed by this reactor.</notes>
+        <filePath regex="true">.*tomcat-embed-(core|websocket)-10\.1\.57\.jar.*</filePath>
+        <cve>CVE-2026-66299</cve>
+    </suppress>
+
+    <!--
+        Context: Dependency-Check maps OpenTelemetry Go/.NET/C++ advisories onto pinned Java artifacts.
+        Decision: suppress only the exact Java proto and semantic-convention PURLs and listed CVEs.
+        Reason: the vulnerable implementations are not present in these Java jars.
+        Revisit: remove when Dependency-Check/NVD component matching no longer reports them.
+    -->
+    <suppress>
+        <notes>FP: category=language-mismatch; rationale=dependency-check maps OpenTelemetry non-Java advisories onto the pinned Java opentelemetry-proto artifact; these CVEs do not apply to this Java proto jar.</notes>
+        <packageUrl regex="true">^pkg:maven/io\.opentelemetry\.proto/opentelemetry-proto@1\.8\.0-alpha$</packageUrl>
+        <cve>CVE-2026-39882</cve>
+        <cve>CVE-2026-40894</cve>
+        <cve>CVE-2026-41178</cve>
+        <cve>CVE-2026-44967</cve>
+    </suppress>
+    <suppress>
+        <notes>FP: category=language-mismatch; rationale=dependency-check maps OpenTelemetry Go advisories onto the pinned Java opentelemetry-semconv artifact; these CVEs do not apply to this Java semconv jar.</notes>
+        <packageUrl regex="true">^pkg:maven/io\.opentelemetry\.semconv/opentelemetry-semconv@1\.37\.0$</packageUrl>
+        <cve>CVE-2026-24051</cve>
+        <cve>CVE-2026-29181</cve>
+        <cve>CVE-2026-39882</cve>
+        <cve>CVE-2026-39883</cve>
+        <cve>CVE-2026-41178</cve>
+    </suppress>
+    <!--
+        Context: CVE-2026-53914 affects Kotlin build-cache/compiler tooling.
+        Decision: suppress only kotlin-stdlib 2.4.0 runtime PURLs.
+        Reason: compiler build-cache code is absent from the stdlib runtime jar.
+        Revisit: remove when Dependency-Check/NVD component matching is corrected.
+    -->
+    <suppress>
+        <notes>FP: category=wrong-component; rationale=CVE-2026-53914 affects Kotlin build-cache/compiler tooling, not the org.jetbrains.kotlin kotlin-stdlib runtime artifact.</notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib(?:\-jdk[78])?@2\.4\.0$</packageUrl>
+        <cve>CVE-2026-53914</cve>
+    </suppress>
+
+</suppressions>

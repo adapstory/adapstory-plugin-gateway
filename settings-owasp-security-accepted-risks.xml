@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd https://dependency-check.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
+    <!-- Standalone reactor security accepted-risk surface. -->
+    <suppress until="2026-09-30Z">
+        <notes>Context: Testcontainers 2.0.5 hardcodes docker-java-transport-zerodep 3.7.1, whose shaded HttpCore 5.3.6 is affected by CVE-2026-54399 and CVE-2026-54428. Decision: accept only the test-scoped local-Docker denial-of-service exposure until upstream embeds HttpCore 5.4.3 or newer. Reason: the transport is test infrastructure, is absent from production artifacts, and cannot be replaced without forking Testcontainers. Revisit: adapstory-cw6y2, remove immediately after a fixed upstream release and no later than 2026-09-30.</notes>
+        <filePath regex="true">.*docker-java-transport-zerodep-3\.7\.1\.jar.*</filePath>
+        <cve>CVE-2026-54399</cve>
+        <cve>CVE-2026-54428</cve>
+    </suppress>
+</suppressions>
