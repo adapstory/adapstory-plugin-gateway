@@ -1,5 +1,6 @@
 package com.adapstory.gateway.config;
 
+import com.adapstory.gateway.filter.CredentialHumanApprovalAuthenticationFilter;
 import com.adapstory.gateway.filter.HeaderInjectionFilter;
 import com.adapstory.gateway.filter.McpGrantJwtAuthenticationFilter;
 import com.adapstory.gateway.filter.McpGrantRegistrationBodyLimitFilter;
@@ -12,6 +13,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -70,6 +72,35 @@ public class SecurityConfig {
 
   @Bean
   @Order(1)
+  SecurityFilterChain credentialLifecycleFilterChain(
+      HttpSecurity http,
+      CredentialHumanApprovalAuthenticationFilter humanApprovalAuthenticationFilter) {
+    try {
+      return http.securityMatcher("/internal/credential-lifecycle/v1/**")
+          .csrf(AbstractHttpConfigurer::disable)
+          .cors(AbstractHttpConfigurer::disable)
+          .sessionManagement(
+              session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .authorizeHttpRequests(
+              auth ->
+                  auth.requestMatchers(
+                          HttpMethod.POST, "/internal/credential-lifecycle/v1/plans/*/approvals")
+                      .authenticated()
+                      .anyRequest()
+                      .permitAll())
+          .addFilterBefore(
+              humanApprovalAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+          .formLogin(AbstractHttpConfigurer::disable)
+          .httpBasic(AbstractHttpConfigurer::disable)
+          .logout(AbstractHttpConfigurer::disable)
+          .build();
+    } catch (Exception ex) {
+      throw new IllegalStateException("Failed to build credential lifecycle filter chain", ex);
+    }
+  }
+
+  @Bean
+  @Order(2)
   SecurityFilterChain mcpFilterChain(
       HttpSecurity http,
       McpGrantJwtAuthenticationFilter mcpGrantJwtAuthenticationFilter,
@@ -99,7 +130,7 @@ public class SecurityConfig {
   }
 
   @Bean
-  @Order(2)
+  @Order(3)
   SecurityFilterChain gatewayFilterChain(
       HttpSecurity http,
       PluginAuthFilter pluginAuthFilter,
@@ -175,6 +206,13 @@ public class SecurityConfig {
   FilterRegistrationBean<McpGrantRegistrationBodyLimitFilter>
       disableMcpGrantRegistrationBodyLimitAutoRegistration(
           McpGrantRegistrationBodyLimitFilter filter) {
+    return disableAutoRegistration(filter);
+  }
+
+  @Bean
+  FilterRegistrationBean<CredentialHumanApprovalAuthenticationFilter>
+      disableCredentialHumanApprovalAutoRegistration(
+          CredentialHumanApprovalAuthenticationFilter filter) {
     return disableAutoRegistration(filter);
   }
 
