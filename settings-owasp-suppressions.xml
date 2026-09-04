@@ -4,18 +4,6 @@
               xsi:schemaLocation="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.4.xsd https://dependency-check.github.io/DependencyCheck/dependency-suppression.1.4.xsd">
     <!-- Standalone reactor false-positive surface. Keep present even when empty. -->
     <!--
-        Context: CVE-2026-66299 affects Tomcat's deployable WebSocket chat example.
-        Decision: suppress only embedded core/WebSocket 10.1.57 archives.
-        Reason: this reactor consumes embedded libraries and never packages the examples webapp.
-        Revisit: remove when managed Tomcat reaches 10.1.58 or later.
-    -->
-    <suppress>
-        <notes>FP: category=wrong-component; rationale=CVE-2026-66299 affects Tomcat's deployable WebSocket chat example, which is not contained in the embedded core or WebSocket libraries consumed by this reactor.</notes>
-        <filePath regex="true">.*tomcat-embed-(core|websocket)-10\.1\.57\.jar.*</filePath>
-        <cve>CVE-2026-66299</cve>
-    </suppress>
-
-    <!--
         Context: Dependency-Check maps OpenTelemetry Go/.NET/C++ advisories onto pinned Java artifacts.
         Decision: suppress only the exact Java proto and semantic-convention PURLs and listed CVEs.
         Reason: the vulnerable implementations are not present in these Java jars.
