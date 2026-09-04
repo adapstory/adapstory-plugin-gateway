@@ -179,6 +179,21 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <inherited>false</inherited>
+                <executions>
+                    <execution>
+                        <id>owasp-aggregate</id>
+                        <goals>
+                            <goal>aggregate</goal>
+                        </goals>
+                        <phase>verify</phase>
+                        <inherited>false</inherited>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
