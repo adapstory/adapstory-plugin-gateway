@@ -1,7 +1,5 @@
 package com.adapstory.gateway.mcpgrant;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -13,6 +11,8 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
 /** Redis implementation with hashed token identifiers and atomic create-only writes. */
 @Component
@@ -50,7 +50,7 @@ final class RedisMcpGrantStore implements McpGrantStore {
       }
       try {
         return Optional.of(objectMapper.readValue(value, McpGrantAuthorization.class));
-      } catch (JsonProcessingException exception) {
+      } catch (JacksonException exception) {
         throw storageFailure("read", "shared MCP authorization is corrupt", exception);
       }
     } catch (McpGrantStorageException exception) {
@@ -69,7 +69,7 @@ final class RedisMcpGrantStore implements McpGrantStore {
     try {
       String value = objectMapper.writeValueAsString(authorization);
       return Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key(tokenId), value, ttl));
-    } catch (JsonProcessingException | RuntimeException exception) {
+    } catch (RuntimeException exception) {
       throw storageFailure("write", "shared MCP authorization is unavailable", exception);
     }
   }

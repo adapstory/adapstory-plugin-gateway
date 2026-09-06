@@ -4,7 +4,6 @@ import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.mcpgrant.McpAccessTokenContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
@@ -28,6 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 /** Validates the short-lived Gateway-audience token used by capability-first MCP requests. */
 @Component

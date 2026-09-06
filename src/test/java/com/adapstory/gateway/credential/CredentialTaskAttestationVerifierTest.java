@@ -3,7 +3,6 @@ package com.adapstory.gateway.credential;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Signature;
@@ -16,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.ObjectMapper;
 
 class CredentialTaskAttestationVerifierTest {
 
@@ -29,7 +29,7 @@ class CredentialTaskAttestationVerifierTest {
   @BeforeEach
   void setUp() throws Exception {
     keyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
-    objectMapper = new ObjectMapper().findAndRegisterModules();
+    objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     nonces = new HashSet<>();
     verifier =
         new CredentialTaskAttestationVerifier(
@@ -104,8 +104,8 @@ class CredentialTaskAttestationVerifierTest {
   void rejectsUnknownFieldsUnenrolledKeysAndExpiredAttestations() throws Exception {
     CredentialTaskAttestation attestation = attestation(CredentialCapability.PLAN);
     SignedAttestation signed = sign(attestation);
-    com.fasterxml.jackson.databind.node.ObjectNode unknownNode =
-        (com.fasterxml.jackson.databind.node.ObjectNode)
+    tools.jackson.databind.node.ObjectNode unknownNode =
+        (tools.jackson.databind.node.ObjectNode)
             objectMapper.readTree(Base64.getDecoder().decode(signed.payload()));
     unknownNode.put("secret", "must-not-pass");
     byte[] unknownField = unknownNode.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);

@@ -1,14 +1,14 @@
 package com.adapstory.gateway.cache;
 
 import com.adapstory.gateway.util.FetchClientUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Парсит и валидирует CloudEvents {@code PluginPermissionsRevoked}.
@@ -51,7 +51,7 @@ public class PermissionRevocationEventParser {
    * @return parsed JsonNode tree
    * @throws JsonProcessingException при ошибке парсинга
    */
-  public JsonNode parseEvent(String message) throws JsonProcessingException {
+  public JsonNode parseEvent(String message) throws JacksonException {
     return objectMapper.readTree(message);
   }
 

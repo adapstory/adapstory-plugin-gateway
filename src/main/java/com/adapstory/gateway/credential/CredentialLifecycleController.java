@@ -2,8 +2,6 @@ package com.adapstory.gateway.credential;
 
 import com.adapstory.gateway.dto.CredentialBrokerResponse;
 import com.adapstory.gateway.dto.CredentialHumanApprovalRequest;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,6 +14,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @RestController
 @RequestMapping("/internal/credential-lifecycle/v1")

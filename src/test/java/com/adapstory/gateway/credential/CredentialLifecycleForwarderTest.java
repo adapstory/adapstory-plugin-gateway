@@ -5,8 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.adapstory.gateway.dto.CredentialBrokerRequest;
 import com.adapstory.gateway.dto.CredentialBrokerResponse;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Signature;
@@ -19,6 +17,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 class CredentialLifecycleForwarderTest {
 
@@ -26,7 +26,8 @@ class CredentialLifecycleForwarderTest {
   void mintsRouteDerivedCapabilityAndForwardsOnlySignedBrokerHeaders() throws Exception {
     Instant now = Instant.parse("2026-09-01T12:00:00Z");
     Clock clock = Clock.fixed(now, ZoneOffset.UTC);
-    ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    ObjectMapper objectMapper =
+        tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     KeyPair executor = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
     KeyPair gateway = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
     Set<String> nonces = new HashSet<>();
@@ -85,7 +86,8 @@ class CredentialLifecycleForwarderTest {
   @Test
   void containmentAttestationCannotAuthorizeGenericApplyRoute() throws Exception {
     Instant now = Instant.parse("2026-09-01T12:00:00Z");
-    ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    ObjectMapper objectMapper =
+        tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     KeyPair executor = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
     KeyPair gateway = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
     CredentialTaskAttestationVerifier verifier =

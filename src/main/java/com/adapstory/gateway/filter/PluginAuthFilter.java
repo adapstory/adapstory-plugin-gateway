@@ -5,7 +5,6 @@ import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.util.GatewayErrorWriter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.proc.SecurityContext;
@@ -33,6 +32,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Фильтр аутентификации плагинов.

@@ -2,11 +2,11 @@ package com.adapstory.gateway.credential;
 
 import com.adapstory.gateway.dto.CredentialBrokerRequest;
 import com.adapstory.gateway.dto.CredentialBrokerResponse;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Supplier;
+import tools.jackson.databind.JsonNode;
 
 public final class CredentialHumanApprovalForwarder {
 

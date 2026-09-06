@@ -19,7 +19,6 @@ import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.GatewayErrorResponse;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.filter.PluginAuthFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
@@ -38,6 +37,7 @@ import org.junit.jupiter.api.parallel.Isolated;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 @Execution(ExecutionMode.SAME_THREAD)
 @Isolated
@@ -109,8 +109,7 @@ class FirstPartyPluginRestRouteControllerTest {
 
   private ObjectMapper objectMapper() {
     if (objectMapper == null) {
-      objectMapper =
-          com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
+      objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     }
     return objectMapper;
   }

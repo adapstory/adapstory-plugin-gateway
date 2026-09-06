@@ -8,8 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.adapstory.gateway.filter.McpGrantJwtAuthenticationFilter;
 import com.adapstory.gateway.filter.PluginAuthFilter;
 import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.Filter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,6 +24,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Runtime integration tests for the generated Plugin Gateway OpenAPI contract.
@@ -38,7 +38,8 @@ import org.springframework.web.context.WebApplicationContext;
 @DisplayName("Plugin Gateway OpenAPI regulation integration")
 class OpenApiRegulationIntegrationTest {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final ObjectMapper MAPPER =
+      tools.jackson.databind.json.JsonMapper.builder().build();
 
   @Autowired private WebApplicationContext webApplicationContext;
 

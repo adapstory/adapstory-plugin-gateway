@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.mcpgrant.McpAccessTokenContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.proc.SecurityContext;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
@@ -29,6 +28,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
+import tools.jackson.databind.ObjectMapper;
 
 @DisplayName("Gateway-audience MCP JWT authentication")
 class McpGrantJwtAuthenticationFilterTest {
@@ -47,7 +47,10 @@ class McpGrantJwtAuthenticationFilterTest {
     chain = mock(FilterChain.class);
     filter =
         new McpGrantJwtAuthenticationFilter(
-            properties(), new ObjectMapper(), new JwtProcessorFactory(), List.of("agent-runtime"));
+            properties(),
+            tools.jackson.databind.json.JsonMapper.builder().build(),
+            new JwtProcessorFactory(),
+            List.of("agent-runtime"));
     ReflectionTestUtils.setField(filter, "jwtProcessor", jwtProcessor);
   }
 

@@ -11,7 +11,6 @@ import com.adapstory.gateway.credential.CredentialTaskCapabilityIssuer;
 import com.adapstory.gateway.credential.FileCredentialExecutorKeyRegistry;
 import com.adapstory.gateway.credential.RedisCredentialNonceStore;
 import com.adapstory.gateway.credential.RestClientCredentialBrokerTransport;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import java.util.UUID;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -20,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 @Configuration
 @EnableConfigurationProperties(CredentialLifecycleProperties.class)

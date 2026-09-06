@@ -10,7 +10,6 @@ import com.adapstory.gateway.cache.PermissionCacheService;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.dto.GatewayErrorResponse;
 import com.adapstory.gateway.dto.PluginSecurityContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.servlet.FilterChain;
 import java.util.List;
@@ -24,6 +23,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Тесты PermissionEnforcementFilter: intersection model (SEC-3.2). JWT claims AND manifest
@@ -39,8 +39,7 @@ class PermissionEnforcementFilterTest {
 
   @BeforeEach
   void setUp() {
-    objectMapper =
-        com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
+    objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     filterChain = mock(FilterChain.class);
     cacheService = mock(PermissionCacheService.class);
     meterRegistry = new SimpleMeterRegistry();

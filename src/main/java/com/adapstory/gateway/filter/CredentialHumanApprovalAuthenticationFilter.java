@@ -4,7 +4,6 @@ import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.credential.CredentialCapabilityRejectedException;
 import com.adapstory.gateway.credential.CredentialHumanApprovalIdentity;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.proc.BadJOSEException;
 import com.nimbusds.jose.proc.SecurityContext;
@@ -26,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 @Component
 public final class CredentialHumanApprovalAuthenticationFilter extends OncePerRequestFilter {

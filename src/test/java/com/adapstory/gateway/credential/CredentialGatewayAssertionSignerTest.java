@@ -2,8 +2,6 @@ package com.adapstory.gateway.credential;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.Signature;
@@ -12,6 +10,8 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Base64;
 import org.junit.jupiter.api.Test;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 class CredentialGatewayAssertionSignerTest {
 
@@ -19,7 +19,8 @@ class CredentialGatewayAssertionSignerTest {
   void signsBrokerCompatibleCanonicalMethodBodyAndCallerBinding() throws Exception {
     Instant now = Instant.parse("2026-09-01T12:00:00Z");
     KeyPair keyPair = KeyPairGenerator.getInstance("Ed25519").generateKeyPair();
-    ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
+    ObjectMapper objectMapper =
+        tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     CredentialGatewayAssertionSigner signer =
         new CredentialGatewayAssertionSigner(
             objectMapper,

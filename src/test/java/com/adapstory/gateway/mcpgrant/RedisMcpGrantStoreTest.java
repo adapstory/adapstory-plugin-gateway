@@ -8,8 +8,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -22,6 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import tools.jackson.databind.ObjectMapper;
 
 @DisplayName("Redis MCP grant store")
 class RedisMcpGrantStoreTest {
@@ -38,7 +37,7 @@ class RedisMcpGrantStoreTest {
     redis = mock(StringRedisTemplate.class);
     values = mock(ValueOperations.class);
     when(redis.opsForValue()).thenReturn(values);
-    objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+    objectMapper = tools.jackson.databind.json.JsonMapper.builder().build();
     meters = new SimpleMeterRegistry();
     store = new RedisMcpGrantStore(redis, objectMapper, meters, "gateway:mcp-grant:v1:");
   }

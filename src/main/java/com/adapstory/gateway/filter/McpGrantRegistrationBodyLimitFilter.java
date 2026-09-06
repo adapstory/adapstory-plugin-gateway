@@ -1,7 +1,6 @@
 package com.adapstory.gateway.filter;
 
 import com.adapstory.gateway.util.GatewayErrorWriter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,6 +10,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 /** Caps grant JSON before Spring/Jackson can allocate an unbounded request object. */
 @Component

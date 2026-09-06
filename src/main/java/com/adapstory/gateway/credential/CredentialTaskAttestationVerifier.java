@@ -1,8 +1,5 @@
 package com.adapstory.gateway.credential;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.PublicKey;
@@ -11,6 +8,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
 
 public final class CredentialTaskAttestationVerifier {
 
@@ -29,8 +29,9 @@ public final class CredentialTaskAttestationVerifier {
       Clock clock) {
     this.objectMapper =
         Objects.requireNonNull(objectMapper, "objectMapper must not be null")
-            .copy()
-            .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+            .rebuild()
+            .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
     this.keyRegistry = Objects.requireNonNull(keyRegistry, "keyRegistry must not be null");
     this.nonceStore = Objects.requireNonNull(nonceStore, "nonceStore must not be null");
     this.clock = Objects.requireNonNull(clock, "clock must not be null");
@@ -64,7 +65,7 @@ public final class CredentialTaskAttestationVerifier {
   private CredentialTaskAttestation parse(byte[] assertion) {
     try {
       return objectMapper.readValue(assertion, CredentialTaskAttestation.class);
-    } catch (IOException exception) {
+    } catch (JacksonException exception) {
       throw new CredentialCapabilityRejectedException("invalid credential task attestation");
     }
   }

@@ -23,7 +23,6 @@ import com.adapstory.gateway.dto.GatewayErrorResponse;
 import com.adapstory.gateway.dto.PluginSecurityContext;
 import com.adapstory.gateway.filter.PluginAuthFilter;
 import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.net.URI;
@@ -41,6 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Тесты McpRouteController: MCP route resolution, proxy dispatch, error handling.
@@ -63,8 +63,7 @@ class McpRouteControllerTest {
     wireMockServer = new WireMockServer(0);
     wireMockServer.start();
 
-    objectMapper =
-        com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
+    objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
     meterRegistry = new SimpleMeterRegistry();
 
     GatewayProperties properties =

@@ -15,7 +15,6 @@ import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.config.JwtProcessorFactory;
 import com.adapstory.gateway.dto.GatewayErrorResponse;
 import com.adapstory.gateway.dto.PluginSecurityContext;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
 import com.nimbusds.jose.proc.SecurityContext;
@@ -39,6 +38,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Tests for PluginAuthFilter: JWT validation, claim extraction, security context propagation,
@@ -70,8 +70,7 @@ class PluginAuthFilterTest {
 
   @BeforeEach
   void setUp() {
-    objectMapper =
-        com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
+    objectMapper = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
 
     properties =
         new GatewayProperties(

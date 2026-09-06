@@ -1,6 +1,6 @@
 package com.adapstory.gateway.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 public record CredentialBrokerRequest(
     String httpMethod,

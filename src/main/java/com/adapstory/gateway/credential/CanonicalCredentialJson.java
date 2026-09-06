@@ -1,10 +1,5 @@
 package com.adapstory.gateway.credential;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -12,10 +7,16 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 public final class CanonicalCredentialJson {
 
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
+  private static final ObjectMapper OBJECT_MAPPER =
+      tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
 
   private CanonicalCredentialJson() {}
 
@@ -23,7 +24,7 @@ public final class CanonicalCredentialJson {
   public static byte[] bytes(JsonNode value) {
     try {
       return OBJECT_MAPPER.writeValueAsBytes(sort(value));
-    } catch (JsonProcessingException exception) {
+    } catch (JacksonException exception) {
       throw new CredentialCapabilityRejectedException("credential request is not canonical JSON");
     }
   }
@@ -52,7 +53,7 @@ public final class CanonicalCredentialJson {
     if (value.isObject()) {
       ObjectNode result = OBJECT_MAPPER.createObjectNode();
       List<String> names = new ArrayList<>();
-      value.fieldNames().forEachRemaining(names::add);
+      value.propertyNames().iterator().forEachRemaining(names::add);
       names.sort(Comparator.naturalOrder());
       for (String name : names) {
         result.set(name, sort(value.get(name)));
