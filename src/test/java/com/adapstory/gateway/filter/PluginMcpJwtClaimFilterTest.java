@@ -13,7 +13,6 @@ import com.adapstory.gateway.mcpgrant.McpGrantService;
 import com.adapstory.gateway.mcpgrant.McpGrantStorageException;
 import com.adapstory.gateway.mcpgrant.ProviderBindingGrant;
 import com.adapstory.gateway.util.DelegatedAuthorityHeaders;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import tools.jackson.databind.ObjectMapper;
 
 @DisplayName("Capability-bound MCP authorization filter")
 class PluginMcpJwtClaimFilterTest {
@@ -43,7 +43,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @BeforeEach
   void setUp() {
-    objectMapper = new ObjectMapper();
+    objectMapper = tools.jackson.databind.json.JsonMapper.builder().build();
     meterRegistry = new SimpleMeterRegistry();
     grantService = mock(McpGrantService.class);
     filter = new PluginMcpJwtClaimFilter(objectMapper, meterRegistry, grantService, 65536);
@@ -232,6 +232,19 @@ class PluginMcpJwtClaimFilterTest {
     var oversizedResponse = new MockHttpServletResponse();
     filter.doFilterInternal(oversized, oversizedResponse, chain);
     assertThat(oversizedResponse.getStatus()).isEqualTo(413);
+  }
+
+  @Test
+  @DisplayName("returns bad request for invalid JSON syntax without proxying")
+  void should_reject_invalid_json_syntax() throws Exception {
+    var request = request("{\"jsonrpc\":");
+    var response = new MockHttpServletResponse();
+    when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization()));
+
+    filter.doFilterInternal(request, response, chain);
+
+    assertThat(response.getStatus()).isEqualTo(400);
+    verifyNoInteractions(chain);
   }
 
   @Test

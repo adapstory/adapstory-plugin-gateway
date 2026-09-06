@@ -2,13 +2,13 @@ package com.adapstory.gateway.credential;
 
 import com.adapstory.gateway.dto.CredentialBrokerRequest;
 import com.adapstory.gateway.dto.CredentialBrokerResponse;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.Objects;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 public final class RestClientCredentialBrokerTransport implements CredentialBrokerTransport {
 
@@ -42,7 +42,7 @@ public final class RestClientCredentialBrokerTransport implements CredentialBrok
                     ? objectMapper.createObjectNode()
                     : objectMapper.readTree(responseBytes);
             return new CredentialBrokerResponse(response.getStatusCode().value(), body);
-          } catch (IOException exception) {
+          } catch (IOException | tools.jackson.core.JacksonException exception) {
             throw new IllegalStateException("Credential Broker returned invalid JSON", exception);
           }
         });

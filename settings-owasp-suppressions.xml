@@ -5,7 +5,7 @@
     <!-- Standalone reactor false-positive surface. Keep present even when empty. -->
     <!--
         Context: Dependency-Check maps OpenTelemetry Go/.NET/C++ advisories onto pinned Java artifacts.
-        Decision: suppress only the exact Java proto and semantic-convention PURLs and listed CVEs.
+        Decision: suppress only the exact Java proto PURL and listed CVEs.
         Reason: the vulnerable implementations are not present in these Java jars.
         Revisit: remove when Dependency-Check/NVD component matching no longer reports them.
     -->
@@ -16,15 +16,6 @@
         <cve>CVE-2026-40894</cve>
         <cve>CVE-2026-41178</cve>
         <cve>CVE-2026-44967</cve>
-    </suppress>
-    <suppress>
-        <notes>FP: category=language-mismatch; rationale=dependency-check maps OpenTelemetry Go advisories onto the pinned Java opentelemetry-semconv artifact; these CVEs do not apply to this Java semconv jar.</notes>
-        <packageUrl regex="true">^pkg:maven/io\.opentelemetry\.semconv/opentelemetry-semconv@1\.37\.0$</packageUrl>
-        <cve>CVE-2026-24051</cve>
-        <cve>CVE-2026-29181</cve>
-        <cve>CVE-2026-39882</cve>
-        <cve>CVE-2026-39883</cve>
-        <cve>CVE-2026-41178</cve>
     </suppress>
     <!--
         Context: CVE-2026-53914 affects Kotlin build-cache/compiler tooling.

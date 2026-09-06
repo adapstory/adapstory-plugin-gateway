@@ -7,9 +7,6 @@ import com.adapstory.gateway.mcpgrant.McpGrantStorageException;
 import com.adapstory.gateway.util.DelegatedAuthorityHeaders;
 import com.adapstory.gateway.util.GatewayErrorWriter;
 import com.adapstory.gateway.util.McpHttpHeaders;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -25,6 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /** Enforces exact route and tool bindings from the shared token-bound MCP grant. */
 @Component
@@ -66,7 +65,10 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
       @Value("${gateway.mcp.grants.maximum-request-body-bytes:65536}") int maximumBodyBytes) {
     this.objectMapper = objectMapper;
     this.strictObjectMapper =
-        objectMapper.copy().enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+        objectMapper
+            .rebuild()
+            .enable(tools.jackson.core.StreamReadFeature.STRICT_DUPLICATE_DETECTION)
+            .build();
     this.meterRegistry = meterRegistry;
     this.grantService = grantService;
     if (maximumBodyBytes <= 0) {
@@ -152,7 +154,7 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
     JsonNode root;
     try {
       root = strictObjectMapper.readTree(body);
-    } catch (IOException exception) {
+    } catch (tools.jackson.core.JacksonException exception) {
       deny(response, request, 400, "Bad Request", "Invalid MCP JSON-RPC body", "invalid_body");
       return;
     }
@@ -288,7 +290,7 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
   }
 
   private static boolean hasOnlyFields(JsonNode node, Set<String> allowed) {
-    var names = node.fieldNames();
+    var names = node.propertyNames().iterator();
     while (names.hasNext()) {
       if (!allowed.contains(names.next())) {
         return false;

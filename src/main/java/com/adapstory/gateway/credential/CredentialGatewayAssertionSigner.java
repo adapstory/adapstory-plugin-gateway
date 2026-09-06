@@ -1,7 +1,5 @@
 package com.adapstory.gateway.credential;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.Signature;
@@ -10,6 +8,8 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.function.Supplier;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 public final class CredentialGatewayAssertionSigner {
 
@@ -65,7 +65,7 @@ public final class CredentialGatewayAssertionSigner {
       return new SignedGatewayAssertion(
           Base64.getEncoder().encodeToString(payload),
           Base64.getEncoder().encodeToString(signer.sign()));
-    } catch (GeneralSecurityException | java.io.IOException exception) {
+    } catch (GeneralSecurityException | tools.jackson.core.JacksonException exception) {
       throw new IllegalStateException("Gateway assertion signing failed", exception);
     }
   }
