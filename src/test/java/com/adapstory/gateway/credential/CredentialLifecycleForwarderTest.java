@@ -77,9 +77,9 @@ class CredentialLifecycleForwarderTest {
     assertThat(captured.get().signature()).isNotBlank();
     JsonNode forwardedAssertion =
         objectMapper.readTree(Base64.getDecoder().decode(captured.get().assertion()));
-    assertThat(forwardedAssertion.path("capability").asText())
+    assertThat(forwardedAssertion.path("capability").asString())
         .isEqualTo("credential.lifecycle.plan");
-    assertThat(forwardedAssertion.path("body_digest").asText())
+    assertThat(forwardedAssertion.path("body_digest").asString())
         .isEqualTo(CanonicalCredentialJson.sha256(body));
   }
 

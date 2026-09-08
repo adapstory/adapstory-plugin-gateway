@@ -161,13 +161,13 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
     if (root == null
         || !root.isObject()
         || !hasOnlyFields(root, ROOT_FIELDS)
-        || !"2.0".equals(root.path("jsonrpc").asText(null))
-        || !root.path("method").isTextual()) {
+        || !"2.0".equals(root.path("jsonrpc").asString(null))
+        || !root.path("method").isString()) {
       deny(response, request, 400, "Bad Request", "Invalid MCP JSON-RPC body", "invalid_body");
       return;
     }
 
-    String method = root.path("method").textValue();
+    String method = root.path("method").stringValue();
     if (!hasCanonicalEnvelope(root, method) || !hasCanonicalParams(method, root.path("params"))) {
       deny(response, request, 400, "Bad Request", "Invalid MCP JSON-RPC body", "invalid_body");
       return;
@@ -219,10 +219,10 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
     if (!"tools/call".equals(method)) {
       return "method_not_allowed";
     }
-    if (!params.isObject() || !params.path("name").isTextual()) {
+    if (!params.isObject() || !params.path("name").isString()) {
       return "invalid_tool_call";
     }
-    return authorization.allowsToolCall(slug, params.path("name").textValue())
+    return authorization.allowsToolCall(slug, params.path("name").stringValue())
         ? null
         : "tool_not_bound";
   }
@@ -231,8 +231,10 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
     if ("initialize".equals(method)) {
       return params.isObject()
           && hasOnlyFields(params, INITIALIZE_PARAM_FIELDS)
-          && params.path("protocolVersion").isTextual()
-          && PROTOCOL_VERSION_PATTERN.matcher(params.path("protocolVersion").textValue()).matches()
+          && params.path("protocolVersion").isString()
+          && PROTOCOL_VERSION_PATTERN
+              .matcher(params.path("protocolVersion").stringValue())
+              .matches()
           && params.path("capabilities").isObject()
           && params.path("clientInfo").isObject()
           && (!params.has("_meta") || params.path("_meta").isObject());
@@ -241,7 +243,7 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
       return params.isObject()
           && hasOnlyFields(params, CANCELLATION_PARAM_FIELDS)
           && hasCanonicalId(params.path("requestId"))
-          && (!params.has("reason") || params.path("reason").isTextual())
+          && (!params.has("reason") || params.path("reason").isString())
           && (!params.has("_meta") || params.path("_meta").isObject());
     }
     if (ROUTE_SCOPED_METHODS.contains(method)) {
@@ -256,7 +258,7 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
           || params.isNull()
           || (params.isObject()
               && hasOnlyFields(params, LIST_PARAM_FIELDS)
-              && (!params.has("cursor") || params.path("cursor").isTextual())
+              && (!params.has("cursor") || params.path("cursor").isString())
               && (!params.has("_meta") || params.path("_meta").isObject()));
     }
     if (!"tools/call".equals(method)) {
@@ -264,7 +266,7 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
     }
     return params.isObject()
         && hasOnlyFields(params, CALL_PARAM_FIELDS)
-        && params.path("name").isTextual()
+        && params.path("name").isString()
         && (!params.has("arguments") || params.path("arguments").isObject())
         && (!params.has("_meta") || params.path("_meta").isObject());
   }
@@ -280,10 +282,10 @@ public final class PluginMcpJwtClaimFilter extends OncePerRequestFilter {
     if (id.isIntegralNumber()) {
       return true;
     }
-    if (!id.isTextual()) {
+    if (!id.isString()) {
       return false;
     }
-    String value = id.textValue();
+    String value = id.stringValue();
     return !value.isBlank()
         && value.length() <= 256
         && value.chars().noneMatch(Character::isISOControl);

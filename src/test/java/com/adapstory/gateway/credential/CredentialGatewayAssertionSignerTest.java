@@ -48,14 +48,14 @@ class CredentialGatewayAssertionSignerTest {
     verifier.update(payload);
     assertThat(verifier.verify(Base64.getDecoder().decode(signed.signature()))).isTrue();
     JsonNode assertion = objectMapper.readTree(payload);
-    assertThat(assertion.path("version").asText()).isEqualTo("CredentialGatewayAssertion/v1");
-    assertThat(assertion.path("method").asText()).isEqualTo("POST /v1/plans");
-    assertThat(assertion.path("body_digest").asText())
+    assertThat(assertion.path("version").asString()).isEqualTo("CredentialGatewayAssertion/v1");
+    assertThat(assertion.path("method").asString()).isEqualTo("POST /v1/plans");
+    assertThat(assertion.path("body_digest").asString())
         .isEqualTo(CanonicalCredentialJson.sha256(body));
-    assertThat(assertion.path("audience").asText()).isEqualTo("credential-broker");
-    assertThat(assertion.path("capability").asText()).isEqualTo("credential.lifecycle.plan");
-    assertThat(assertion.path("task_id").asText()).isEqualTo("adapstory-ymi3c");
-    assertThat(assertion.path("agent_instance_id").asText()).isEqualTo("codex-thread:agent");
+    assertThat(assertion.path("audience").asString()).isEqualTo("credential-broker");
+    assertThat(assertion.path("capability").asString()).isEqualTo("credential.lifecycle.plan");
+    assertThat(assertion.path("task_id").asString()).isEqualTo("adapstory-ymi3c");
+    assertThat(assertion.path("agent_instance_id").asString()).isEqualTo("codex-thread:agent");
     assertThat(assertion.path("expires_at").asLong() - assertion.path("issued_at").asLong())
         .isEqualTo(60);
   }

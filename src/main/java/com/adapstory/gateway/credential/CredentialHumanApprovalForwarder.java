@@ -37,7 +37,7 @@ public final class CredentialHumanApprovalForwarder {
             CredentialCapability.APPLY,
             "human-approval:" + planRef,
             "human:" + identity.subject(),
-            body.path("plan_digest").asText(),
+            body.path("plan_digest").asString(),
             now,
             now.plusSeconds(60));
     SignedGatewayAssertion assertion =

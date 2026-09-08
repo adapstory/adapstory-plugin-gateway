@@ -22,7 +22,7 @@ public class McpGrantExceptionHandler {
     HttpStatus status =
         switch (exception.reason()) {
           case CONFLICT -> HttpStatus.CONFLICT;
-          case INVALID -> HttpStatus.UNPROCESSABLE_ENTITY;
+          case INVALID -> HttpStatus.UNPROCESSABLE_CONTENT;
           case UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
         };
     return error(
@@ -62,7 +62,7 @@ public class McpGrantExceptionHandler {
   public ResponseEntity<GatewayErrorResponse> handleInvalidRequest(
       Exception exception, HttpServletRequest request) {
     return error(
-        HttpStatus.UNPROCESSABLE_ENTITY,
+        HttpStatus.UNPROCESSABLE_CONTENT,
         "MCP grant registration payload is invalid",
         "INVALID_BINDINGS",
         request);

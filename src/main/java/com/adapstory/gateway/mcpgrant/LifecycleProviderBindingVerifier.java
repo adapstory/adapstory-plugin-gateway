@@ -60,7 +60,7 @@ final class LifecycleProviderBindingVerifier implements ProviderBindingVerifier 
         throw new ProviderBindingVerificationException(
             ProviderBindingVerificationException.Reason.CONFLICT);
       }
-      if (status == HttpStatus.UNPROCESSABLE_ENTITY.value()) {
+      if (status == HttpStatus.UNPROCESSABLE_CONTENT.value()) {
         throw new ProviderBindingVerificationException(
             ProviderBindingVerificationException.Reason.INVALID);
       }

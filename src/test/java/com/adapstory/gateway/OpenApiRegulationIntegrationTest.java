@@ -61,9 +61,9 @@ class OpenApiRegulationIntegrationTest {
     JsonNode info = root.get("info");
 
     assertThat(info).isNotNull();
-    assertThat(info.get("version").textValue()).isEqualTo("2026.07.1");
-    assertThat(info.get("x-adapstory-api-major").textValue()).isEqualTo("v1");
-    assertThat(info.get("x-adapstory-api-audience").textValue()).isEqualTo("internal");
+    assertThat(info.get("version").stringValue()).isEqualTo("2026.07.1");
+    assertThat(info.get("x-adapstory-api-major").stringValue()).isEqualTo("v1");
+    assertThat(info.get("x-adapstory-api-audience").stringValue()).isEqualTo("internal");
     assertThat(info.get("x-adapstory-ai-ready").asBoolean()).isTrue();
     assertThat(root.get("paths").has("/internal/plugins/v1/{slug}/mcp")).isTrue();
     assertThat(root.get("paths").has("/internal/mcp-grants/v1")).isTrue();
@@ -73,7 +73,7 @@ class OpenApiRegulationIntegrationTest {
     JsonNode registration = schemas.path("McpGrantRegistrationRequest");
     assertThat(registration.path("additionalProperties").asBoolean()).isFalse();
     assertThat(registration.path("required").size()).isEqualTo(1);
-    assertThat(registration.path("required").get(0).textValue()).isEqualTo("providerBindings");
+    assertThat(registration.path("required").get(0).stringValue()).isEqualTo("providerBindings");
     JsonNode bindings = registration.path("properties").path("providerBindings");
     assertThat(bindings.path("minItems").intValue()).isEqualTo(1);
     assertThat(bindings.path("maxItems").intValue()).isEqualTo(32);
@@ -81,9 +81,9 @@ class OpenApiRegulationIntegrationTest {
     JsonNode binding = schemas.path("ProviderBindingGrantRequest");
     assertThat(binding.path("additionalProperties").asBoolean()).isFalse();
     assertThat(binding.path("required").size()).isEqualTo(12);
-    assertThat(binding.path("properties").path("capability").path("pattern").textValue())
+    assertThat(binding.path("properties").path("capability").path("pattern").stringValue())
         .isNotBlank();
-    assertThat(binding.path("properties").path("inputSchemaDigest").path("pattern").textValue())
+    assertThat(binding.path("properties").path("inputSchemaDigest").path("pattern").stringValue())
         .isEqualTo("^sha256:[0-9a-f]{64}$");
     assertThat(binding.path("properties").path("description").path("maxLength").intValue())
         .isEqualTo(4096);
@@ -91,8 +91,8 @@ class OpenApiRegulationIntegrationTest {
         .isEqualTo(20);
 
     JsonNode streamingResponseBody = schemas.path("StreamingResponseBody");
-    assertThat(streamingResponseBody.path("type").textValue()).isEqualTo("string");
-    assertThat(streamingResponseBody.path("description").textValue()).isNotBlank();
+    assertThat(streamingResponseBody.path("type").stringValue()).isEqualTo("string");
+    assertThat(streamingResponseBody.path("description").stringValue()).isNotBlank();
 
     JsonNode grantOperation = root.path("paths").path("/internal/mcp-grants/v1").path("post");
     assertThat(grantOperation.path("security").get(0).has("mcpGatewayBearer")).isTrue();
@@ -100,7 +100,7 @@ class OpenApiRegulationIntegrationTest {
     var parameterNames =
         java.util.stream.StreamSupport.stream(
                 grantOperation.path("parameters").spliterator(), false)
-            .map(parameter -> parameter.path("name").textValue())
+            .map(parameter -> parameter.path("name").stringValue())
             .collect(java.util.stream.Collectors.toSet());
     assertThat(parameterNames).contains("X-Tenant-Id", "X-User-Id", "X-Adapstory-User-Id");
   }

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
@@ -34,7 +35,7 @@ class LifecycleProviderBindingVerifierTest {
 
   @Test
   @DisplayName("sends all canonical bindings in one tenant-scoped verification request")
-  void should_verify_complete_binding_set_in_one_call() {
+  void shouldVerifyCompleteBindingSetInOneCall() {
     server
         .expect(
             requestTo("http://plugin-lifecycle:8080/api/bc-02/plugin-lifecycle/v1/tools/verify"))
@@ -47,22 +48,22 @@ class LifecycleProviderBindingVerifierTest {
             content()
                 .json(
                     """
-                    {"providerBindings":[{
-                      "pluginSlug":"ai-methodist",
-                      "toolName":"search_methodology_rag",
-                      "capability":"knowledge.source.search",
-                      "toolVersion":"2026.07.1",
-                      "inputSchemaVersion":"v1",
-                      "inputSchemaDigest":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-                      "authPolicy":"tenant-service-jwt",
-                      "trustLevel":"CORE",
-                      "tenantVisibility":"tenant",
-                      "status":"available",
-                      "lastValidatedAt":"2026-07-16T12:00:00Z",
-                      "description":"Search the tenant methodology knowledge base. Use only for grounded sources."
-                    }]}
-                    """,
-                    true))
+            {"providerBindings":[{
+              "pluginSlug":"ai-methodist",
+              "toolName":"search_methodology_rag",
+              "capability":"knowledge.source.search",
+              "toolVersion":"2026.07.1",
+              "inputSchemaVersion":"v1",
+              "inputSchemaDigest":"sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+              "authPolicy":"tenant-service-jwt",
+              "trustLevel":"CORE",
+              "tenantVisibility":"tenant",
+              "status":"available",
+              "lastValidatedAt":"2026-07-16T12:00:00Z",
+              "description":"Search the tenant methodology knowledge base. Use only for grounded sources."
+            }]}
+            """,
+                    JsonCompareMode.STRICT))
         .andRespond(withStatus(HttpStatus.NO_CONTENT));
 
     assertThatCode(() -> verifier.verify("tenant-123", "actor-456", List.of(binding())))
@@ -72,7 +73,7 @@ class LifecycleProviderBindingVerifierTest {
 
   @Test
   @DisplayName("maps Lifecycle ambiguity, drift, and unavailability to typed fail-closed reasons")
-  void should_map_typed_lifecycle_failures() {
+  void shouldMapTypedLifecycleFailures() {
     expectStatus(HttpStatus.CONFLICT);
     assertThatThrownBy(() -> verifier.verify("tenant-123", "actor-456", List.of(binding())))
         .isInstanceOfSatisfying(
@@ -86,7 +87,7 @@ class LifecycleProviderBindingVerifierTest {
         RestClient.builder().baseUrl("http://plugin-lifecycle:8080");
     server = MockRestServiceServer.bindTo(invalidBuilder).build();
     verifier = new LifecycleProviderBindingVerifier(invalidBuilder.build());
-    expectStatus(HttpStatus.UNPROCESSABLE_ENTITY);
+    expectStatus(HttpStatus.UNPROCESSABLE_CONTENT);
     assertThatThrownBy(() -> verifier.verify("tenant-123", "actor-456", List.of(binding())))
         .isInstanceOfSatisfying(
             ProviderBindingVerificationException.class,
