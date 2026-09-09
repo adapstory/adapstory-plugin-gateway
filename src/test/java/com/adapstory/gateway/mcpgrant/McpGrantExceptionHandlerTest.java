@@ -15,7 +15,7 @@ class McpGrantExceptionHandlerTest {
 
   @Test
   @DisplayName("maps provider ambiguity, metadata drift, and dependency loss distinctly")
-  void should_map_lifecycle_verification_reasons() {
+  void shouldMapLifecycleVerificationReasons() {
     assertThat(
             handler
                 .handleProviderVerification(
@@ -47,7 +47,7 @@ class McpGrantExceptionHandlerTest {
 
   @Test
   @DisplayName("maps identity, token validity, and token rebinding without leaking details")
-  void should_map_registration_rejections() {
+  void shouldMapRegistrationRejections() {
     assertThat(
             handler
                 .handleRegistrationRejection(
@@ -77,7 +77,7 @@ class McpGrantExceptionHandlerTest {
 
   @Test
   @DisplayName("maps Redis loss to 503 and malformed registration JSON to 422")
-  void should_map_storage_and_payload_failures() {
+  void shouldMapStorageAndPayloadFailures() {
     assertThat(
             handler
                 .handleStorage(new McpGrantStorageException("redis secret"), request)

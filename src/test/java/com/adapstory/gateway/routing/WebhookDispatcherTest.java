@@ -63,7 +63,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("Dispatch returns 202 Accepted immediately (async)")
-  void should_return202_when_dispatchWebhook() {
+  void shouldReturn202WhenDispatchWebhook() {
     // Arrange
     wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(200)));
 
@@ -83,7 +83,7 @@ class WebhookDispatcherTest {
     "200, 1", "400, 1", "500, 3",
   })
   @DisplayName("Retry policy follows HTTP status contract")
-  void should_apply_retry_policy_when_executeWithRetry(int statusCode, int expectedAttempts) {
+  void shouldApplyRetryPolicyWhenExecuteWithRetry(int statusCode, int expectedAttempts) {
     // Arrange
     wireMockServer.stubFor(post("/webhook").willReturn(aResponse().withStatus(statusCode)));
 
@@ -100,7 +100,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("Retry on 5xx — succeeds on final configured attempt")
-  void should_retryOn5xx_until_success_when_executeWithRetry() {
+  void shouldRetryOn5xxUntilSuccessWhenExecuteWithRetry() {
     // Arrange — first 2 calls fail with 500, 3rd succeeds
     wireMockServer.stubFor(
         post("/webhook")
@@ -135,7 +135,7 @@ class WebhookDispatcherTest {
 
   @Test
   @DisplayName("Plugin pod endpoint resolution follows naming convention")
-  void should_plugin_pod_endpoint_resolution_when_invoked() {
+  void shouldPluginPodEndpointResolutionWhenInvoked() {
     GatewayProperties properties =
         new GatewayProperties(
             new GatewayProperties.JwtConfig(

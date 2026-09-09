@@ -11,7 +11,7 @@ class PermissionCacheInvalidationListenerKafkaContractTest {
 
   @Test
   @DisplayName("permission revocation listener auto-startup is configurable")
-  void should_makePermissionRevocationListenerAutoStartupConfigurable() throws Exception {
+  void shouldMakePermissionRevocationListenerAutoStartupConfigurable() throws Exception {
     Method method =
         PermissionCacheInvalidationListener.class.getDeclaredMethod(
             "onPluginPermissionsRevoked", String.class, String.class, String.class);

@@ -35,13 +35,13 @@ class PluginGatewayArchitectureTest {
   // ── Shared starter rules ──────────────────────────────────────────────
 
   @ArchTest
-  static final ArchRule all_endpoints_have_security_annotation =
+  static final ArchRule ALL_ENDPOINTS_HAVE_SECURITY_ANNOTATION =
       allEndpointMethodsMustHaveSecurityAnnotation(BASE);
 
   // ── No field injection ────────────────────────────────────────────────
 
   @ArchTest
-  static final ArchRule no_field_injection =
+  static final ArchRule NO_FIELD_INJECTION =
       fields()
           .that()
           .areDeclaredInClassesThat()
@@ -53,7 +53,7 @@ class PluginGatewayArchitectureTest {
   // ── Constructor dependency limit (SRP-01) ─────────────────────────────
 
   @ArchTest
-  static final ArchRule max_7_constructor_dependencies =
+  static final ArchRule MAX_7_CONSTRUCTOR_DEPENDENCIES =
       classes()
           .that()
           .resideInAPackage(BASE + "..")
@@ -70,7 +70,7 @@ class PluginGatewayArchitectureTest {
   // ── Package residency rules ───────────────────────────────────────────
 
   @ArchTest
-  static final ArchRule config_classes_in_config_package =
+  static final ArchRule CONFIG_CLASSES_IN_CONFIG_PACKAGE =
       classes()
           .that()
           .areAnnotatedWith(Configuration.class)
@@ -82,7 +82,7 @@ class PluginGatewayArchitectureTest {
           .as("@Configuration classes must reside in the config package");
 
   @ArchTest
-  static final ArchRule filters_in_filter_package =
+  static final ArchRule FILTERS_IN_FILTER_PACKAGE =
       classes()
           .that()
           .haveSimpleNameEndingWith("Filter")
@@ -96,7 +96,7 @@ class PluginGatewayArchitectureTest {
           .as("Filter classes must reside in the filter package");
 
   @ArchTest
-  static final ArchRule dtos_in_dto_package =
+  static final ArchRule DTOS_IN_DTO_PACKAGE =
       classes()
           .that()
           .resideInAPackage(BASE + "..")
@@ -111,7 +111,7 @@ class PluginGatewayArchitectureTest {
           .as("DTO/Response/Request classes must reside in the dto package");
 
   @ArchTest
-  static final ArchRule events_in_event_package =
+  static final ArchRule EVENTS_IN_EVENT_PACKAGE =
       classes()
           .that()
           .haveSimpleNameEndingWith("Event")
@@ -127,7 +127,7 @@ class PluginGatewayArchitectureTest {
   // ── Layer isolation ───────────────────────────────────────────────────
 
   @ArchTest
-  static final ArchRule no_circular_dependencies_between_packages =
+  static final ArchRule NO_CIRCULAR_DEPENDENCIES_BETWEEN_PACKAGES =
       slices()
           .matching(BASE + ".(*)..")
           .should()
@@ -141,7 +141,7 @@ class PluginGatewayArchitectureTest {
           .as("Packages under " + BASE + " must not have circular dependencies");
 
   @ArchTest
-  static final ArchRule routing_does_not_depend_on_filter =
+  static final ArchRule ROUTING_DOES_NOT_DEPEND_ON_FILTER =
       noClasses()
           .that()
           .resideInAPackage(BASE + ".routing..")

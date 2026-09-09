@@ -84,7 +84,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should return permissions on successful BC-02 response")
-    void should_return_permissions_on_success() {
+    void shouldReturnPermissionsOnSuccess() {
       // Arrange
       mockServer
           .expect(requestTo(PERMISSIONS_URI))
@@ -103,7 +103,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should return empty list when plugin has no permissions")
-    void should_return_empty_list_when_no_permissions() {
+    void shouldReturnEmptyListWhenNoPermissions() {
       // Arrange
       mockServer
           .expect(requestTo(PERMISSIONS_URI))
@@ -120,7 +120,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should return empty Optional when BC-02 returns server error")
-    void should_return_empty_on_server_error() {
+    void shouldReturnEmptyOnServerError() {
       // Arrange
       mockServer.expect(requestTo(PERMISSIONS_URI)).andRespond(withServerError());
 
@@ -134,7 +134,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should return empty Optional when circuit breaker is open")
-    void should_return_empty_when_circuit_breaker_open() {
+    void shouldReturnEmptyWhenCircuitBreakerOpen() {
       // Arrange — trigger failures to open CB (minimumNumberOfCalls=2, threshold=50%)
       mockServer.expect(requestTo(PERMISSIONS_URI)).andRespond(withServerError());
       mockServer.expect(requestTo(PERMISSIONS_URI)).andRespond(withServerError());
@@ -151,7 +151,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should return empty Optional when BC-02 returns 404")
-    void should_return_empty_on_not_found() {
+    void shouldReturnEmptyOnNotFound() {
       // Arrange
       mockServer.expect(requestTo(PERMISSIONS_URI)).andRespond(withResourceNotFound());
 
@@ -165,7 +165,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should return empty list when BC-02 returns null data")
-    void should_return_empty_list_when_null_data() {
+    void shouldReturnEmptyListWhenNullData() {
       // Arrange
       String responseNullData =
           """
@@ -190,7 +190,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should throw IllegalArgumentException for null pluginId")
-    void should_throw_on_null_pluginId() {
+    void shouldThrowOnNullPluginId() {
       assertThatThrownBy(() -> client.fetchPermissions(null))
           .isInstanceOf(NullPointerException.class)
           .hasMessageContaining("pluginId must not be null");
@@ -198,7 +198,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should throw IllegalArgumentException for blank pluginId")
-    void should_throw_on_blank_pluginId() {
+    void shouldThrowOnBlankPluginId() {
       assertThatThrownBy(() -> client.fetchPermissions(""))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("pluginId must not be blank");
@@ -206,7 +206,7 @@ class PermissionFetchClientTest {
 
     @Test
     @DisplayName("should throw IllegalArgumentException for invalid pluginId format")
-    void should_throw_on_invalid_pluginId_format() {
+    void shouldThrowOnInvalidPluginIdFormat() {
       assertThatThrownBy(() -> client.fetchPermissions("../../etc/passwd"))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("pluginId format invalid");

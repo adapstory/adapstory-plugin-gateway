@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 class SecurityConfigTest {
 
   @Test
-  void failClosedUserDetailsService_disablesPasswordBasedUsers() {
+  void failClosedUserDetailsServiceDisablesPasswordBasedUsers() {
     var userDetailsService = new SecurityConfig().failClosedUserDetailsService();
     var userDetails = userDetailsService.loadUserByUsername("user");
 

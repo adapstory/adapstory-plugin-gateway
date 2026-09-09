@@ -129,7 +129,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should proxy POST /internal/plugins/v1/{slug}/mcp to plugin backend /mcp")
-    void should_proxyMcp_when_validSlug() throws Exception {
+    void shouldProxyMcpWhenValidSlug() throws Exception {
       // Arrange
       wireMockServer.stubFor(
           post(urlEqualTo("/mcp"))
@@ -171,7 +171,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should forward X-Tenant-Id header to plugin backend")
-    void should_forwardTenantId_when_proxying() throws Exception {
+    void shouldForwardTenantIdWhenProxying() throws Exception {
       // Arrange
       wireMockServer.stubFor(
           post(urlEqualTo("/mcp")).willReturn(aResponse().withStatus(200).withBody("{}")));
@@ -210,7 +210,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should not forward Authorization header to plugin backend")
-    void should_notForwardAuthHeader_when_proxying() throws Exception {
+    void shouldNotForwardAuthHeaderWhenProxying() throws Exception {
       // Arrange
       wireMockServer.stubFor(
           post(urlEqualTo("/mcp")).willReturn(aResponse().withStatus(200).withBody("{}")));
@@ -245,7 +245,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("returns typed status and bounded metric for session-routing failures")
-    void should_map_session_routing_failure_without_provider_cardinality() throws Exception {
+    void shouldMapSessionRoutingFailureWithoutProviderCardinality() throws Exception {
       McpProxyService proxyService = mock(McpProxyService.class);
       when(proxyService.resolvePluginMcpUrl("course-builder"))
           .thenReturn("http://course-builder/mcp");
@@ -282,7 +282,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should return 400 when slug contains invalid characters")
-    void should_return400_when_invalidSlug() throws Exception {
+    void shouldReturn400WhenInvalidSlug() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("POST", "/internal/plugins/v1/../etc/passwd/mcp");
@@ -304,7 +304,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should return 502 when plugin backend is unavailable")
-    void should_return502_when_backendUnavailable() throws Exception {
+    void shouldReturn502WhenBackendUnavailable() throws Exception {
       // Arrange — stop WireMock to simulate down backend
       wireMockServer.stop();
 
@@ -338,7 +338,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should forward 4xx from plugin backend")
-    void should_forward4xx_when_backendReturns4xx() throws Exception {
+    void shouldForward4xxWhenBackendReturns4xx() throws Exception {
       // Arrange
       wireMockServer.stubFor(
           post(urlEqualTo("/mcp"))
@@ -378,7 +378,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should proxy GET SSE on the canonical MCP endpoint")
-    void should_proxyGetSse_withSessionAndResumeHeaders() throws Exception {
+    void shouldProxyGetSseWithSessionAndResumeHeaders() throws Exception {
       wireMockServer.stubFor(
           get(urlEqualTo("/mcp"))
               .willReturn(
@@ -419,7 +419,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should proxy DELETE without a request body on the canonical MCP endpoint")
-    void should_proxyDelete_withoutBody() throws Exception {
+    void shouldProxyDeleteWithoutBody() throws Exception {
       wireMockServer.stubFor(
           delete(urlEqualTo("/mcp"))
               .willReturn(aResponse().withStatus(204).withHeader("Mcp-Session-Id", "session-123")));
@@ -442,7 +442,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should preserve session and protocol headers on POST responses")
-    void should_preserveMcpResponseHeaders_onPost() throws Exception {
+    void shouldPreserveMcpResponseHeadersOnPost() throws Exception {
       wireMockServer.stubFor(
           post(urlEqualTo("/mcp"))
               .willReturn(
@@ -468,7 +468,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should return 404 for the removed unversioned MCP route")
-    void should_return404_forRemovedUnversionedRoute() throws Exception {
+    void shouldReturn404ForRemovedUnversionedRoute() throws Exception {
       McpProxyService proxyService = mock(McpProxyService.class);
       McpRouteController routeController =
           new McpRouteController(proxyService, objectMapper, meterRegistry);
@@ -490,7 +490,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should resolve plugin URL from template")
-    void should_resolveUrl_when_validSlug() {
+    void shouldResolveUrlWhenValidSlug() {
       String url = controller.resolvePluginMcpUrl("course-builder");
       assertThat(url)
           .isEqualTo(
@@ -499,7 +499,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should resolve URL with simple slug")
-    void should_resolveUrl_when_simpleSlug() {
+    void shouldResolveUrlWhenSimpleSlug() {
       String url = controller.resolvePluginMcpUrl("quiz");
       assertThat(url)
           .isEqualTo("http://plugin-quiz-mcp-headless.plugins.svc.cluster.local:8000/mcp");
@@ -507,7 +507,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should resolve URL from configured plugin route before template fallback")
-    void should_resolveUrl_when_configuredPluginRouteExists() {
+    void shouldResolveUrlWhenConfiguredPluginRouteExists() {
       String url = controller.resolvePluginMcpUrl("dify-plugin");
       assertThat(url).isEqualTo("http://dev-dify-plugin-mcp-headless.env-dev.svc:8000/mcp");
     }
@@ -519,7 +519,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should extract tools/list as mcp_method")
-    void should_extractToolsList() {
+    void shouldExtractToolsList() {
       String method =
           McpRouteController.extractMcpMethod(
               "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}");
@@ -528,7 +528,7 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should extract tools/call as mcp_method")
-    void should_extractToolsCall() {
+    void shouldExtractToolsCall() {
       String method =
           McpRouteController.extractMcpMethod(
               "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{}}");
@@ -537,14 +537,14 @@ class McpRouteControllerTest {
 
     @Test
     @DisplayName("should return 'unknown' for invalid JSON")
-    void should_returnUnknown_when_invalidJson() {
+    void shouldReturnUnknownWhenInvalidJson() {
       String method = McpRouteController.extractMcpMethod("not json");
       assertThat(method).isEqualTo("unknown");
     }
 
     @Test
     @DisplayName("should return 'unknown' for missing method field")
-    void should_returnUnknown_when_noMethodField() {
+    void shouldReturnUnknownWhenNoMethodField() {
       String method = McpRouteController.extractMcpMethod("{\"jsonrpc\":\"2.0\",\"id\":1}");
       assertThat(method).isEqualTo("unknown");
     }

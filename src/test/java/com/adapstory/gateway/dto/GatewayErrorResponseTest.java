@@ -16,7 +16,7 @@ class GatewayErrorResponseTest {
 
   @Test
   @DisplayName("should create response with all fields")
-  void should_createResponse_withAllFields() {
+  void shouldCreateResponseWithAllFields() {
     // Act
     var response =
         new GatewayErrorResponse(
@@ -40,7 +40,7 @@ class GatewayErrorResponseTest {
 
   @Test
   @DisplayName("should handle empty details map")
-  void should_handleEmptyDetails() {
+  void shouldHandleEmptyDetails() {
     // Act
     var response =
         new GatewayErrorResponse(

@@ -16,7 +16,7 @@ class McpGrantAuthorizationTest {
 
   @Test
   @DisplayName("authorizes only the exact registered route and tool")
-  void should_authorize_only_exact_binding() {
+  void shouldAuthorizeOnlyExactBinding() {
     var grant =
         new McpGrantAuthorization(
             "00000000-0000-4000-a000-000000000001",
@@ -32,7 +32,7 @@ class McpGrantAuthorizationTest {
 
   @Test
   @DisplayName("rejects duplicate capabilities before a grant can be stored")
-  void should_reject_duplicate_capability() {
+  void shouldRejectDuplicateCapability() {
     assertThatThrownBy(
             () ->
                 new McpGrantAuthorization(
@@ -49,7 +49,7 @@ class McpGrantAuthorizationTest {
 
   @Test
   @DisplayName("rejects legacy or unsafe routing and capability values")
-  void should_reject_unsafe_binding_values() {
+  void shouldRejectUnsafeBindingValues() {
     assertThatThrownBy(
             () -> binding("knowledge_source_search", "../ai-methodist", "search methodology"))
         .isInstanceOf(IllegalArgumentException.class);
@@ -57,7 +57,7 @@ class McpGrantAuthorizationTest {
 
   @Test
   @DisplayName("uses the canonical manifest identifier and ACI description bounds")
-  void should_enforce_canonical_manifest_and_description_contract() {
+  void shouldEnforceCanonicalManifestAndDescriptionContract() {
     assertThatThrownBy(() -> binding("knowledge.source.search", "ai-methodist", "UppercaseTool"))
         .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(
@@ -112,7 +112,7 @@ class McpGrantAuthorizationTest {
 
   @Test
   @DisplayName("requires between one and thirty-two exact bindings")
-  void should_reject_empty_binding_set() {
+  void shouldRejectEmptyBindingSet() {
     assertThatThrownBy(
             () ->
                 new McpGrantAuthorization(
@@ -123,7 +123,7 @@ class McpGrantAuthorizationTest {
 
   @Test
   @DisplayName("requires immutable delegated authority for workflow capabilities")
-  void should_require_delegated_authority_for_workflow_capabilities() {
+  void shouldRequireDelegatedAuthorityForWorkflowCapabilities() {
     var workflowBinding =
         binding("automation.workflow.status", "n8n-plugin", "n8n__get_workflow_status");
 

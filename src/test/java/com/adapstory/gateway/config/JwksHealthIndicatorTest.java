@@ -36,7 +36,7 @@ class JwksHealthIndicatorTest {
 
   @Test
   @DisplayName("should return UP when JWKS endpoint is reachable")
-  void should_returnUp_when_jwksReachable() {
+  void shouldReturnUpWhenJwksReachable() {
     // Arrange
     wireMockServer.stubFor(WireMock.get("/certs").willReturn(WireMock.okJson("{\"keys\":[]}")));
 
@@ -53,7 +53,7 @@ class JwksHealthIndicatorTest {
 
   @Test
   @DisplayName("should return DOWN when JWKS endpoint returns server error")
-  void should_returnDown_when_jwksServerError() {
+  void shouldReturnDownWhenJwksServerError() {
     // Arrange
     wireMockServer.stubFor(
         WireMock.get("/certs").willReturn(WireMock.serverError().withBody("Internal Error")));
@@ -72,7 +72,7 @@ class JwksHealthIndicatorTest {
 
   @Test
   @DisplayName("should return DOWN when JWKS endpoint is unreachable")
-  void should_returnDown_when_jwksUnreachable() {
+  void shouldReturnDownWhenJwksUnreachable() {
     // Arrange — use a port that nothing is listening on
     int port = wireMockServer.port();
     wireMockServer.stop();

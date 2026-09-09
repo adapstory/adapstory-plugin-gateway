@@ -18,7 +18,7 @@ class PluginAuthenticationTokenTest {
 
   @Test
   @DisplayName("should return null credentials")
-  void should_returnNullCredentials() {
+  void shouldReturnNullCredentials() {
     // Arrange
     PluginSecurityContext ctx =
         new PluginSecurityContext(
@@ -34,7 +34,7 @@ class PluginAuthenticationTokenTest {
 
   @Test
   @DisplayName("should return PluginSecurityContext as principal")
-  void should_returnPluginSecurityContext_asPrincipal() {
+  void shouldReturnPluginSecurityContextAsPrincipal() {
     // Arrange
     PluginSecurityContext ctx =
         new PluginSecurityContext(
@@ -52,7 +52,7 @@ class PluginAuthenticationTokenTest {
 
   @Test
   @DisplayName("should expose granted authorities")
-  void should_exposeGrantedAuthorities() {
+  void shouldExposeGrantedAuthorities() {
     // Arrange
     PluginSecurityContext ctx =
         new PluginSecurityContext(
@@ -77,7 +77,7 @@ class PluginAuthenticationTokenTest {
 
   @Test
   @DisplayName("should not be authenticated by default")
-  void should_notBeAuthenticated_byDefault() {
+  void shouldNotBeAuthenticatedByDefault() {
     // Arrange
     PluginSecurityContext ctx =
         new PluginSecurityContext("adapstory.assessment.quiz", "tenant-1", List.of(), "CORE");
@@ -91,7 +91,7 @@ class PluginAuthenticationTokenTest {
 
   @Test
   @DisplayName("should be authenticated when explicitly set")
-  void should_beAuthenticated_when_set() {
+  void shouldBeAuthenticatedWhenSet() {
     // Arrange
     PluginSecurityContext ctx =
         new PluginSecurityContext("adapstory.assessment.quiz", "tenant-1", List.of(), "CORE");
@@ -106,7 +106,7 @@ class PluginAuthenticationTokenTest {
 
   @Test
   @DisplayName("should satisfy equals and hashCode for identical authenticated tokens")
-  void should_satisfyEqualsAndHashCode_for_identicalTokens() {
+  void shouldSatisfyEqualsAndHashCodeForIdenticalTokens() {
     PluginSecurityContext ctx =
         new PluginSecurityContext("adapstory.assessment.quiz", "tenant-1", List.of(), "CORE");
     var authorities = List.of(new SimpleGrantedAuthority("content.read"));
@@ -121,7 +121,7 @@ class PluginAuthenticationTokenTest {
 
   @Test
   @DisplayName("should not equal other type or token with different authentication state")
-  void should_notEqual_when_contractDiffers() {
+  void shouldNotEqualWhenContractDiffers() {
     PluginSecurityContext ctx =
         new PluginSecurityContext("adapstory.assessment.quiz", "tenant-1", List.of(), "CORE");
 

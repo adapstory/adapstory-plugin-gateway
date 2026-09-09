@@ -36,7 +36,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should write error response with correct status and content-type")
-    void should_writeErrorResponse_withCorrectStatusAndContentType() throws Exception {
+    void shouldWriteErrorResponseWithCorrectStatusAndContentType() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -53,7 +53,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should include correct fields in JSON response")
-    void should_includeCorrectFields_inJsonResponse() throws Exception {
+    void shouldIncludeCorrectFieldsInJsonResponse() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -84,7 +84,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should use X-Request-Id header when present")
-    void should_useRequestIdHeader_when_present() throws Exception {
+    void shouldUseRequestIdHeaderWhenPresent() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -104,7 +104,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should generate UUID request-id when header not present")
-    void should_generateRequestId_when_headerAbsent() throws Exception {
+    void shouldGenerateRequestIdWhenHeaderAbsent() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -123,7 +123,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should not write when response is already committed")
-    void should_notWrite_when_responseCommitted() throws Exception {
+    void shouldNotWriteWhenResponseCommitted() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -143,7 +143,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should handle empty details map")
-    void should_handleEmptyDetails() throws Exception {
+    void shouldHandleEmptyDetails() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -166,7 +166,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should return header value when present")
-    void should_returnHeaderValue_when_present() {
+    void shouldReturnHeaderValueWhenPresent() {
       MockHttpServletRequest request = new MockHttpServletRequest();
       request.addHeader("X-Request-Id", VALID_REQUEST_ID);
 
@@ -175,7 +175,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should generate UUID when header absent")
-    void should_generateUuid_when_headerAbsent() {
+    void shouldGenerateUuidWhenHeaderAbsent() {
       MockHttpServletRequest request = new MockHttpServletRequest();
 
       String result = GatewayErrorWriter.getOrGenerateRequestId(request);
@@ -187,7 +187,7 @@ class GatewayErrorWriterTest {
 
     @Test
     @DisplayName("should generate UUID when header value is invalid")
-    void should_generateUuid_when_headerInvalid() {
+    void shouldGenerateUuidWhenHeaderInvalid() {
       MockHttpServletRequest request = new MockHttpServletRequest();
       request.addHeader("X-Request-Id", "my-request-id");
 

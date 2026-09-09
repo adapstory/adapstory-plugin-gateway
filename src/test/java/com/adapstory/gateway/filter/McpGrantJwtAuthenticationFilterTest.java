@@ -28,7 +28,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
-import tools.jackson.databind.ObjectMapper;
 
 @DisplayName("Gateway-audience MCP JWT authentication")
 class McpGrantJwtAuthenticationFilterTest {
@@ -56,7 +55,7 @@ class McpGrantJwtAuthenticationFilterTest {
 
   @Test
   @DisplayName("accepts a valid exchanged token and exposes only validated security context")
-  void should_accept_valid_exchanged_token() throws Exception {
+  void shouldAcceptValidExchangedToken() throws Exception {
     when(jwtProcessor.process(eq(TOKEN), any())).thenReturn(claims().build());
     var request = request(PATH);
     var response = new MockHttpServletResponse();
@@ -78,7 +77,7 @@ class McpGrantJwtAuthenticationFilterTest {
 
   @Test
   @DisplayName("rejects the removed plugin_tools compatibility claim")
-  void should_reject_legacy_plugin_tools_claim() throws Exception {
+  void shouldRejectLegacyPluginToolsClaim() throws Exception {
     when(jwtProcessor.process(eq(TOKEN), any()))
         .thenReturn(claims().claim("plugin_tools", List.of("ai-methodist")).build());
     var request = request(PATH);
@@ -92,7 +91,7 @@ class McpGrantJwtAuthenticationFilterTest {
 
   @Test
   @DisplayName("rejects token exchange performed by an unauthorized OAuth client")
-  void should_reject_untrusted_authorized_party() throws Exception {
+  void shouldRejectUntrustedAuthorizedParty() throws Exception {
     when(jwtProcessor.process(eq(TOKEN), any()))
         .thenReturn(claims().claim("azp", "untrusted-client").build());
     var request = request(PATH);
@@ -106,7 +105,7 @@ class McpGrantJwtAuthenticationFilterTest {
 
   @Test
   @DisplayName("rejects caller-controlled tenant or actor headers that differ from signed claims")
-  void should_reject_identity_header_mismatch() throws Exception {
+  void shouldRejectIdentityHeaderMismatch() throws Exception {
     when(jwtProcessor.process(eq(TOKEN), any())).thenReturn(claims().build());
     var request = request(PATH);
     request.removeHeader("X-User-Id");
@@ -121,7 +120,7 @@ class McpGrantJwtAuthenticationFilterTest {
 
   @Test
   @DisplayName("rejects missing security-critical claims even after signature validation")
-  void should_reject_missing_jti() throws Exception {
+  void shouldRejectMissingJti() throws Exception {
     when(jwtProcessor.process(eq(TOKEN), any()))
         .thenReturn(
             new JWTClaimsSet.Builder()
@@ -141,7 +140,7 @@ class McpGrantJwtAuthenticationFilterTest {
 
   @Test
   @DisplayName("propagates downstream failures instead of disguising them as JWT failures")
-  void should_propagate_downstream_failure() throws Exception {
+  void shouldPropagateDownstreamFailure() throws Exception {
     when(jwtProcessor.process(eq(TOKEN), any())).thenReturn(claims().build());
     var request = request(PATH);
     var response = new MockHttpServletResponse();
@@ -155,7 +154,7 @@ class McpGrantJwtAuthenticationFilterTest {
 
   @Test
   @DisplayName("filters only the grant endpoint and canonical MCP provider route")
-  void should_filter_only_capability_grant_surface() {
+  void shouldFilterOnlyCapabilityGrantSurface() {
     assertThat(filter.shouldNotFilter(new MockHttpServletRequest("POST", PATH))).isFalse();
     assertThat(
             filter.shouldNotFilter(

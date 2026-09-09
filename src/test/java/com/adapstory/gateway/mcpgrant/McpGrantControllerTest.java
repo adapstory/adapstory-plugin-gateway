@@ -25,7 +25,7 @@ class McpGrantControllerTest {
 
   @Test
   @DisplayName("registers the complete exact binding set and returns empty 204")
-  void should_register_exact_bindings_and_return_no_content() {
+  void shouldRegisterExactBindingsAndReturnNoContent() {
     McpGrantService service = mock(McpGrantService.class);
     McpGrantController controller = new McpGrantController(service);
     HttpServletRequest servletRequest = mock(HttpServletRequest.class);
@@ -73,7 +73,7 @@ class McpGrantControllerTest {
 
   @Test
   @DisplayName("rejects direct invocation without validated token context")
-  void should_reject_missing_validated_token_context() {
+  void shouldRejectMissingValidatedTokenContext() {
     McpGrantController controller = new McpGrantController(mock(McpGrantService.class));
 
     org.assertj.core.api.Assertions.assertThatThrownBy(
@@ -86,7 +86,7 @@ class McpGrantControllerTest {
 
   @Test
   @DisplayName("preserves signed actor identity across the composed header filter")
-  void should_preserve_signed_identity_across_header_injection() throws Exception {
+  void shouldPreserveSignedIdentityAcrossHeaderInjection() throws Exception {
     McpGrantService service = mock(McpGrantService.class);
     McpGrantController controller = new McpGrantController(service);
     McpAccessTokenContext token =

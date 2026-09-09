@@ -43,7 +43,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should generate X-Request-Id when not present")
-    void should_generateRequestId() throws Exception {
+    void shouldGenerateRequestId() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -60,7 +60,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should preserve existing X-Request-Id and mirror it to X-Response-Id")
-    void should_preserveRequestId_when_present() throws Exception {
+    void shouldPreserveRequestIdWhenPresent() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
       request.addHeader("X-Request-Id", "11111111-2222-4333-8abc-666666666666");
@@ -76,7 +76,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should generate X-Correlation-Id when not present in request")
-    void should_generateCorrelationId_when_absent() throws Exception {
+    void shouldGenerateCorrelationIdWhenAbsent() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -91,7 +91,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should reuse existing X-Correlation-Id from request")
-    void should_reuseCorrelationId_when_present() throws Exception {
+    void shouldReuseCorrelationIdWhenPresent() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -108,7 +108,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should generate new correlation-id when existing is blank")
-    void should_generateCorrelationId_when_existingIsBlank() throws Exception {
+    void shouldGenerateCorrelationIdWhenExistingIsBlank() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -129,7 +129,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should set user-id to 'plugin:{pluginId}' when plugin context exists")
-    void should_setPluginUserId_when_pluginContextExists() throws Exception {
+    void shouldSetPluginUserIdWhenPluginContextExists() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -155,7 +155,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should ignore forged user headers and inject the JWT subject as actor")
-    void should_injectAuthenticatedActor_when_callerForgesUserHeaders() throws Exception {
+    void shouldInjectAuthenticatedActorWhenCallerForgesUserHeaders() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
       request.addHeader("x-uSeR-iD", "forged-user");
@@ -183,7 +183,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should never substitute plugin service identity for a missing JWT actor")
-    void should_notConflateServiceIdentityWithActor_whenActorIsMissing() throws Exception {
+    void shouldNotConflateServiceIdentityWithActorWhenActorIsMissing() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
       request.setAttribute(
@@ -207,7 +207,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should replace mixed-case tenant forgeries with one JWT tenant header")
-    void should_replaceMixedCaseTenantHeaders_withJwtTenant() throws Exception {
+    void shouldReplaceMixedCaseTenantHeadersWithJwtTenant() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/plugins/ai-course-generator/v1/runs");
       request.addHeader("x-tenant-id", "forged-a");
@@ -236,7 +236,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should set user-id to 'anonymous' when no plugin context")
-    void should_setAnonymousUserId_when_noPluginContext() throws Exception {
+    void shouldSetAnonymousUserIdWhenNoPluginContext() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -262,7 +262,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should clear MDC after filter execution")
-    void should_clearMdc_afterFilter() throws Exception {
+    void shouldClearMdcAfterFilter() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -285,14 +285,14 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should not filter actuator paths")
-    void should_notFilter_actuatorPaths() {
+    void shouldNotFilterActuatorPaths() {
       MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator/health");
       assertThat(filter.shouldNotFilter(request)).isTrue();
     }
 
     @Test
     @DisplayName("should filter gateway API paths")
-    void should_filter_gatewayApiPaths() {
+    void shouldFilterGatewayApiPaths() {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
       assertThat(filter.shouldNotFilter(request)).isFalse();
@@ -300,7 +300,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should filter webhook paths")
-    void should_filter_webhookPaths() {
+    void shouldFilterWebhookPaths() {
       MockHttpServletRequest request =
           new MockHttpServletRequest("POST", "/api/bc-02/gateway/v1/webhooks/ai-grader");
       assertThat(filter.shouldNotFilter(request)).isFalse();
@@ -313,7 +313,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should inject headers accessible via getHeader")
-    void should_injectHeaders_via_getHeader() throws Exception {
+    void shouldInjectHeadersViaGetHeader() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -339,7 +339,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should return injected headers via getHeaders(name) method")
-    void should_returnInjectedHeaders_via_getHeaders() throws Exception {
+    void shouldReturnInjectedHeadersViaGetHeaders() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -367,7 +367,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should include injected header names in getHeaderNames")
-    void should_includeInjectedHeaders_in_getHeaderNames() throws Exception {
+    void shouldIncludeInjectedHeadersInGetHeaderNames() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -389,7 +389,7 @@ class HeaderInjectionFilterTest {
 
     @Test
     @DisplayName("should expose only an authenticated actor as X-Adapstory-User-Id")
-    void should_includeAuthenticatedActorHeader_when_present() throws Exception {
+    void shouldIncludeAuthenticatedActorHeaderWhenPresent() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
       request.addHeader(IntegrationHeaders.HEADER_USER_ID, "forged-user");

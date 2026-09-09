@@ -64,7 +64,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should return true when cache contains 'true'")
-    void should_returnTrue_when_cachedTrue() {
+    void shouldReturnTrueWhenCachedTrue() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("true"));
 
@@ -78,7 +78,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should return false when cache contains 'false'")
-    void should_returnFalse_when_cachedFalse() {
+    void shouldReturnFalseWhenCachedFalse() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("false"));
 
@@ -92,7 +92,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should return empty when negative cache sentinel is stored")
-    void should_returnEmpty_when_negativeCacheSentinel() {
+    void shouldReturnEmptyWhenNegativeCacheSentinel() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("__UNAVAILABLE__"));
 
@@ -106,7 +106,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should invoke cacheHit callback on hit")
-    void should_invokeCacheHitCallback_when_cacheHit() {
+    void shouldInvokeCacheHitCallbackWhenCacheHit() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("true"));
       AtomicInteger hitCount = new AtomicInteger(0);
@@ -125,7 +125,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should fetch from BC-02 and cache result on miss")
-    void should_fetchAndCache_when_cacheMiss() {
+    void shouldFetchAndCacheWhenCacheMiss() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
       when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
@@ -140,7 +140,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should cache 'false' when BC-02 says not installed")
-    void should_cacheFalse_when_bc02SaysNotInstalled() {
+    void shouldCacheFalseWhenBc02SaysNotInstalled() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
       when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(false));
@@ -155,7 +155,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should store negative sentinel when BC-02 unavailable")
-    void should_storeNegativeSentinel_when_bc02Unavailable() {
+    void shouldStoreNegativeSentinelWhenBc02Unavailable() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
       when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.empty());
@@ -170,7 +170,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should invoke cacheMiss callback on miss")
-    void should_invokeCacheMissCallback_when_cacheMiss() {
+    void shouldInvokeCacheMissCallbackWhenCacheMiss() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
       when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
@@ -190,7 +190,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should fetch from BC-02 when Redis read fails")
-    void should_fetchFromBc02_when_redisReadFails() {
+    void shouldFetchFromBc02WhenRedisReadFails() {
       // Arrange
       when(cacheStore.find(CACHE_KEY))
           .thenThrow(new RedisConnectionFailureException("Connection refused"));
@@ -205,7 +205,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should not throw when Redis write fails after BC-02 fetch")
-    void should_notThrow_when_redisWriteFails() {
+    void shouldNotThrowWhenRedisWriteFails() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.empty());
       when(statusSource.fetchInstalledStatus(PLUGIN_ID, TENANT_ID)).thenReturn(Optional.of(true));
@@ -227,7 +227,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should delete cache entry on evict")
-    void should_deleteCacheEntry_on_evict() {
+    void shouldDeleteCacheEntryOnEvict() {
       // Act
       cacheService.evict(PLUGIN_ID, TENANT_ID);
 
@@ -237,7 +237,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should not throw when Redis delete fails during eviction")
-    void should_notThrow_when_redisDeleteFails() {
+    void shouldNotThrowWhenRedisDeleteFails() {
       // Arrange
       org.mockito.Mockito.doThrow(new RedisConnectionFailureException("Connection refused"))
           .when(cacheStore)
@@ -254,7 +254,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should throw NullPointerException for null pluginId")
-    void should_throw_when_pluginIdNull() {
+    void shouldThrowWhenPluginIdNull() {
       assertThatThrownBy(() -> cacheService.isInstalled(null, TENANT_ID))
           .isInstanceOf(NullPointerException.class)
           .hasMessageContaining("pluginId must not be null");
@@ -262,7 +262,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should throw NullPointerException for null tenantId")
-    void should_throw_when_tenantIdNull() {
+    void shouldThrowWhenTenantIdNull() {
       assertThatThrownBy(() -> cacheService.isInstalled(PLUGIN_ID, null))
           .isInstanceOf(NullPointerException.class)
           .hasMessageContaining("tenantId must not be null");
@@ -270,7 +270,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should throw IllegalArgumentException for pluginId with unsafe characters")
-    void should_throw_when_pluginIdUnsafe() {
+    void shouldThrowWhenPluginIdUnsafe() {
       assertThatThrownBy(() -> cacheService.isInstalled("plugin:id", TENANT_ID))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("unsafe characters");
@@ -278,7 +278,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should throw IllegalArgumentException for tenantId with unsafe characters")
-    void should_throw_when_tenantIdUnsafe() {
+    void shouldThrowWhenTenantIdUnsafe() {
       assertThatThrownBy(() -> cacheService.isInstalled(PLUGIN_ID, "tenant:id"))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("unsafe characters");
@@ -291,7 +291,7 @@ class InstalledPluginCacheServiceTest {
 
     @Test
     @DisplayName("should delegate to full method with null callbacks")
-    void should_delegate_to_fullMethod() {
+    void shouldDelegateToFullMethod() {
       // Arrange
       when(cacheStore.find(CACHE_KEY)).thenReturn(Optional.of("true"));
 

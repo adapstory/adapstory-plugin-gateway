@@ -16,7 +16,7 @@ class JwtProcessorFactoryTest {
 
   @Test
   @DisplayName("should accept Keycloak access tokens with additional audiences")
-  void should_acceptKeycloakAccessToken_when_expectedAudienceIsOneOfMany() throws Exception {
+  void shouldAcceptKeycloakAccessTokenWhenExpectedAudienceIsOneOfMany() throws Exception {
     GatewayProperties.JwtConfig config =
         new GatewayProperties.JwtConfig(
             "http://localhost:8180/realms/adapstory/protocol/openid-connect/certs",
@@ -42,7 +42,7 @@ class JwtProcessorFactoryTest {
 
   @Test
   @DisplayName("should reject tokens without the configured plugin gateway audience")
-  void should_rejectToken_when_expectedAudienceIsMissing() throws Exception {
+  void shouldRejectTokenWhenExpectedAudienceIsMissing() throws Exception {
     GatewayProperties.JwtConfig config =
         new GatewayProperties.JwtConfig(
             "http://localhost:8180/realms/adapstory/protocol/openid-connect/certs",

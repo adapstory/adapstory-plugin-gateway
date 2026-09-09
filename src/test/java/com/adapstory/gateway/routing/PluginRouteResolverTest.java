@@ -114,41 +114,41 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should extract route key 'content' from gateway path")
-    void should_extractContent_when_contentPath() {
+    void shouldExtractContentWhenContentPath() {
       assertThat(resolver.extractRouteKey("/api/bc-02/gateway/v1/api/content/v1/materials/123"))
           .isEqualTo("content");
     }
 
     @Test
     @DisplayName("should extract route key 'submission' from gateway path")
-    void should_extractSubmission_when_submissionPath() {
+    void shouldExtractSubmissionWhenSubmissionPath() {
       assertThat(resolver.extractRouteKey("/api/bc-02/gateway/v1/api/submission/v1/grades"))
           .isEqualTo("submission");
     }
 
     @Test
     @DisplayName("should extract route key 'identity' from gateway path")
-    void should_extractIdentity_when_identityPath() {
+    void shouldExtractIdentityWhenIdentityPath() {
       assertThat(resolver.extractRouteKey("/api/bc-02/gateway/v1/api/identity/v1/users/me"))
           .isEqualTo("identity");
     }
 
     @Test
     @DisplayName("should return null for non-gateway path")
-    void should_returnNull_when_nonGatewayPath() {
+    void shouldReturnNullWhenNonGatewayPath() {
       assertThat(resolver.extractRouteKey("/api/content/v1/materials/123")).isNull();
     }
 
     @Test
     @DisplayName("should extract route key without trailing slash")
-    void should_extractRouteKey_when_noTrailingPath() {
+    void shouldExtractRouteKeyWhenNoTrailingPath() {
       assertThat(resolver.extractRouteKey("/api/bc-02/gateway/v1/api/content"))
           .isEqualTo("content");
     }
 
     @Test
     @DisplayName("Pattern 4: prefix strip removes /api/bc-02/gateway/v1 only")
-    void should_stripGatewayPrefixOnly() {
+    void shouldStripGatewayPrefixOnly() {
       String originalPath = "/api/bc-02/gateway/v1/api/content/v1/materials/123";
       String expected = "/api/content/v1/materials/123";
       assertThat(originalPath.substring("/api/bc-02/gateway/v1".length())).isEqualTo(expected);
@@ -161,7 +161,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should proxy GET request and return backend response")
-    void should_proxyGet_when_validRoute() throws IOException {
+    void shouldProxyGetWhenValidRoute() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           get(urlEqualTo("/api/content/v1/materials/123"))
@@ -186,7 +186,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should proxy POST request with body")
-    void should_proxyPost_when_validRouteWithBody() throws IOException {
+    void shouldProxyPostWhenValidRouteWithBody() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           post(urlEqualTo("/api/content/v1/materials"))
@@ -213,7 +213,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should proxy PUT request with body")
-    void should_proxyPut_when_validRouteWithBody() throws IOException {
+    void shouldProxyPutWhenValidRouteWithBody() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           put(urlEqualTo("/api/content/v1/materials/123"))
@@ -235,7 +235,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should forward query string to target")
-    void should_forwardQueryString_when_present() throws IOException {
+    void shouldForwardQueryStringWhenPresent() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           get(urlEqualTo("/api/content/v1/materials?page=1&size=10"))
@@ -257,7 +257,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should not forward Authorization header to target BC")
-    void should_notForwardAuthHeader_when_proxying() throws IOException {
+    void shouldNotForwardAuthHeaderWhenProxying() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           get(urlEqualTo("/api/content/v1/materials/123"))
@@ -281,7 +281,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should not forward hop-by-hop headers to target BC")
-    void should_notForwardHopByHopHeaders_when_proxying() throws IOException {
+    void shouldNotForwardHopByHopHeadersWhenProxying() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           get(urlEqualTo("/api/content/v1/materials/123"))
@@ -308,7 +308,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should copy only allow-listed response headers from target")
-    void should_copyResponseHeaders_when_proxying() throws IOException {
+    void shouldCopyResponseHeadersWhenProxying() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           get(urlEqualTo("/api/content/v1/materials/123"))
@@ -342,7 +342,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should return 404 when route key cannot be extracted from non-gateway path")
-    void should_return404_when_routeKeyNotExtracted() throws IOException {
+    void shouldReturn404WhenRouteKeyNotExtracted() throws IOException {
       // Arrange — path doesn't match gateway /api/ prefix pattern
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/other/path");
@@ -360,7 +360,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should return 404 when no target BC configured for route key")
-    void should_return404_when_noTargetConfigured() throws IOException {
+    void shouldReturn404WhenNoTargetConfigured() throws IOException {
       // Arrange — unknown route key
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/unknown-service/v1/test");
@@ -378,7 +378,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should return 502 when target service returns connection error")
-    void should_return502_when_targetServiceDown() throws IOException {
+    void shouldReturn502WhenTargetServiceDown() throws IOException {
       // Arrange — stop WireMock to simulate unavailable backend
       wireMockServer.stop();
 
@@ -402,7 +402,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should return 503 when circuit breaker is open")
-    void should_return503_when_circuitBreakerOpen() throws IOException {
+    void shouldReturn503WhenCircuitBreakerOpen() throws IOException {
       // Arrange — manually transition CB to OPEN
       CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("content");
       cb.transitionToOpenState();
@@ -426,7 +426,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should include pluginId in error details when plugin context is available")
-    void should_includePluginId_when_pluginContextAvailable() throws IOException {
+    void shouldIncludePluginIdWhenPluginContextAvailable() throws IOException {
       // Arrange — unknown route with plugin context set
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -454,7 +454,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should forward 4xx from target backend")
-    void should_forward4xx_when_backendReturns4xx() throws IOException {
+    void shouldForward4xxWhenBackendReturns4xx() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           get(urlEqualTo("/api/content/v1/materials/999"))
@@ -478,7 +478,7 @@ class PluginRouteResolverTest {
 
     @Test
     @DisplayName("should forward 5xx from target backend")
-    void should_forward5xx_when_backendReturns5xx() throws IOException {
+    void shouldForward5xxWhenBackendReturns5xx() throws IOException {
       // Arrange
       wireMockServer.stubFor(
           get(urlEqualTo("/api/content/v1/materials/123"))

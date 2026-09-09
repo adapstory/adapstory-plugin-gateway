@@ -23,7 +23,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Тесты InstalledPluginFetchClient: проверка установки плагина для тенанта через BC-02.
@@ -97,7 +96,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should return true when plugin is installed")
-    void should_returnTrue_when_pluginInstalled() {
+    void shouldReturnTrueWhenPluginInstalled() {
       // Arrange
       String response =
           """
@@ -120,7 +119,7 @@ class InstalledPluginFetchClientTest {
     @ParameterizedTest
     @EnumSource(InstalledStatusCase.class)
     @DisplayName("should map installed response payloads to the expected flag")
-    void should_mapInstalledResponsePayloads_when_requested(InstalledStatusCase statusCase) {
+    void shouldMapInstalledResponsePayloadsWhenRequested(InstalledStatusCase statusCase) {
       mockServer
           .expect(requestTo(INSTALLED_URI))
           .andRespond(withSuccess(statusCase.responseBody, MediaType.APPLICATION_JSON));
@@ -133,7 +132,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should return false when installed field is missing")
-    void should_returnFalse_when_installedFieldMissing() {
+    void shouldReturnFalseWhenInstalledFieldMissing() {
       // Arrange
       String response =
           """
@@ -158,7 +157,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should return false when BC-02 returns 404 (M-10)")
-    void should_returnFalse_when_bc02Returns404() {
+    void shouldReturnFalseWhenBc02Returns404() {
       // Arrange
       mockServer.expect(requestTo(INSTALLED_URI)).andRespond(withResourceNotFound());
 
@@ -172,7 +171,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should return empty Optional when BC-02 returns server error")
-    void should_returnEmpty_when_serverError() {
+    void shouldReturnEmptyWhenServerError() {
       // Arrange
       mockServer.expect(requestTo(INSTALLED_URI)).andRespond(withServerError());
 
@@ -186,7 +185,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should return empty Optional when response body is null (H-6)")
-    void should_returnEmpty_when_responseBodyNull() {
+    void shouldReturnEmptyWhenResponseBodyNull() {
       // Arrange — empty body
       mockServer
           .expect(requestTo(INSTALLED_URI))
@@ -202,7 +201,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should return empty Optional when circuit breaker is open")
-    void should_returnEmpty_when_circuitBreakerOpen() {
+    void shouldReturnEmptyWhenCircuitBreakerOpen() {
       // Arrange — trigger failures to open CB
       mockServer.expect(requestTo(INSTALLED_URI)).andRespond(withServerError());
       mockServer.expect(requestTo(INSTALLED_URI)).andRespond(withServerError());
@@ -219,7 +218,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should return empty Optional when response is malformed JSON (C-2)")
-    void should_returnEmpty_when_malformedJson() {
+    void shouldReturnEmptyWhenMalformedJson() {
       // Arrange
       mockServer
           .expect(requestTo(INSTALLED_URI))
@@ -240,7 +239,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should throw NullPointerException for null pluginId")
-    void should_throw_when_pluginIdNull() {
+    void shouldThrowWhenPluginIdNull() {
       assertThatThrownBy(() -> client.fetchInstalledStatus(null, TENANT_ID))
           .isInstanceOf(NullPointerException.class)
           .hasMessageContaining("pluginId must not be null");
@@ -248,7 +247,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should throw NullPointerException for null tenantId")
-    void should_throw_when_tenantIdNull() {
+    void shouldThrowWhenTenantIdNull() {
       assertThatThrownBy(() -> client.fetchInstalledStatus(PLUGIN_ID, null))
           .isInstanceOf(NullPointerException.class)
           .hasMessageContaining("tenantId must not be null");
@@ -256,7 +255,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should throw IllegalArgumentException for invalid pluginId format (H-5)")
-    void should_throw_when_pluginIdInvalid() {
+    void shouldThrowWhenPluginIdInvalid() {
       assertThatThrownBy(() -> client.fetchInstalledStatus("../../etc/passwd", TENANT_ID))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("pluginId format invalid");
@@ -264,7 +263,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should throw IllegalArgumentException for non-UUID tenantId (H-7)")
-    void should_throw_when_tenantIdNotUuid() {
+    void shouldThrowWhenTenantIdNotUuid() {
       assertThatThrownBy(() -> client.fetchInstalledStatus(PLUGIN_ID, "not-a-uuid"))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("tenantId must be a valid UUID");
@@ -272,7 +271,7 @@ class InstalledPluginFetchClientTest {
 
     @Test
     @DisplayName("should throw IllegalArgumentException for tenantId with injection (H-7)")
-    void should_throw_when_tenantIdContainsInjection() {
+    void shouldThrowWhenTenantIdContainsInjection() {
       assertThatThrownBy(() -> client.fetchInstalledStatus(PLUGIN_ID, "'; DROP TABLE --"))
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("tenantId must be a valid UUID");

@@ -16,7 +16,7 @@ class PluginPermissionsResponseTest {
 
   @Test
   @DisplayName("should create Data with permissions list")
-  void should_createData_withPermissions() {
+  void shouldCreateDataWithPermissions() {
     // Act
     var data = new PluginPermissionsResponse.Data("plugin-1", List.of("read:data", "write:data"));
 
@@ -27,7 +27,7 @@ class PluginPermissionsResponseTest {
 
   @Test
   @DisplayName("should create Data with empty list when permissions is null")
-  void should_createData_withEmptyList_when_permissionsNull() {
+  void shouldCreateDataWithEmptyListWhenPermissionsNull() {
     // Act
     var data = new PluginPermissionsResponse.Data("plugin-1", null);
 
@@ -37,7 +37,7 @@ class PluginPermissionsResponseTest {
 
   @Test
   @DisplayName("should create immutable copy of permissions list")
-  void should_createImmutableCopy() {
+  void shouldCreateImmutableCopy() {
     // Arrange
     var mutableList = new java.util.ArrayList<>(List.of("read:data"));
 
@@ -51,7 +51,7 @@ class PluginPermissionsResponseTest {
 
   @Test
   @DisplayName("should create PluginPermissionsResponse with data")
-  void should_createResponse_withData() {
+  void shouldCreateResponseWithData() {
     // Act
     var data = new PluginPermissionsResponse.Data("plugin-1", List.of("read:data"));
     var response = new PluginPermissionsResponse(data);
@@ -63,7 +63,7 @@ class PluginPermissionsResponseTest {
 
   @Test
   @DisplayName("should handle null data")
-  void should_handleNullData() {
+  void shouldHandleNullData() {
     // Act
     var response = new PluginPermissionsResponse(null);
 

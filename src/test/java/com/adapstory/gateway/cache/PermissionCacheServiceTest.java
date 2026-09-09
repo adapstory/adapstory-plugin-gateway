@@ -74,7 +74,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Cache hit returns cached permissions")
-    void should_returnCachedPermissions_when_cacheHit() {
+    void shouldReturnCachedPermissionsWhenCacheHit() {
       // Arrange
       when(cacheStore.find("plugin:permissions:test-plugin"))
           .thenReturn(Optional.of("content.read,submission.read"));
@@ -89,7 +89,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Cache miss returns empty Optional")
-    void should_returnEmpty_when_cacheMiss() {
+    void shouldReturnEmptyWhenCacheMiss() {
       // Arrange
       when(cacheStore.find("plugin:permissions:test-plugin")).thenReturn(Optional.empty());
 
@@ -102,7 +102,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Cache permissions stores with correct TTL")
-    void should_storeWithTtl_when_cachePermissions() {
+    void shouldStoreWithTtlWhenCachePermissions() {
       // Act
       cacheService.cachePermissions("test-plugin", List.of("content.read", "grade.write"));
 
@@ -113,7 +113,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Cache hit with empty value returns empty list")
-    void should_returnEmptyList_when_emptyValue() {
+    void shouldReturnEmptyListWhenEmptyValue() {
       // Arrange
       when(cacheStore.find("plugin:permissions:test-plugin")).thenReturn(Optional.of(""));
 
@@ -127,7 +127,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Negative cache sentinel returns empty Optional")
-    void should_returnEmpty_when_negativeCacheSentinel() {
+    void shouldReturnEmptyWhenNegativeCacheSentinel() {
       // Arrange
       when(cacheStore.find("plugin:permissions:test-plugin"))
           .thenReturn(Optional.of("__UNAVAILABLE__"));
@@ -141,7 +141,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("should throw when permission name contains separator")
-    void should_throw_when_permissionContainsSeparator() {
+    void shouldThrowWhenPermissionContainsSeparator() {
       // Act & Assert
       List<String> invalidPermissions = List.of("content,read");
       assertThatThrownBy(() -> cacheService.cachePermissions("test-plugin", invalidPermissions))
@@ -151,7 +151,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("Invalidate deletes cache entry")
-    void should_deleteCacheEntry_when_invalidate() {
+    void shouldDeleteCacheEntryWhenInvalidate() {
       // Act
       cacheService.invalidate("test-plugin");
 
@@ -166,7 +166,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("should fetch from BC-02 and cache on success")
-    void should_fetchAndCache_on_success() {
+    void shouldFetchAndCacheOnSuccess() {
       // Arrange
       when(permissionSource.fetchPermissions("test-plugin"))
           .thenReturn(Optional.of(List.of("content.read", "grade.write")));
@@ -183,7 +183,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("should return empty Optional and cache negative result when BC-02 unavailable")
-    void should_returnEmpty_when_bc02Unavailable() {
+    void shouldReturnEmptyWhenBc02Unavailable() {
       // Arrange
       when(permissionSource.fetchPermissions("test-plugin")).thenReturn(Optional.empty());
 
@@ -199,7 +199,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("should skip BC-02 call when negative cache sentinel is active (H-1 fix)")
-    void should_skipBc02_when_negativeCacheActive() {
+    void shouldSkipBc02WhenNegativeCacheActive() {
       // Arrange — negative sentinel in Redis
       when(cacheStore.find("plugin:permissions:test-plugin"))
           .thenReturn(Optional.of("__UNAVAILABLE__"));
@@ -214,7 +214,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("should call BC-02 when no negative sentinel exists")
-    void should_callBc02_when_noNegativeSentinel() {
+    void shouldCallBc02WhenNoNegativeSentinel() {
       // Arrange — no sentinel in Redis
       when(cacheStore.find("plugin:permissions:test-plugin")).thenReturn(Optional.empty());
       when(permissionSource.fetchPermissions("test-plugin"))
@@ -244,7 +244,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("should invalidate cache on valid revocation event (AC #2)")
-    void should_invalidateCache_on_validRevocationEvent() {
+    void shouldInvalidateCacheOnValidRevocationEvent() {
       // Arrange
       when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
           .thenReturn(true);
@@ -258,7 +258,7 @@ class PermissionCacheServiceTest {
 
     @Test
     @DisplayName("should increment Micrometer counter tagged by pluginId on valid event (M-3)")
-    void should_incrementCounter_on_validRevocationEvent() {
+    void shouldIncrementCounterOnValidRevocationEvent() {
       // Arrange
       when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
           .thenReturn(true);
@@ -280,7 +280,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should skip duplicate event with same ce-id (AC #3)")
-      void should_skipDuplicateEvent() {
+      void shouldSkipDuplicateEvent() {
         // Arrange — first call returns false (key already exists)
         when(valueOperations.setIfAbsent(
                 "revoked-event-processed:ce-uuid-123", "1", Duration.ofHours(24)))
@@ -295,7 +295,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should process first event and set dedup key")
-      void should_processFirstEvent_and_setDedupKey() {
+      void shouldProcessFirstEventAndSetDedupKey() {
         // Arrange
         when(valueOperations.setIfAbsent(
                 "revoked-event-processed:ce-uuid-123", "1", Duration.ofHours(24)))
@@ -310,7 +310,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should still invalidate when ce-id is absent (M-2 — idempotency bypassed)")
-      void should_invalidateCache_when_ceIdAbsent() {
+      void shouldInvalidateCacheWhenCeIdAbsent() {
         // Arrange — event without "id" field
         String eventWithoutCeId =
             """
@@ -337,7 +337,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should not invalidate on malformed JSON")
-      void should_notInvalidate_on_malformedJson() {
+      void shouldNotInvalidateOnMalformedJson() {
         // Act
         listener.onPluginPermissionsRevoked("not-valid-json{{{", null, null);
 
@@ -347,7 +347,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should not invalidate when pluginId is missing")
-      void should_notInvalidate_when_pluginIdMissing() {
+      void shouldNotInvalidateWhenPluginIdMissing() {
         // Arrange
         String eventWithoutPluginId =
             """
@@ -365,7 +365,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should reject scope exceeding max length (255 chars)")
-      void should_rejectScopeExceedingMaxLength() {
+      void shouldRejectScopeExceedingMaxLength() {
         // Arrange
         String longScope = "x".repeat(256);
         String eventWithLongScope =
@@ -386,7 +386,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should use plugin_id key when pluginId key missing")
-      void should_useSnakeCasePluginId_when_camelCaseMissing() {
+      void shouldUseSnakeCasePluginIdWhenCamelCaseMissing() {
         // Arrange
         String eventWithSnakeCase =
             """
@@ -405,7 +405,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should propagate correlation-id and request-id from Kafka headers to MDC")
-      void should_propagateMdcHeaders() {
+      void shouldPropagateMdcHeaders() {
         // Arrange
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
             .thenReturn(true);
@@ -419,7 +419,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should reject oversized payload with >100 permissions")
-      void should_rejectOversizedPayload() {
+      void shouldRejectOversizedPayload() {
         // Arrange
         String permissions =
             IntStream.range(0, 101)
@@ -443,7 +443,7 @@ class PermissionCacheServiceTest {
 
       @Test
       @DisplayName("should rethrow transient Redis error for Spring Kafka retry (H-1)")
-      void should_rethrowTransientRedisError() {
+      void shouldRethrowTransientRedisError() {
         // Arrange — Redis is down during dedup check
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
             .thenThrow(new RedisConnectionFailureException("Connection refused"));

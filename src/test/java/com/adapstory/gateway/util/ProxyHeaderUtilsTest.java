@@ -22,7 +22,7 @@ class ProxyHeaderUtilsTest {
 
   @Test
   @DisplayName("should drop caller-controlled identity headers case-insensitively")
-  void should_dropCallerControlledIdentityHeaders_caseInsensitively() {
+  void shouldDropCallerControlledIdentityHeadersCaseInsensitively() {
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.addHeader("x-tenant-id", "forged-tenant");
     request.addHeader("X-uSeR-iD", "forged-user");
@@ -44,7 +44,7 @@ class ProxyHeaderUtilsTest {
 
   @Test
   @DisplayName("should re-add only trusted wrapper identity values under canonical names")
-  void should_reAddOnlyTrustedWrapperIdentityValues() {
+  void shouldReAddOnlyTrustedWrapperIdentityValues() {
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.addHeader("x-tenant-id", "forged-tenant");
     request.addHeader("X-uSeR-iD", "forged-user");
@@ -86,7 +86,7 @@ class ProxyHeaderUtilsTest {
 
   @Test
   @DisplayName("should preserve replay and SSE cursor headers while replacing identity")
-  void should_preserveReplayAndEventCursorHeaders() {
+  void shouldPreserveReplayAndEventCursorHeaders() {
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.addHeader("X-Idempotency-Key", "00000000-0000-4000-8000-000000000001");
     request.addHeader("X-Fingerprint", "deterministic-test-fingerprint");
@@ -103,7 +103,7 @@ class ProxyHeaderUtilsTest {
 
   @Test
   @DisplayName("should close the upstream SSE body immediately when the client disconnects")
-  void should_closeUpstreamStream_whenDownstreamWriteFails() throws Exception {
+  void shouldCloseUpstreamStreamWhenDownstreamWriteFails() throws Exception {
     ClientHttpResponse upstream = mock(ClientHttpResponse.class);
     TrackingInputStream body = new TrackingInputStream("data: {}\n\n".getBytes());
     when(upstream.getStatusCode()).thenReturn(HttpStatus.OK);

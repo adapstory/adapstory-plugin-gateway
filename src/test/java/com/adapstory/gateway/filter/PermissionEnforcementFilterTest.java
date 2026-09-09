@@ -80,7 +80,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Permission in JWT AND manifest — request passes through")
-    void should_passThrough_when_permissionInBoth() throws Exception {
+    void shouldPassThroughWhenPermissionInBoth() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -107,7 +107,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Permission in JWT but NOT in manifest — 403 ADAP-SEC-0010 (revoked)")
-    void should_revoked_when_returns403() throws Exception {
+    void shouldRevokedWhenReturns403() throws Exception {
       // Arrange — JWT has content.read, but manifest does NOT
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -152,7 +152,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Permission NOT in JWT — 403 (existing behavior, no manifest check needed)")
-    void should_return403_when_permissionNotInJwt() throws Exception {
+    void shouldReturn403WhenPermissionNotInJwt() throws Exception {
       // Arrange — JWT doesn't have submission.write at all
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -178,7 +178,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Cache miss → BC-02 fetch success → allowed")
-    void should_allowed_when_bc02Success() throws Exception {
+    void shouldAllowedWhenBc02Success() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -202,7 +202,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Cache miss → BC-02 unavailable → 503 ADAP-SEC-0011 (fail-closed)")
-    void should_return503_when_bc02Unavailable() throws Exception {
+    void shouldReturn503WhenBc02Unavailable() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -240,7 +240,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Empty manifest permissions — 403 for any permission (AC #7)")
-    void should_return403_when_emptyManifestPermissions() throws Exception {
+    void shouldReturn403WhenEmptyManifestPermissions() throws Exception {
       // Arrange — JWT has content.read, but manifest is empty
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -272,7 +272,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("No plugin context — passes through (unauthenticated path)")
-    void should_passThrough_when_noPluginContext() throws Exception {
+    void shouldPassThroughWhenNoPluginContext() throws Exception {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
       MockHttpServletResponse response = new MockHttpServletResponse();
@@ -284,7 +284,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Non-gateway path should not be filtered")
-    void should_not_filter_when_nonGatewayPath() {
+    void shouldNotFilterWhenNonGatewayPath() {
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/webhooks/test");
       assertThat(filter.shouldNotFilter(request)).isTrue();
@@ -306,7 +306,7 @@ class PermissionEnforcementFilterTest {
       /api/bc-02/gateway/v1/api/content/v1/materials|DELETE|NULL
       """)
     @DisplayName("should return expected permission when resolving path and method")
-    void should_returnExpectedPermission_when_resolvingPathAndMethod(
+    void shouldReturnExpectedPermissionWhenResolvingPathAndMethod(
         String path, String method, String expectedPermission) {
       String actual = filter.resolveRequiredPermission(path, method);
 
@@ -325,7 +325,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("No permission mapping for route — 403 with 'No permission mapping' message")
-    void should_return403_when_noPermissionMapping() throws Exception {
+    void shouldReturn403WhenNoPermissionMapping() throws Exception {
       // Arrange — plugin has permissions, but the route has no mapping in config
       PluginSecurityContext ctx =
           new PluginSecurityContext(
@@ -350,7 +350,7 @@ class PermissionEnforcementFilterTest {
 
     @Test
     @DisplayName("Cache hit increments cache_hit metric")
-    void should_incrementMetric_when_cacheHit() throws Exception {
+    void shouldIncrementMetricWhenCacheHit() throws Exception {
       // Arrange
       PluginSecurityContext ctx =
           new PluginSecurityContext(

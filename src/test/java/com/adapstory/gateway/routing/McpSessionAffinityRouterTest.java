@@ -22,7 +22,7 @@ class McpSessionAffinityRouterTest {
 
   @Test
   @DisplayName("binds a server session to one concrete pod across gateway replicas")
-  void should_share_exact_backend_binding_across_router_instances() throws Exception {
+  void shouldShareExactBackendBindingAcrossRouterInstances() throws Exception {
     var store = new InMemoryStore();
     McpBackendAddressResolver resolver =
         host ->
@@ -48,7 +48,7 @@ class McpSessionAffinityRouterTest {
 
   @Test
   @DisplayName("returns session-not-found rather than silently rebinding an unknown session")
-  void should_fail_closed_when_session_mapping_is_missing() throws Exception {
+  void shouldFailClosedWhenSessionMappingIsMissing() throws Exception {
     var router =
         new McpSessionAffinityRouter(
             new InMemoryStore(),
@@ -70,7 +70,7 @@ class McpSessionAffinityRouterTest {
 
   @Test
   @DisplayName("rejects a forged or stale Redis endpoint outside current headless DNS")
-  void should_reject_mapped_endpoint_outside_allowed_pods() throws Exception {
+  void shouldRejectMappedEndpointOutsideAllowedPods() throws Exception {
     var store = new InMemoryStore();
     var key = new McpSessionAffinityKey("tenant-1", "ai-methodist", "session-abc");
     store.values.put(key, URI.create("http://169.254.169.254:8000/mcp"));

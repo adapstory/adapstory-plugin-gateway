@@ -27,14 +27,14 @@ class McpProxyServiceTest {
 
   @Test
   @DisplayName("should return unknown when MCP body is null or blank")
-  void should_returnUnknown_when_bodyMissing() {
+  void shouldReturnUnknownWhenBodyMissing() {
     assertThat(McpProxyService.extractMcpMethod(null)).isEqualTo("unknown");
     assertThat(McpProxyService.extractMcpMethod("   ")).isEqualTo("unknown");
   }
 
   @Test
   @DisplayName("should tag metrics with cached MCP method from JSON request")
-  void should_tagMetrics_when_cachedMethodPresent() throws Exception {
+  void shouldTagMetricsWhenCachedMethodPresent() throws Exception {
     GatewayProperties properties =
         new GatewayProperties(
             new GatewayProperties.JwtConfig(
@@ -100,7 +100,7 @@ class McpProxyServiceTest {
 
   @Test
   @DisplayName("binds the initialize response session before downstream commit")
-  void should_bind_initial_session_before_response_commit() throws Exception {
+  void shouldBindInitialSessionBeforeResponseCommit() throws Exception {
     McpProxyTransportPort transport = mock(McpProxyTransportPort.class);
     McpSessionAffinityRouter affinityRouter = mock(McpSessionAffinityRouter.class);
     URI endpoint = URI.create("http://10.42.0.8:8000/mcp");
@@ -134,7 +134,7 @@ class McpProxyServiceTest {
 
   @Test
   @DisplayName("fails closed when initialize succeeds without a canonical session header")
-  void should_reject_initialize_response_without_session() throws Exception {
+  void shouldRejectInitializeResponseWithoutSession() throws Exception {
     McpProxyTransportPort transport = mock(McpProxyTransportPort.class);
     McpSessionAffinityRouter affinityRouter = mock(McpSessionAffinityRouter.class);
     URI endpoint = URI.create("http://10.42.0.8:8000/mcp");

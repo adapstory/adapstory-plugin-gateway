@@ -31,7 +31,7 @@ class WebhookDispatcherAdditionalTest {
     @ParameterizedTest
     @CsvSource({"'../../etc/passwd',400", "'ai grader',400", "'ai-grader-v2',202"})
     @DisplayName("should validate pluginShortId before dispatch")
-    void should_validatePluginShortId_when_dispatching(String pluginShortId, int expectedStatus) {
+    void shouldValidatePluginShortIdWhenDispatching(String pluginShortId, int expectedStatus) {
       WebhookDispatcher dispatcher = createDispatcher(null);
       byte[] payload = "{}".getBytes();
       HttpHeaders headers = new HttpHeaders();
@@ -56,7 +56,7 @@ class WebhookDispatcherAdditionalTest {
       "'  ',,202"
     })
     @DisplayName("should enforce internal secret only when configured")
-    void should_enforceInternalSecret_when_dispatching(
+    void shouldEnforceInternalSecretWhenDispatching(
         String configuredSecret, String providedSecret, int expectedStatus) {
       WebhookDispatcher dispatcher = createDispatcher(configuredSecret);
       byte[] payload = "{}".getBytes();
@@ -78,7 +78,7 @@ class WebhookDispatcherAdditionalTest {
 
     @Test
     @DisplayName("should use custom host template")
-    void should_useCustomHostTemplate() {
+    void shouldUseCustomHostTemplate() {
       // Arrange
       GatewayProperties properties =
           new GatewayProperties(
@@ -109,7 +109,7 @@ class WebhookDispatcherAdditionalTest {
 
     @Test
     @DisplayName("should use default host template when not configured")
-    void should_useDefaultHostTemplate() {
+    void shouldUseDefaultHostTemplate() {
       // Arrange — null template defaults to "plugin-%s"
       GatewayProperties properties =
           new GatewayProperties(

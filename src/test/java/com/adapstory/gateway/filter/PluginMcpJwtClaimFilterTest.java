@@ -52,7 +52,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("allows tools/list only for a route present in the token-bound grant")
-  void should_allow_tools_list_for_bound_route() throws Exception {
+  void shouldAllowToolsListForBoundRoute() throws Exception {
     var request = request("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}");
     addSessionHeaders(request);
     var response = new MockHttpServletResponse();
@@ -70,7 +70,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("allows tools/call only for the exact provider tool name")
-  void should_allow_exact_tool_call_and_preserve_body() throws Exception {
+  void shouldAllowExactToolCallAndPreserveBody() throws Exception {
     String body =
         "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
             + "\"params\":{\"name\":\"search_methodology_rag\",\"arguments\":{}}}";
@@ -92,7 +92,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("derives trusted route-scoped delegated authority from stored grant")
-  void should_derive_trusted_delegated_authority_from_stored_grant() throws Exception {
+  void shouldDeriveTrustedDelegatedAuthorityFromStoredGrant() throws Exception {
     String body =
         "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
             + "\"params\":{\"name\":\"n8n__get_workflow_status\",\"arguments\":{}}}";
@@ -146,7 +146,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("denies an adjacent tool exposed by the same provider")
-  void should_deny_unbound_tool_on_bound_route() throws Exception {
+  void shouldDenyUnboundToolOnBoundRoute() throws Exception {
     var request =
         request(
             "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
@@ -163,7 +163,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("denies MCP methods outside tools/list and tools/call")
-  void should_deny_other_json_rpc_method() throws Exception {
+  void shouldDenyOtherJsonRpcMethod() throws Exception {
     var request = request("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"resources/list\"}");
     var response = new MockHttpServletResponse();
     addSessionHeaders(request);
@@ -177,7 +177,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("fails closed when the shared grant is missing")
-  void should_deny_missing_shared_grant() throws Exception {
+  void shouldDenyMissingSharedGrant() throws Exception {
     var request = request("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}");
     var response = new MockHttpServletResponse();
     when(grantService.findAuthorization(token())).thenReturn(Optional.empty());
@@ -190,7 +190,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("returns service unavailable when Redis authorization state cannot be trusted")
-  void should_return_503_on_shared_store_failure() throws Exception {
+  void shouldReturn503OnSharedStoreFailure() throws Exception {
     var request = request("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}");
     var response = new MockHttpServletResponse();
     when(grantService.findAuthorization(token()))
@@ -204,7 +204,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("rejects missing validated access-token context")
-  void should_reject_missing_token_context() throws Exception {
+  void shouldRejectMissingTokenContext() throws Exception {
     var request = new MockHttpServletRequest("POST", PATH);
     request.setContent("{\"method\":\"tools/list\"}".getBytes(StandardCharsets.UTF_8));
     var response = new MockHttpServletResponse();
@@ -217,7 +217,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("rejects malformed, batched, or oversized JSON-RPC bodies before proxying")
-  void should_reject_invalid_or_oversized_body() throws Exception {
+  void shouldRejectInvalidOrOversizedBody() throws Exception {
     var malformed = request("[]");
     var malformedResponse = new MockHttpServletResponse();
     when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization()));
@@ -236,7 +236,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("returns bad request for invalid JSON syntax without proxying")
-  void should_reject_invalid_json_syntax() throws Exception {
+  void shouldRejectInvalidJsonSyntax() throws Exception {
     var request = request("{\"jsonrpc\":");
     var response = new MockHttpServletResponse();
     when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization()));
@@ -249,7 +249,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("rejects duplicate or unknown JSON-RPC fields before authorization")
-  void should_reject_parser_differential_json() throws Exception {
+  void shouldRejectParserDifferentialJson() throws Exception {
     when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization()));
     var duplicate =
         request(
@@ -273,7 +273,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("requires canonical request ids and forbids ids on notifications")
-  void should_enforce_json_rpc_request_and_notification_ids() throws Exception {
+  void shouldEnforceJsonRpcRequestAndNotificationIds() throws Exception {
     when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization()));
     var missingId = request("{\"jsonrpc\":\"2.0\",\"method\":\"tools/list\"}");
     addSessionHeaders(missingId);
@@ -297,7 +297,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("accepts canonical cancellation notifications without widening tool authority")
-  void should_accept_canonical_cancellation_notification() throws Exception {
+  void shouldAcceptCanonicalCancellationNotification() throws Exception {
     when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization()));
     var request =
         request(
@@ -316,7 +316,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("uses bounded outcome and reason metric labels rather than provider slugs")
-  void should_emit_bounded_metric_labels() throws Exception {
+  void shouldEmitBoundedMetricLabels() throws Exception {
     var request =
         request(
             "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\","
@@ -336,7 +336,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("filters only the canonical versioned MCP provider route")
-  void should_filter_only_canonical_provider_route() {
+  void shouldFilterOnlyCanonicalProviderRoute() {
     assertThat(filter.shouldNotFilter(new MockHttpServletRequest("POST", PATH))).isFalse();
     assertThat(
             filter.shouldNotFilter(new MockHttpServletRequest("POST", "/internal/mcp-grants/v1")))
@@ -349,7 +349,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("allows initialize without a session for a grant-bound provider route")
-  void should_allow_initialize_without_session() throws Exception {
+  void shouldAllowInitializeWithoutSession() throws Exception {
     var request =
         request(
             "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\","
@@ -371,7 +371,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("allows GET SSE and DELETE only with a canonical stateful session")
-  void should_allow_get_and_delete_with_session() throws Exception {
+  void shouldAllowGetAndDeleteWithSession() throws Exception {
     when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization()));
     for (String method : List.of("GET", "DELETE")) {
       var request = sessionRequest(method);
@@ -387,7 +387,7 @@ class PluginMcpJwtClaimFilterTest {
 
   @Test
   @DisplayName("rejects stateful requests without a session and browser Origin requests")
-  void should_reject_missing_session_and_origin() throws Exception {
+  void shouldRejectMissingSessionAndOrigin() throws Exception {
     when(grantService.findAuthorization(token())).thenReturn(Optional.of(authorization()));
     var missingSession = request("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}");
     var missingSessionResponse = new MockHttpServletResponse();

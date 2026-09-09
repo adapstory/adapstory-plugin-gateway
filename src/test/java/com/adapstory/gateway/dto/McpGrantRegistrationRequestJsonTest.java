@@ -19,14 +19,14 @@ class McpGrantRegistrationRequestJsonTest {
 
   @Test
   @DisplayName("accepts the required canonical input-schema digest")
-  void should_accept_required_input_schema_digest() {
+  void shouldAcceptRequiredInputSchemaDigest() {
     assertThatNoException()
         .isThrownBy(() -> objectMapper.readValue(validJson(), McpGrantRegistrationRequest.class));
   }
 
   @Test
   @DisplayName("rejects unknown top-level fields even when the platform mapper is permissive")
-  void should_reject_unknown_registration_field() {
+  void shouldRejectUnknownRegistrationField() {
     assertThatThrownBy(
             () ->
                 objectMapper.readValue(
@@ -39,7 +39,7 @@ class McpGrantRegistrationRequestJsonTest {
 
   @Test
   @DisplayName("rejects unknown nested binding fields rather than silently widening authority")
-  void should_reject_unknown_binding_field() {
+  void shouldRejectUnknownBindingField() {
     assertThatThrownBy(
             () ->
                 objectMapper.readValue(

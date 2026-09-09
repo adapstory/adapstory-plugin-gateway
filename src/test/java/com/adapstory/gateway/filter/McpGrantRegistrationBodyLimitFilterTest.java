@@ -10,14 +10,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import tools.jackson.databind.ObjectMapper;
 
 @DisplayName("MCP grant registration body limit")
 class McpGrantRegistrationBodyLimitFilterTest {
 
   @Test
   @DisplayName("rejects an oversized registration before Spring deserializes it")
-  void should_reject_oversized_registration_body() throws Exception {
+  void shouldRejectOversizedRegistrationBody() throws Exception {
     var filter =
         new McpGrantRegistrationBodyLimitFilter(
             tools.jackson.databind.json.JsonMapper.builder().build(), 16);

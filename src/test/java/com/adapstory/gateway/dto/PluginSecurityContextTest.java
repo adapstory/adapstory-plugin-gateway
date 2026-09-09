@@ -63,7 +63,7 @@ class PluginSecurityContextTest {
   @ParameterizedTest(name = "[{index}] {0}")
   @MethodSource("contextVariants")
   @DisplayName("should store all fields correctly for various combinations")
-  void should_storeFieldsCorrectly(
+  void shouldStoreFieldsCorrectly(
       String description,
       String pluginId,
       String tenantId,
@@ -130,7 +130,7 @@ class PluginSecurityContextTest {
   @ParameterizedTest(name = "[{index}] {0} → equal={3}")
   @MethodSource("equalityVariants")
   @DisplayName("Record equality is based on all fields")
-  void should_varyByField_when_recordEquality(
+  void shouldVaryByFieldWhenRecordEquality(
       String description, PluginSecurityContext a, PluginSecurityContext b, boolean expectEqual) {
     if (expectEqual) {
       assertThat(a).as(description).isEqualTo(b).hasSameHashCodeAs(b);
@@ -143,7 +143,7 @@ class PluginSecurityContextTest {
 
   @Test
   @DisplayName("permissions list is the same reference (record semantics)")
-  void should_sameReference_when_permissions() {
+  void shouldSameReferenceWhenPermissions() {
     List<String> perms = List.of("content.read");
     var ctx = new PluginSecurityContext("p", "t", perms, "CORE");
 
@@ -152,7 +152,7 @@ class PluginSecurityContextTest {
 
   @Test
   @DisplayName("toString contains all field values")
-  void should_containAllFields_when_toString() {
+  void shouldContainAllFieldsWhenToString() {
     var ctx =
         new PluginSecurityContext(
             "adapstory.assessment.quiz", "tenant-uuid", List.of("content.read"), "CORE");

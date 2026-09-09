@@ -12,7 +12,7 @@ class SurefireDeterminismContractTest {
 
   @Test
   @DisplayName("the canonical suite must expose the first failing attempt")
-  void should_notRerunFailingTests_when_canonicalSuiteRuns() throws IOException {
+  void shouldNotRerunFailingTestsWhenCanonicalSuiteRuns() throws IOException {
     // Context: a reactor-netty/WireMock cold-start flake was once hidden by one
     // unconditional Surefire rerun, so retry-pass executions appeared green.
     // Decision: prohibit rerunFailingTestsCount in the canonical gateway build.

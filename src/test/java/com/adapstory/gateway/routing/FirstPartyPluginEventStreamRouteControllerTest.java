@@ -75,7 +75,7 @@ class FirstPartyPluginEventStreamRouteControllerTest {
 
   @Test
   @DisplayName("streams multiple SSE events beyond the ordinary REST read timeout")
-  void streamsEventsIncrementally_withoutOrdinaryReadTimeoutOrEnvelope() throws Exception {
+  void streamsEventsIncrementallyWithoutOrdinaryReadTimeoutOrEnvelope() throws Exception {
     String path = "/api/plugins/ai-course-generator/v1/runs/" + RUN_ID + "/events";
     wireMockServer.stubFor(
         get(urlEqualTo(path))

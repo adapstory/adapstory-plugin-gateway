@@ -45,7 +45,7 @@ class RedisMcpSessionAffinityStoreTest {
 
   @Test
   @DisplayName("uses a hashed tenant-route-session key and refreshes TTL atomically on read")
-  void should_hash_sensitive_key_and_refresh_ttl() {
+  void shouldHashSensitiveKeyAndRefreshTtl() {
     String redisKey = expectedRedisKey();
     URI endpoint = URI.create("http://10.42.0.8:8000/mcp");
     when(values.getAndExpire(redisKey, TTL)).thenReturn(endpoint.toASCIIString());
@@ -58,7 +58,7 @@ class RedisMcpSessionAffinityStoreTest {
 
   @Test
   @DisplayName("creates one immutable session binding with TTL")
-  void should_bind_once_with_ttl() {
+  void shouldBindOnceWithTtl() {
     String redisKey = expectedRedisKey();
     URI endpoint = URI.create("http://10.42.0.8:8000/mcp");
     when(values.setIfAbsent(redisKey, endpoint.toASCIIString(), TTL)).thenReturn(true);
@@ -70,7 +70,7 @@ class RedisMcpSessionAffinityStoreTest {
 
   @Test
   @DisplayName("fails closed on a session collision instead of moving the session")
-  void should_reject_backend_rebinding_collision() {
+  void shouldRejectBackendRebindingCollision() {
     String redisKey = expectedRedisKey();
     URI endpoint = URI.create("http://10.42.0.8:8000/mcp");
     when(values.setIfAbsent(redisKey, endpoint.toASCIIString(), TTL)).thenReturn(false);
@@ -90,7 +90,7 @@ class RedisMcpSessionAffinityStoreTest {
 
   @Test
   @DisplayName("wraps Redis failures without exposing session identifiers")
-  void should_sanitize_shared_store_failure() {
+  void shouldSanitizeSharedStoreFailure() {
     when(values.getAndExpire(anyString(), org.mockito.ArgumentMatchers.any()))
         .thenThrow(new IllegalStateException("redis down"));
 

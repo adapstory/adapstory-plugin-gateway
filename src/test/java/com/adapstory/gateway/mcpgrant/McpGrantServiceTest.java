@@ -46,7 +46,7 @@ class McpGrantServiceTest {
 
   @Test
   @DisplayName("verifies all bindings once and stores one token-bound record")
-  void should_register_exact_binding_set_atomically() {
+  void shouldRegisterExactBindingSetAtomically() {
     var token = token(NOW.plusSeconds(120));
     var bindings = List.of(binding());
     when(store.putIfAbsent(
@@ -67,7 +67,7 @@ class McpGrantServiceTest {
 
   @Test
   @DisplayName("rejects caller-controlled identity before lifecycle or Redis I/O")
-  void should_reject_identity_mismatch_before_io() {
+  void shouldRejectIdentityMismatchBeforeIo() {
     var token = token(NOW.plusSeconds(120));
 
     assertThatThrownBy(() -> service.register(token, TENANT, "different-actor", List.of(binding())))
@@ -84,7 +84,7 @@ class McpGrantServiceTest {
 
   @Test
   @DisplayName("rejects expired and nearly-expired exchanged access tokens")
-  void should_reject_token_without_minimum_validity() {
+  void shouldRejectTokenWithoutMinimumValidity() {
     assertThatThrownBy(
             () -> service.register(token(NOW.plusSeconds(4)), TENANT, ACTOR, List.of(binding())))
         .isInstanceOf(McpGrantRejectedException.class)
@@ -93,7 +93,7 @@ class McpGrantServiceTest {
 
   @Test
   @DisplayName("rejects tokens whose lifetime exceeds the immutable grant retention")
-  void should_reject_token_lifetime_above_maximum_ttl() {
+  void shouldRejectTokenLifetimeAboveMaximumTtl() {
     var token = token(NOW.plusSeconds(900));
 
     assertThatThrownBy(() -> service.register(token, TENANT, ACTOR, List.of(binding())))
@@ -110,7 +110,7 @@ class McpGrantServiceTest {
 
   @Test
   @DisplayName("allows only idempotent registration for an already-bound token jti")
-  void should_reject_rebinding_same_token_to_different_resources() {
+  void shouldRejectRebindingSameTokenToDifferentResources() {
     var token = token(NOW.plusSeconds(120));
     var requested = new McpGrantAuthorization(TENANT, ACTOR, token.expiresAt(), List.of(binding()));
     var existing =
@@ -142,7 +142,7 @@ class McpGrantServiceTest {
 
   @Test
   @DisplayName("loads only an unexpired record matching every signed token identity field")
-  void should_load_only_matching_unexpired_authorization() {
+  void shouldLoadOnlyMatchingUnexpiredAuthorization() {
     var token = token(NOW.plusSeconds(120));
     var authorization =
         new McpGrantAuthorization(TENANT, ACTOR, token.expiresAt(), List.of(binding()));

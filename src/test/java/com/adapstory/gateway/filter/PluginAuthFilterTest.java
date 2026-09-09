@@ -99,7 +99,7 @@ class PluginAuthFilterTest {
 
   @Test
   @DisplayName("should reject BFF user JWT without subject even when tenant and role are valid")
-  void should_rejectBffUserJwt_withoutAuthenticatedSubject() throws Exception {
+  void shouldRejectBffUserJwtWithoutAuthenticatedSubject() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
     bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
@@ -133,7 +133,7 @@ class PluginAuthFilterTest {
 
   @Test
   @DisplayName("should reject BFF user JWT for plugin REST route when school role is missing")
-  void should_rejectBffUserJwt_forPluginRestRoute_whenSchoolRoleMissing() throws Exception {
+  void shouldRejectBffUserJwtForPluginRestRouteWhenSchoolRoleMissing() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
     bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
@@ -168,7 +168,7 @@ class PluginAuthFilterTest {
 
   @Test
   @DisplayName("should accept BFF user JWT with the canonical TEACHER role")
-  void should_acceptBffUserJwt_withCanonicalTeacherRole() throws Exception {
+  void shouldAcceptBffUserJwtWithCanonicalTeacherRole() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
     bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
@@ -205,7 +205,7 @@ class PluginAuthFilterTest {
 
   @Test
   @DisplayName("should reject the removed legacy INSTRUCTOR role")
-  void should_rejectBffUserJwt_withLegacyInstructorRole() throws Exception {
+  void shouldRejectBffUserJwtWithLegacyInstructorRole() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
     bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
@@ -241,7 +241,7 @@ class PluginAuthFilterTest {
   @Test
   @DisplayName(
       "should accept BFF user JWT for plugin REST route when Keycloak uses lowercase platform_admin role")
-  void should_acceptBffUserJwt_forPluginRestRoute_whenKeycloakUsesLowercasePlatformAdminRole()
+  void shouldAcceptBffUserJwtForPluginRestRouteWhenKeycloakUsesLowercasePlatformAdminRole()
       throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
@@ -283,7 +283,7 @@ class PluginAuthFilterTest {
 
   @Test
   @DisplayName("should accept BFF user JWT from secondary trusted issuer for RU auth zone")
-  void should_acceptBffUserJwtFromSecondaryTrustedIssuer_forRuAuthZone() throws Exception {
+  void shouldAcceptBffUserJwtFromSecondaryTrustedIssuerForRuAuthZone() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
     bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
@@ -330,7 +330,7 @@ class PluginAuthFilterTest {
 
   @Test
   @DisplayName("should not use BFF user JWT fallback outside plugin v1 REST routes")
-  void should_notUseBffUserJwtFallback_outsidePluginV1RestRoutes() throws Exception {
+  void shouldNotUseBffUserJwtFallbackOutsidePluginV1RestRoutes() throws Exception {
     BffUserJwtProperties bffUserJwtProperties = new BffUserJwtProperties();
     bffUserJwtProperties.setEnabled(true);
     bffUserJwtProperties.setAudiences(List.of("adapstory-api", "account"));
@@ -357,7 +357,7 @@ class PluginAuthFilterTest {
 
   @Test
   @DisplayName("should accept JWT JOSE type during processor initialization")
-  void should_acceptJwtJoseType_when_initialized() throws Exception {
+  void shouldAcceptJwtJoseTypeWhenInitialized() throws Exception {
     // Arrange
     PluginAuthFilter initializedFilter =
         new PluginAuthFilter(properties, objectMapper, new JwtProcessorFactory());
@@ -393,7 +393,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should reject a plugin JWT without a signed subject")
-    void should_rejectPluginJwt_withoutSignedSubject() throws Exception {
+    void shouldRejectPluginJwtWithoutSignedSubject() throws Exception {
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
               .claim("plugin_id", "adapstory.ai.course-generator")
@@ -420,7 +420,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should set PluginSecurityContext with correct claims")
-    void should_setPluginSecurityContext_withCorrectClaims_when_called() throws Exception {
+    void shouldSetPluginSecurityContextWithCorrectClaimsWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -456,7 +456,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should reject the removed plugin_tools compatibility claim")
-    void should_rejectPluginToolsCompatibilityClaim_when_claimPresent() throws Exception {
+    void shouldRejectPluginToolsCompatibilityClaimWhenClaimPresent() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -484,7 +484,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should set authentication in SecurityContextHolder")
-    void should_setAuthentication_inSecurityContext_when_called() throws Exception {
+    void shouldSetAuthenticationInSecurityContextWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -511,7 +511,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should create PluginAuthenticationToken with correct authorities")
-    void should_createPluginAuthenticationToken_withAuthorities_when_called() throws Exception {
+    void shouldCreatePluginAuthenticationTokenWithAuthoritiesWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -539,7 +539,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should call filterChain.doFilter when token is valid")
-    void should_call_filter_chain_when_valid_token() throws Exception {
+    void shouldCallFilterChainWhenValidToken() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -565,7 +565,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should handle null trust_level claim")
-    void should_handle_null_trust_level_when_called() throws Exception {
+    void shouldHandleNullTrustLevelWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -596,7 +596,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should handle empty permissions list")
-    void should_handle_empty_permissions_when_called() throws Exception {
+    void shouldHandleEmptyPermissionsWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -635,7 +635,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when Authorization header is missing")
-    void should_return401_when_auth_header_missing() throws Exception {
+    void shouldReturn401WhenAuthHeaderMissing() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -656,7 +656,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when Authorization header does not start with Bearer")
-    void should_return401_when_non_bearer_auth_header() throws Exception {
+    void shouldReturn401WhenNonBearerAuthHeader() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -678,7 +678,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when Authorization header is empty Bearer")
-    void should_return401_when_empty_bearer_token() throws Exception {
+    void shouldReturn401WhenEmptyBearerToken() throws Exception {
       // Arrange — Bearer with no token after prefix
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -705,7 +705,7 @@ class PluginAuthFilterTest {
     @Test
     @DisplayName(
         "should return 401 with 'Invalid or expired plugin token' when JWT processing fails")
-    void should_return401_when_jwtProcessingFails() throws Exception {
+    void shouldReturn401WhenJwtProcessingFails() throws Exception {
       // Arrange
       when(jwtProcessor.process(eq("invalid.token"), any()))
           .thenThrow(new RuntimeException("JWT expired"));
@@ -730,7 +730,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when JWT signature is invalid")
-    void should_return401_when_jwt_signature_invalid() throws Exception {
+    void shouldReturn401WhenJwtSignatureInvalid() throws Exception {
       // Arrange
       when(jwtProcessor.process(eq("tampered.jwt.signature"), any()))
           .thenThrow(new com.nimbusds.jose.proc.BadJWSException("Invalid signature"));
@@ -753,7 +753,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when JWT claims verification fails")
-    void should_return401_when_claims_verification_fails() throws Exception {
+    void shouldReturn401WhenClaimsVerificationFails() throws Exception {
       // Arrange
       when(jwtProcessor.process(eq("bad-claims-token"), any()))
           .thenThrow(new com.nimbusds.jwt.proc.BadJWTException("Invalid audience"));
@@ -776,7 +776,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when plugin claims have invalid types")
-    void should_return401_when_plugin_claims_have_invalid_types() throws Exception {
+    void shouldReturn401WhenPluginClaimsHaveInvalidTypes() throws Exception {
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
               .subject("plugin-subject")
@@ -813,7 +813,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when plugin_id claim is missing")
-    void should_return401_when_plugin_id_missing() throws Exception {
+    void shouldReturn401WhenPluginIdMissing() throws Exception {
       // Arrange — no plugin_id
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -843,7 +843,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when adapstory_tenant_id claim is missing")
-    void should_return401_when_tenant_id_missing() throws Exception {
+    void shouldReturn401WhenTenantIdMissing() throws Exception {
       // Arrange — no tenant_id
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -872,7 +872,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when permissions claim is missing")
-    void should_return401_when_permissions_missing() throws Exception {
+    void shouldReturn401WhenPermissionsMissing() throws Exception {
       // Arrange — no permissions
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -901,7 +901,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when all required claims are missing")
-    void should_return401_when_all_required_claims_missing() throws Exception {
+    void shouldReturn401WhenAllRequiredClaimsMissing() throws Exception {
       // Arrange — only subject, no plugin claims
       JWTClaimsSet claims = new JWTClaimsSet.Builder().subject("plugin-subject").build();
 
@@ -934,28 +934,28 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should not filter /actuator/ paths")
-    void should_notFilter_actuatorPaths_when_called() {
+    void shouldNotFilterActuatorPathsWhenCalled() {
       MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator/health");
       assertThat(filter.shouldNotFilter(request)).isTrue();
     }
 
     @Test
     @DisplayName("should not filter /actuator/info path")
-    void should_notFilter_actuatorInfo_when_called() {
+    void shouldNotFilterActuatorInfoWhenCalled() {
       MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator/info");
       assertThat(filter.shouldNotFilter(request)).isTrue();
     }
 
     @Test
     @DisplayName("should not filter /actuator/prometheus path")
-    void should_notFilter_actuatorPrometheus_when_called() {
+    void shouldNotFilterActuatorPrometheusWhenCalled() {
       MockHttpServletRequest request = new MockHttpServletRequest("GET", "/actuator/prometheus");
       assertThat(filter.shouldNotFilter(request)).isTrue();
     }
 
     @Test
     @DisplayName("should not filter webhook paths")
-    void should_notFilter_webhookPaths_when_called() {
+    void shouldNotFilterWebhookPathsWhenCalled() {
       MockHttpServletRequest request =
           new MockHttpServletRequest("POST", "/api/bc-02/gateway/v1/webhooks/ai-grader");
       assertThat(filter.shouldNotFilter(request)).isTrue();
@@ -963,7 +963,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should not filter webhook path with trailing segments")
-    void should_notFilter_webhookPathWithTrailingSegments_when_called() {
+    void shouldNotFilterWebhookPathWithTrailingSegmentsWhenCalled() {
       MockHttpServletRequest request =
           new MockHttpServletRequest("POST", "/api/bc-02/gateway/v1/webhooks/ai-grader/callback");
       assertThat(filter.shouldNotFilter(request)).isTrue();
@@ -971,7 +971,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should not filter OpenAPI docs paths")
-    void should_notFilter_openApiDocsPaths_when_called() {
+    void shouldNotFilterOpenApiDocsPathsWhenCalled() {
       MockHttpServletRequest root = new MockHttpServletRequest("GET", "/v3/api-docs");
       MockHttpServletRequest grouped = new MockHttpServletRequest("GET", "/v3/api-docs/plugin");
 
@@ -983,7 +983,7 @@ class PluginAuthFilterTest {
     @ValueSource(
         strings = {"/api/bc-02/gateway/v1/api/content/v1/materials", "/", "/actuator-health"})
     @DisplayName("should filter ordinary request paths")
-    void should_filter_ordinaryPaths_when_called(String path) {
+    void shouldFilterOrdinaryPathsWhenCalled(String path) {
       MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
       assertThat(filter.shouldNotFilter(request)).isFalse();
     }
@@ -999,7 +999,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should clear SecurityContext in finally block after valid token")
-    void should_clearSecurityContext_afterValidToken_when_called() throws Exception {
+    void shouldClearSecurityContextAfterValidTokenWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -1025,7 +1025,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should clear SecurityContext in finally block after invalid token")
-    void should_clearSecurityContext_afterInvalidToken_when_called() throws Exception {
+    void shouldClearSecurityContextAfterInvalidTokenWhenCalled() throws Exception {
       // Arrange
       when(jwtProcessor.process(eq("bad.token"), any()))
           .thenThrow(new RuntimeException("JWT expired"));
@@ -1044,7 +1044,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should clear SecurityContext in finally block when auth header is missing")
-    void should_clear_security_context_when_auth_header_missing() throws Exception {
+    void shouldClearSecurityContextWhenAuthHeaderMissing() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -1068,7 +1068,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should set plugin.id and tenant.id span attributes on valid token")
-    void should_setSpanAttributes_onValidToken_when_called() throws Exception {
+    void shouldSetSpanAttributesOnValidTokenWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -1107,7 +1107,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should include request path in error response")
-    void should_include_request_path_when_called() throws Exception {
+    void shouldIncludeRequestPathWhenCalled() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials/123");
@@ -1125,7 +1125,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should include X-Request-Id in error response when present")
-    void should_include_request_id_when_called() throws Exception {
+    void shouldIncludeRequestIdWhenCalled() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -1143,7 +1143,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should generate request ID when X-Request-Id is absent")
-    void should_generate_request_id_when_absent() throws Exception {
+    void shouldGenerateRequestIdWhenAbsent() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -1160,7 +1160,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return JSON content type in error response")
-    void should_return_json_content_type_when_called() throws Exception {
+    void shouldReturnJsonContentTypeWhenCalled() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -1184,7 +1184,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should handle case-sensitive Bearer prefix — lowercase 'bearer' is rejected")
-    void should_reject_lowercaseBearer_when_called() throws Exception {
+    void shouldRejectLowercaseBearerWhenCalled() throws Exception {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("GET", "/api/bc-02/gateway/v1/api/content/v1/materials");
@@ -1201,7 +1201,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should extract token correctly when Bearer has extra spaces in token value")
-    void should_extractToken_withBearerPrefix_when_called() throws Exception {
+    void shouldExtractTokenWithBearerPrefixWhenCalled() throws Exception {
       // Arrange — token extracted via substring(BEARER_PREFIX.length())
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -1228,7 +1228,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when filterChain throws ServletException")
-    void should_handle_filter_chain_throwing_servlet_exception_when_called() throws Exception {
+    void shouldHandleFilterChainThrowingServletExceptionWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -1263,7 +1263,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should return 401 when filterChain throws IOException")
-    void should_handle_filter_chain_throwing_io_exception_when_called() throws Exception {
+    void shouldHandleFilterChainThrowingIoExceptionWhenCalled() throws Exception {
       // Arrange
       JWTClaimsSet claims =
           new JWTClaimsSet.Builder()
@@ -1297,7 +1297,7 @@ class PluginAuthFilterTest {
 
     @Test
     @DisplayName("should create immutable copy of permissions list")
-    void should_create_immutable_permissions_copy_when_called() throws Exception {
+    void shouldCreateImmutablePermissionsCopyWhenCalled() throws Exception {
       // Arrange
       java.util.ArrayList<String> mutablePermissions =
           new java.util.ArrayList<>(List.of("content.read", "submission.write"));

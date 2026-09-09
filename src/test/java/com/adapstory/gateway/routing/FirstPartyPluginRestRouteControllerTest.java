@@ -121,7 +121,7 @@ class FirstPartyPluginRestRouteControllerTest {
 
   @Test
   @DisplayName("should proxy first-party plugin REST route to configured backend")
-  void should_proxyFirstPartyPluginRestRoute() throws IOException {
+  void shouldProxyFirstPartyPluginRestRoute() throws IOException {
     wireMockServer.stubFor(
         get(urlEqualTo("/api/plugins/ai-course-generator/v1/runs?limit=5"))
             .willReturn(
@@ -154,7 +154,7 @@ class FirstPartyPluginRestRouteControllerTest {
 
   @Test
   @DisplayName("should proxy PATCH first-party plugin REST route to configured backend")
-  void should_proxyPatchFirstPartyPluginRestRoute() throws IOException {
+  void shouldProxyPatchFirstPartyPluginRestRoute() throws IOException {
     wireMockServer.stubFor(
         patch(
                 urlEqualTo(
@@ -191,7 +191,7 @@ class FirstPartyPluginRestRouteControllerTest {
 
   @Test
   @DisplayName("should return 400 with plugin slug details when slug is invalid")
-  void should_return400_when_slugInvalid() throws IOException {
+  void shouldReturn400WhenSlugInvalid() throws IOException {
     MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/plugins/../v1/runs");
     MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -205,7 +205,7 @@ class FirstPartyPluginRestRouteControllerTest {
 
   @Test
   @DisplayName("should return 503 with plugin context when circuit breaker is open")
-  void should_return503_when_circuitBreakerOpen() throws IOException {
+  void shouldReturn503WhenCircuitBreakerOpen() throws IOException {
     CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("plugin-rest:ai-course-generator");
     cb.transitionToOpenState();
 
@@ -230,7 +230,7 @@ class FirstPartyPluginRestRouteControllerTest {
 
   @Test
   @DisplayName("should return 502 with enriched plugin details when proxy execution fails")
-  void should_return502_when_proxyExecutionFails() throws IOException {
+  void shouldReturn502WhenProxyExecutionFails() throws IOException {
     ProxyExecutionService failingProxy = mock(ProxyExecutionService.class);
     doThrow(new IOException("boom"))
         .when(failingProxy)
@@ -258,7 +258,7 @@ class FirstPartyPluginRestRouteControllerTest {
 
   @Test
   @DisplayName("should preserve committed response when proxy fails after streaming started")
-  void should_preserveCommittedResponse_when_proxyExecutionFailsAfterCommit() throws IOException {
+  void shouldPreserveCommittedResponseWhenProxyExecutionFailsAfterCommit() throws IOException {
     ProxyExecutionService partiallyCommittedProxy = mock(ProxyExecutionService.class);
     doAnswer(
             invocation -> {

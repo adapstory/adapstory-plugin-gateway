@@ -44,7 +44,7 @@ class RedisMcpGrantStoreTest {
 
   @Test
   @DisplayName("stores one JSON value under a SHA-256 jti key with Redis TTL")
-  void should_store_hashed_token_identifier_with_ttl() throws Exception {
+  void shouldStoreHashedTokenIdentifierWithTtl() throws Exception {
     var authorization = authorization();
     var ttl = Duration.ofSeconds(90);
     var expectedKey = "gateway:mcp-grant:v1:" + sha256("sensitive-token-jti");
@@ -58,7 +58,7 @@ class RedisMcpGrantStoreTest {
 
   @Test
   @DisplayName("round-trips a strict immutable authorization record")
-  void should_deserialize_authorization() throws Exception {
+  void shouldDeserializeAuthorization() throws Exception {
     var authorization = authorization();
     when(values.get("gateway:mcp-grant:v1:" + sha256("token-jti")))
         .thenReturn(objectMapper.writeValueAsString(authorization));
@@ -68,7 +68,7 @@ class RedisMcpGrantStoreTest {
 
   @Test
   @DisplayName("preserves corrupt shared state as a fail-closed anti-rebind tombstone")
-  void should_preserve_and_fail_closed_on_corrupt_json() {
+  void shouldPreserveAndFailClosedOnCorruptJson() {
     var key = "gateway:mcp-grant:v1:" + sha256("token-jti");
     when(values.get(key)).thenReturn("{not-json");
 
@@ -78,7 +78,7 @@ class RedisMcpGrantStoreTest {
 
   @Test
   @DisplayName("wraps Redis failures without leaking the raw token identifier")
-  void should_wrap_redis_failure_without_raw_jti() {
+  void shouldWrapRedisFailureWithoutRawJti() {
     when(values.get(anyString())).thenThrow(new IllegalStateException("redis down"));
 
     assertThatThrownBy(() -> store.find("sensitive-token-jti"))
@@ -95,7 +95,7 @@ class RedisMcpGrantStoreTest {
 
   @Test
   @DisplayName("emits the bounded write failure metric without token labels")
-  void should_measure_write_failure() {
+  void shouldMeasureWriteFailure() {
     when(values.setIfAbsent(anyString(), anyString(), org.mockito.ArgumentMatchers.any()))
         .thenThrow(new IllegalStateException("redis down"));
 
