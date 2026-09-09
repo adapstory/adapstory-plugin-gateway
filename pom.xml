@@ -29,7 +29,6 @@
     </distributionManagement>
 
     <properties>
-        <adapstory.solid.scopePattern>.*/src/main/java/.*</adapstory.solid.scopePattern>
         <jacoco.coverage.minimum>0.70</jacoco.coverage.minimum>
     </properties>
 
