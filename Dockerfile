@@ -1,4 +1,6 @@
-FROM harbor.adapstory.com/dockerhub-cache/library/eclipse-temurin@sha256:c707c0d18cb9e8556380719f80d96a7529d0746fbb42143893949b98ed2f8943 AS runtime
+ARG JAVA_RUNTIME_BASE_IMAGE=harbor.adapstory.com/dockerhub-cache/library/eclipse-temurin@sha256:c707c0d18cb9e8556380719f80d96a7529d0746fbb42143893949b98ed2f8943
+
+FROM ${JAVA_RUNTIME_BASE_IMAGE} AS runtime
 
 RUN apk add --no-cache --upgrade libcrypto3 libssl3 openssl libexpat p11-kit p11-kit-trust
 
