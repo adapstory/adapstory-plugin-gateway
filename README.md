@@ -15,9 +15,10 @@ Single ingress for plugin traffic into the Adapstory platform core. Validates JW
 ## Build
 
 ```bash
-./mvnw clean install           # full build with quality gates
-./mvnw test -Pfast             # fast path, no checks
-./mvnw spotless:apply          # auto-format
+# From the workspace root: choose the fast or full check mode explicitly.
+./scripts/mvn-build.sh --mode fast-feedback adapstory-plugin-gateway verify
+./scripts/mvn-build.sh --mode authoritative adapstory-plugin-gateway verify
+./scripts/mvn-build.sh --format adapstory-plugin-gateway
 ```
 
 ## Run
