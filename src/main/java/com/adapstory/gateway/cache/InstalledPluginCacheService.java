@@ -14,9 +14,9 @@ import org.springframework.stereotype.Service;
  *
  * <p>Ключ: {@code plugin-gateway:installed:{pluginId}:{tenantId}} → "true" | "false" |
  * "__UNAVAILABLE__". TTL конфигурируется через {@code gateway.installed-cache.*}. При cache miss
- * вызывает {@link InstalledPluginFetchClient} и кеширует результат. Negative cache sentinel
- * предотвращает thundering herd при недоступности BC-02. Вызывающий код обязан fail-close, если
- * получает sentinel как Optional.empty().
+ * вызывает {@link com.adapstory.gateway.client.InstalledPluginFetchClient} и кеширует результат.
+ * Negative cache sentinel предотвращает thundering herd при недоступности BC-02. Вызывающий код
+ * обязан fail-close, если получает sentinel как Optional.empty().
  */
 @Service
 public class InstalledPluginCacheService {

@@ -5,7 +5,7 @@ FROM ${JAVA_RUNTIME_BASE_IMAGE} AS runtime
 RUN apk add --no-cache --upgrade libcrypto3 libssl3 openssl libexpat p11-kit p11-kit-trust
 
 WORKDIR /app
-COPY target/adapstory-plugin-gateway-*-exec.jar /app/app.jar
+COPY --chmod=0444 target/adapstory-plugin-gateway-*-exec.jar /app/app.jar
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 EXPOSE 8090

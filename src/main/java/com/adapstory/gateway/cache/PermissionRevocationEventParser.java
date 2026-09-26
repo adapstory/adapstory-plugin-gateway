@@ -49,7 +49,7 @@ public class PermissionRevocationEventParser {
    *
    * @param message raw JSON string
    * @return parsed JsonNode tree
-   * @throws JsonProcessingException при ошибке парсинга
+   * @throws JacksonException при ошибке парсинга
    */
   public JsonNode parseEvent(String message) throws JacksonException {
     return objectMapper.readTree(message);
