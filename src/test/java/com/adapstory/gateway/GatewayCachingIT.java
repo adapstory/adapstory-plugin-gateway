@@ -13,7 +13,7 @@ import org.springframework.web.filter.ShallowEtagHeaderFilter;
 @SpringBootTest
 @ActiveProfiles("test")
 @DisplayName("Plugin Gateway caching integration")
-class GatewayCachingIntegrationTest {
+class GatewayCachingIT {
 
   @Autowired private WebApplicationContext webApplicationContext;
 

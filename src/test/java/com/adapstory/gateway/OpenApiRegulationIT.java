@@ -36,7 +36,7 @@ import tools.jackson.databind.ObjectMapper;
 @SpringBootTest
 @ActiveProfiles("test")
 @DisplayName("Plugin Gateway OpenAPI regulation integration")
-class OpenApiRegulationIntegrationTest {
+class OpenApiRegulationIT {
 
   private static final ObjectMapper MAPPER =
       tools.jackson.databind.json.JsonMapper.builder().build();
