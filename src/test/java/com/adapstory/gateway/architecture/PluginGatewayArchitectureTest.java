@@ -2,6 +2,7 @@ package com.adapstory.gateway.architecture;
 
 import static com.adapstory.starter.testing.archunit.HexagonalArchitectureRules.haveAtMostNConstructorDependencies;
 import static com.adapstory.starter.testing.archunit.IntegrationHeaderContractRules.controllersMustNotUseLegacyUserIdForEndUserIdentity;
+import static com.adapstory.starter.testing.archunit.IntegrationHeaderContractRules.kafkaAdaptersMustUseIntegrationHeadersConstants;
 import static com.adapstory.starter.testing.archunit.IntegrationHeaderContractRules.mutatingEndpointsMustDeclareIdempotencyKey;
 import static com.adapstory.starter.testing.archunit.NonEmptyArchitectureRules.importedClassesMustNotBeEmpty;
 import static com.adapstory.starter.testing.archunit.RestControllerSecurityRules.allEndpointMethodsMustHaveSecurityAnnotation;
@@ -50,6 +51,10 @@ class PluginGatewayArchitectureTest {
   @ArchTest
   static final ArchRule CONTROLLERS_DO_NOT_USE_LEGACY_USER_ID_ALONE =
       controllersMustNotUseLegacyUserIdForEndUserIdentity(BASE);
+
+  @ArchTest
+  static final ArchRule KAFKA_ADAPTERS_USE_INTEGRATION_HEADERS =
+      kafkaAdaptersMustUseIntegrationHeadersConstants(BASE);
 
   // ── No field injection ────────────────────────────────────────────────
 
