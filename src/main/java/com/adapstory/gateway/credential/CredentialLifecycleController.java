@@ -1,10 +1,13 @@
 package com.adapstory.gateway.credential;
 
+import com.adapstory.commons.idempotency.IdempotencyKey;
 import com.adapstory.gateway.dto.CredentialBrokerResponse;
 import com.adapstory.gateway.dto.CredentialHumanApprovalRequest;
 import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Enumeration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -12,8 +15,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -37,7 +42,11 @@ public final class CredentialLifecycleController {
 
   @PostMapping("/plans")
   @PermitAll
-  ResponseEntity<JsonNode> plan(@RequestBody JsonNode body, HttpServletRequest request) {
+  ResponseEntity<JsonNode> plan(
+      @RequestBody JsonNode body,
+      @RequestHeader("X-Idempotency-Key") String idempotencyKey,
+      HttpServletRequest request) {
+    requireMatchingCommandKey(idempotencyKey, body, request);
     return response(
         forwarder.forward(
             CredentialCapability.PLAN, "POST /v1/plans", "/v1/plans", body, headers(request)));
@@ -89,7 +98,11 @@ public final class CredentialLifecycleController {
 
   @PostMapping("/containments")
   @PermitAll
-  ResponseEntity<JsonNode> contain(@RequestBody JsonNode body, HttpServletRequest request) {
+  ResponseEntity<JsonNode> contain(
+      @RequestBody JsonNode body,
+      @RequestHeader("X-Idempotency-Key") String idempotencyKey,
+      HttpServletRequest request) {
+    requireMatchingCommandKey(idempotencyKey, body, request);
     return response(
         forwarder.forward(
             CredentialCapability.CONTAIN,
@@ -146,6 +159,29 @@ public final class CredentialLifecycleController {
   private static void requireOperationRef(String operationRef) {
     if (operationRef == null || !operationRef.matches("^op_[a-f0-9]{32}$")) {
       throw new CredentialCapabilityRejectedException("invalid operation reference");
+    }
+  }
+
+  private static void requireMatchingCommandKey(
+      String rawKey, JsonNode body, HttpServletRequest request) {
+    Enumeration<String> values = request.getHeaders("X-Idempotency-Key");
+    if (values == null || !values.hasMoreElements()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "command key is required");
+    }
+    String headerKey = values.nextElement();
+    if (values.hasMoreElements() || !headerKey.equals(rawKey)) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "one command key is required");
+    }
+    IdempotencyKey key;
+    try {
+      key = new IdempotencyKey(rawKey);
+    } catch (IllegalArgumentException | NullPointerException exception) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid command key");
+    }
+    JsonNode bodyKey = body == null ? null : body.get("idempotency_key");
+    if (bodyKey == null || !bodyKey.isString() || !key.getValue().equals(bodyKey.stringValue())) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "command key differs from broker request");
     }
   }
 }
