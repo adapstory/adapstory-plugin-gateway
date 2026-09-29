@@ -25,6 +25,8 @@ import tools.jackson.databind.ObjectMapper;
 @DisplayName("Redis MCP grant store")
 class RedisMcpGrantStoreTest {
 
+  private static final String IDEMPOTENCY_KEY = "00000000-0000-4000-8000-000000000123";
+
   private StringRedisTemplate redis;
   private ValueOperations<String, String> values;
   private ObjectMapper objectMapper;
@@ -54,6 +56,38 @@ class RedisMcpGrantStoreTest {
     assertThat(store.putIfAbsent("sensitive-token-jti", authorization, ttl)).isTrue();
 
     verify(values).setIfAbsent(expectedKey, objectMapper.writeValueAsString(authorization), ttl);
+  }
+
+  @Test
+  @DisplayName("claims an operation key for one exact token and authorization")
+  void shouldClaimOneExactRegistration() throws Exception {
+    var authorization = authorization();
+    var ttl = Duration.ofSeconds(90);
+    var key = "gateway:mcp-grant:v1:idempotency:" + sha256(IDEMPOTENCY_KEY);
+    var fingerprint =
+        sha256("sensitive-token-jti\0" + objectMapper.writeValueAsString(authorization));
+    when(values.setIfAbsent(key, fingerprint, ttl)).thenReturn(true);
+
+    assertThat(
+            store.claimIdempotencyKey(IDEMPOTENCY_KEY, "sensitive-token-jti", authorization, ttl))
+        .isTrue();
+    verify(values).setIfAbsent(key, fingerprint, ttl);
+  }
+
+  @Test
+  @DisplayName("accepts only the same completed command after a repeated claim")
+  void shouldRejectConflictingRegistrationKey() throws Exception {
+    var authorization = authorization();
+    var ttl = Duration.ofSeconds(90);
+    var key = "gateway:mcp-grant:v1:idempotency:" + sha256(IDEMPOTENCY_KEY);
+    var fingerprint = sha256("token-jti\0" + objectMapper.writeValueAsString(authorization));
+    when(values.setIfAbsent(key, fingerprint, ttl)).thenReturn(false);
+    when(values.get(key)).thenReturn(fingerprint, sha256("different-registration"));
+
+    assertThat(store.claimIdempotencyKey(IDEMPOTENCY_KEY, "token-jti", authorization, ttl))
+        .isTrue();
+    assertThat(store.claimIdempotencyKey(IDEMPOTENCY_KEY, "token-jti", authorization, ttl))
+        .isFalse();
   }
 
   @Test

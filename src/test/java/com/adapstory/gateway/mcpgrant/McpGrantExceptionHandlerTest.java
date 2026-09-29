@@ -73,6 +73,13 @@ class McpGrantExceptionHandlerTest {
             request);
     assertThat(conflict.getStatusCode().value()).isEqualTo(409);
     assertThat(conflict.getBody().message()).doesNotContain("secret detail");
+    var reusedKey =
+        handler.handleRegistrationRejection(
+            new McpGrantRejectedException(
+                McpGrantRejectedException.Reason.IDEMPOTENCY_KEY_REUSED, "secret detail"),
+            request);
+    assertThat(reusedKey.getStatusCode().value()).isEqualTo(409);
+    assertThat(reusedKey.getBody().message()).doesNotContain("secret detail");
   }
 
   @Test

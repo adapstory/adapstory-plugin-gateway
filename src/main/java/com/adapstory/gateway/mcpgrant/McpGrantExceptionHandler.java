@@ -37,7 +37,7 @@ public class McpGrantExceptionHandler {
         switch (exception.reason()) {
           case IDENTITY_MISMATCH -> HttpStatus.FORBIDDEN;
           case TOKEN_VALIDITY -> HttpStatus.UNAUTHORIZED;
-          case TOKEN_ALREADY_BOUND -> HttpStatus.CONFLICT;
+          case TOKEN_ALREADY_BOUND, IDEMPOTENCY_KEY_REUSED -> HttpStatus.CONFLICT;
         };
     return error(status, "MCP grant registration rejected", exception.reason().name(), request);
   }

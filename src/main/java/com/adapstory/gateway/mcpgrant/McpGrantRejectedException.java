@@ -6,7 +6,8 @@ public final class McpGrantRejectedException extends RuntimeException {
   public enum Reason {
     IDENTITY_MISMATCH,
     TOKEN_VALIDITY,
-    TOKEN_ALREADY_BOUND
+    TOKEN_ALREADY_BOUND,
+    IDEMPOTENCY_KEY_REUSED
   }
 
   private final Reason reason;

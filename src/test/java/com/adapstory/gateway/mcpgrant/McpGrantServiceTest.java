@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.adapstory.commons.idempotency.IdempotencyKey;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -26,6 +27,8 @@ class McpGrantServiceTest {
   private static final Instant NOW = Instant.parse("2026-07-16T12:00:00Z");
   private static final String TENANT = "tenant-123";
   private static final String ACTOR = "actor-456";
+  private static final IdempotencyKey KEY =
+      new IdempotencyKey("00000000-0000-4000-8000-000000000123");
 
   @Mock private McpGrantStore store;
   @Mock private ProviderBindingVerifier verifier;
@@ -49,20 +52,16 @@ class McpGrantServiceTest {
   void shouldRegisterExactBindingSetAtomically() {
     var token = token(NOW.plusSeconds(120));
     var bindings = List.of(binding());
-    when(store.putIfAbsent(
-            "token-jti",
-            new McpGrantAuthorization(TENANT, ACTOR, token.expiresAt(), bindings),
-            Duration.ofSeconds(180)))
+    var authorization = new McpGrantAuthorization(TENANT, ACTOR, token.expiresAt(), bindings);
+    when(store.claimIdempotencyKey(
+            KEY.getValue(), "token-jti", authorization, Duration.ofSeconds(180)))
         .thenReturn(true);
+    when(store.putIfAbsent("token-jti", authorization, Duration.ofSeconds(180))).thenReturn(true);
 
-    service.register(token, TENANT, ACTOR, bindings);
+    service.register(KEY, token, TENANT, ACTOR, bindings);
 
     verify(verifier).verify(TENANT, ACTOR, bindings);
-    verify(store)
-        .putIfAbsent(
-            "token-jti",
-            new McpGrantAuthorization(TENANT, ACTOR, token.expiresAt(), bindings),
-            Duration.ofSeconds(180));
+    verify(store).putIfAbsent("token-jti", authorization, Duration.ofSeconds(180));
   }
 
   @Test
@@ -70,7 +69,8 @@ class McpGrantServiceTest {
   void shouldRejectIdentityMismatchBeforeIo() {
     var token = token(NOW.plusSeconds(120));
 
-    assertThatThrownBy(() -> service.register(token, TENANT, "different-actor", List.of(binding())))
+    assertThatThrownBy(
+            () -> service.register(KEY, token, TENANT, "different-actor", List.of(binding())))
         .isInstanceOf(McpGrantRejectedException.class)
         .hasMessageContaining("identity");
 
@@ -86,7 +86,8 @@ class McpGrantServiceTest {
   @DisplayName("rejects expired and nearly-expired exchanged access tokens")
   void shouldRejectTokenWithoutMinimumValidity() {
     assertThatThrownBy(
-            () -> service.register(token(NOW.plusSeconds(4)), TENANT, ACTOR, List.of(binding())))
+            () ->
+                service.register(KEY, token(NOW.plusSeconds(4)), TENANT, ACTOR, List.of(binding())))
         .isInstanceOf(McpGrantRejectedException.class)
         .hasMessageContaining("validity");
   }
@@ -96,7 +97,7 @@ class McpGrantServiceTest {
   void shouldRejectTokenLifetimeAboveMaximumTtl() {
     var token = token(NOW.plusSeconds(900));
 
-    assertThatThrownBy(() -> service.register(token, TENANT, ACTOR, List.of(binding())))
+    assertThatThrownBy(() -> service.register(KEY, token, TENANT, ACTOR, List.of(binding())))
         .isInstanceOf(McpGrantRejectedException.class)
         .hasMessageContaining("maximum");
 
@@ -132,12 +133,50 @@ class McpGrantServiceTest {
                     "available",
                     NOW,
                     "Query the tenant knowledge graph. Use only for structured relations.")));
-    when(store.putIfAbsent("token-jti", requested, Duration.ofSeconds(180))).thenReturn(false);
+    when(store.claimIdempotencyKey(KEY.getValue(), "token-jti", requested, Duration.ofSeconds(180)))
+        .thenReturn(true);
     when(store.find("token-jti")).thenReturn(Optional.of(existing));
 
-    assertThatThrownBy(() -> service.register(token, TENANT, ACTOR, List.of(binding())))
+    assertThatThrownBy(() -> service.register(KEY, token, TENANT, ACTOR, List.of(binding())))
         .isInstanceOf(McpGrantRejectedException.class)
         .hasMessageContaining("already bound");
+  }
+
+  @Test
+  @DisplayName("returns the committed registration without revalidating the same key")
+  void shouldReplaySameKeyWithoutRepeatingEffect() {
+    var token = token(NOW.plusSeconds(120));
+    var bindings = List.of(binding());
+    var authorization = new McpGrantAuthorization(TENANT, ACTOR, token.expiresAt(), bindings);
+    when(store.claimIdempotencyKey(
+            KEY.getValue(), "token-jti", authorization, Duration.ofSeconds(180)))
+        .thenReturn(true);
+    when(store.find("token-jti")).thenReturn(Optional.of(authorization));
+
+    service.register(KEY, token, TENANT, ACTOR, bindings);
+
+    verify(verifier, never()).verify(TENANT, ACTOR, bindings);
+    verify(store, never())
+        .putIfAbsent(
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
+  @DisplayName("rejects a reused command key bound to another registration")
+  void shouldRejectConflictingIdempotencyKey() {
+    var token = token(NOW.plusSeconds(120));
+    var bindings = List.of(binding());
+    var authorization = new McpGrantAuthorization(TENANT, ACTOR, token.expiresAt(), bindings);
+    when(store.claimIdempotencyKey(
+            KEY.getValue(), "token-jti", authorization, Duration.ofSeconds(180)))
+        .thenReturn(false);
+
+    assertThatThrownBy(() -> service.register(KEY, token, TENANT, ACTOR, bindings))
+        .isInstanceOf(McpGrantRejectedException.class)
+        .hasMessageContaining("idempotency key");
+    verify(verifier, never()).verify(TENANT, ACTOR, bindings);
   }
 
   @Test

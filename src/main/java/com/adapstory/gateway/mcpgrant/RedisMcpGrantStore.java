@@ -74,6 +74,36 @@ final class RedisMcpGrantStore implements McpGrantStore {
     }
   }
 
+  @Override
+  public boolean claimIdempotencyKey(
+      String idempotencyKey, String tokenId, McpGrantAuthorization authorization, Duration ttl) {
+    Objects.requireNonNull(idempotencyKey, "idempotencyKey must not be null");
+    Objects.requireNonNull(tokenId, "tokenId must not be null");
+    Objects.requireNonNull(authorization, "authorization must not be null");
+    if (ttl == null || ttl.isZero() || ttl.isNegative()) {
+      throw new IllegalArgumentException("grant TTL must be positive");
+    }
+    String redisKey = keyPrefix + "idempotency:" + digest(idempotencyKey);
+    try {
+      String fingerprint = digest(tokenId + "\0" + objectMapper.writeValueAsString(authorization));
+      if (Boolean.TRUE.equals(
+          redisTemplate.opsForValue().setIfAbsent(redisKey, fingerprint, ttl))) {
+        return true;
+      }
+      String previous = redisTemplate.opsForValue().get(redisKey);
+      if (previous == null) {
+        throw new McpGrantStorageException("shared MCP idempotency claim is unavailable");
+      }
+      return MessageDigest.isEqual(
+          fingerprint.getBytes(StandardCharsets.US_ASCII),
+          previous.getBytes(StandardCharsets.US_ASCII));
+    } catch (McpGrantStorageException exception) {
+      throw exception;
+    } catch (RuntimeException exception) {
+      throw storageFailure("write", "shared MCP idempotency claim is unavailable", exception);
+    }
+  }
+
   private McpGrantStorageException storageFailure(
       String operation, String message, Exception cause) {
     meterRegistry
@@ -84,10 +114,14 @@ final class RedisMcpGrantStore implements McpGrantStore {
 
   private String key(String tokenId) {
     Objects.requireNonNull(tokenId, "tokenId must not be null");
+    return keyPrefix + digest(tokenId);
+  }
+
+  private static String digest(String value) {
     try {
       byte[] digest =
-          MessageDigest.getInstance("SHA-256").digest(tokenId.getBytes(StandardCharsets.UTF_8));
-      return keyPrefix + HexFormat.of().formatHex(digest);
+          MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+      return HexFormat.of().formatHex(digest);
     } catch (NoSuchAlgorithmException exception) {
       throw new IllegalStateException("SHA-256 is unavailable", exception);
     }

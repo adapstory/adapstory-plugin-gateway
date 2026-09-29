@@ -3,8 +3,10 @@ package com.adapstory.gateway.mcpgrant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.adapstory.commons.idempotency.IdempotencyKey;
 import com.adapstory.gateway.dto.DelegatedCapabilityAuthorityRequest;
 import com.adapstory.gateway.dto.McpGrantRegistrationRequest;
 import com.adapstory.gateway.dto.ProviderBindingGrantRequest;
@@ -22,6 +24,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 @DisplayName("MCP grant registration endpoint")
 class McpGrantControllerTest {
+
+  private static final String IDEMPOTENCY_KEY = "00000000-0000-4000-8000-000000000123";
 
   @Test
   @DisplayName("registers the complete exact binding set and returns empty 204")
@@ -63,12 +67,19 @@ class McpGrantControllerTest {
                     authority.grantId().toString(),
                     authority.policyVersion(),
                     authority.capabilities())),
+            IDEMPOTENCY_KEY,
             servletRequest);
 
     assertThat(response.getStatusCode().value()).isEqualTo(204);
     assertThat(response.getBody()).isNull();
     verify(service)
-        .register(token, "asserted-tenant", "asserted-actor", List.of(binding), authority);
+        .register(
+            new IdempotencyKey(IDEMPOTENCY_KEY),
+            token,
+            "asserted-tenant",
+            "asserted-actor",
+            List.of(binding),
+            authority);
   }
 
   @Test
@@ -80,8 +91,33 @@ class McpGrantControllerTest {
             () ->
                 controller.register(
                     new McpGrantRegistrationRequest(List.of(requestBinding(binding()))),
+                    IDEMPOTENCY_KEY,
                     mock(HttpServletRequest.class)))
         .isInstanceOf(McpGrantRejectedException.class);
+  }
+
+  @Test
+  @DisplayName("rejects a missing or malformed command key before registration")
+  void shouldRejectInvalidCommandKey() {
+    McpGrantService service = mock(McpGrantService.class);
+    McpGrantController controller = new McpGrantController(service);
+    var registration = new McpGrantRegistrationRequest(List.of(requestBinding(binding())));
+    var request = new MockHttpServletRequest();
+    request.setAttribute(
+        McpGrantJwtAuthenticationFilter.MCP_ACCESS_TOKEN_ATTR,
+        new McpAccessTokenContext(
+            "token-jti",
+            "actor-456",
+            "tenant-123",
+            "agent-runtime",
+            Instant.parse("2026-07-16T12:05:00Z")));
+
+    for (String key : new String[] {null, "not-a-uuid", "550e8400-e29b-41d4-a716-1"}) {
+      org.assertj.core.api.Assertions.assertThatThrownBy(
+              () -> controller.register(registration, key, request))
+          .isInstanceOf(IllegalArgumentException.class);
+    }
+    verifyNoInteractions(service);
   }
 
   @Test
@@ -107,9 +143,17 @@ class McpGrantControllerTest {
         .doFilter(
             request,
             response,
-            (wrapped, ignored) -> controller.register(registration, (HttpServletRequest) wrapped));
+            (wrapped, ignored) ->
+                controller.register(registration, IDEMPOTENCY_KEY, (HttpServletRequest) wrapped));
 
-    verify(service).register(token, "tenant-123", "actor-456", List.of(binding()), null);
+    verify(service)
+        .register(
+            new IdempotencyKey(IDEMPOTENCY_KEY),
+            token,
+            "tenant-123",
+            "actor-456",
+            List.of(binding()),
+            null);
   }
 
   private static ProviderBindingGrant binding() {

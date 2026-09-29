@@ -1,5 +1,6 @@
 package com.adapstory.gateway.mcpgrant;
 
+import com.adapstory.commons.idempotency.IdempotencyKey;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -62,20 +63,23 @@ public final class McpGrantService {
 
   /** Validates identity and provider state, then atomically binds a jti to one immutable set. */
   public void register(
+      IdempotencyKey idempotencyKey,
       McpAccessTokenContext token,
       String tenantHeader,
       String actorHeader,
       List<ProviderBindingGrant> bindings) {
-    register(token, tenantHeader, actorHeader, bindings, null);
+    register(idempotencyKey, token, tenantHeader, actorHeader, bindings, null);
   }
 
   /** Validates identity and stores exact bindings plus optional delegated node authority. */
   public void register(
+      IdempotencyKey idempotencyKey,
       McpAccessTokenContext token,
       String tenantHeader,
       String actorHeader,
       List<ProviderBindingGrant> bindings,
       DelegatedCapabilityAuthority delegatedAuthority) {
+    Objects.requireNonNull(idempotencyKey, "idempotencyKey must not be null");
     Objects.requireNonNull(token, "token must not be null");
     if (!token.tenantId().equals(tenantHeader) || !token.subject().equals(actorHeader)) {
       throw new McpGrantRejectedException(
@@ -104,9 +108,23 @@ public final class McpGrantService {
             token.expiresAt(),
             immutableBindings,
             delegatedAuthority);
-    verifier.verify(token.tenantId(), token.subject(), immutableBindings);
-
     Duration storageTtl = remaining.plus(replayRetention);
+    if (!store.claimIdempotencyKey(
+        idempotencyKey.getValue(), token.tokenId(), authorization, storageTtl)) {
+      throw new McpGrantRejectedException(
+          McpGrantRejectedException.Reason.IDEMPOTENCY_KEY_REUSED,
+          "idempotency key is already bound to another registration");
+    }
+    Optional<McpGrantAuthorization> existing = store.find(token.tokenId());
+    if (existing.isPresent()) {
+      if (existing.filter(authorization::equals).isPresent()) {
+        return;
+      }
+      throw new McpGrantRejectedException(
+          McpGrantRejectedException.Reason.TOKEN_ALREADY_BOUND,
+          "access token jti is already bound to different provider resources");
+    }
+    verifier.verify(token.tenantId(), token.subject(), immutableBindings);
     if (store.putIfAbsent(token.tokenId(), authorization, storageTtl)) {
       return;
     }

@@ -1,5 +1,6 @@
 package com.adapstory.gateway.mcpgrant;
 
+import com.adapstory.commons.idempotency.IdempotencyKey;
 import com.adapstory.gateway.dto.DelegatedCapabilityAuthorityRequest;
 import com.adapstory.gateway.dto.McpGrantRegistrationRequest;
 import com.adapstory.gateway.dto.ProviderBindingGrantRequest;
@@ -21,6 +22,7 @@ import java.util.Objects;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Private endpoint that binds one exchanged access-token jti to exact provider resources. */
@@ -73,7 +75,13 @@ public class McpGrantController {
         in = ParameterIn.HEADER,
         required = true,
         description = "Delegated actor identity; must exactly match the exchanged token subject",
-        schema = @Schema(maxLength = 512))
+        schema = @Schema(maxLength = 512)),
+    @Parameter(
+        name = "X-Idempotency-Key",
+        in = ParameterIn.HEADER,
+        required = true,
+        description = "UUIDv4 or UUIDv7 key for this exact grant registration",
+        schema = @Schema(minLength = 36, maxLength = 36))
   })
   @PostMapping("/internal/mcp-grants/v1")
   public ResponseEntity<Void> register(
@@ -82,7 +90,11 @@ public class McpGrantController {
               required = true)
           @RequestBody
           McpGrantRegistrationRequest registration,
+      @RequestHeader("X-Idempotency-Key") String idempotencyKey,
       HttpServletRequest request) {
+    if (idempotencyKey == null || idempotencyKey.isBlank()) {
+      throw new IllegalArgumentException("idempotency key is required");
+    }
     McpAccessTokenContext token =
         (McpAccessTokenContext)
             request.getAttribute(McpGrantJwtAuthenticationFilter.MCP_ACCESS_TOKEN_ATTR);
@@ -92,6 +104,7 @@ public class McpGrantController {
           "validated Gateway token context is required");
     }
     service.register(
+        new IdempotencyKey(idempotencyKey),
         token,
         trustedIdentity(request, HeaderInjectionFilter.TRUSTED_TENANT_ID_ATTR),
         trustedIdentity(request, HeaderInjectionFilter.TRUSTED_ADAPSTORY_USER_ID_ATTR),
