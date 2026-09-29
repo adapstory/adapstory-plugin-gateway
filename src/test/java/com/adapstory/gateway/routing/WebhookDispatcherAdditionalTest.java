@@ -1,10 +1,15 @@
 package com.adapstory.gateway.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.adapstory.commons.header.IntegrationHeaders;
 import com.adapstory.gateway.config.GatewayProperties;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -24,6 +29,8 @@ import org.springframework.web.client.RestClient;
 @DisplayName("WebhookDispatcher — additional scenarios")
 class WebhookDispatcherAdditionalTest {
 
+  private static final String COMMAND_KEY = "550e8400-e29b-41d4-a716-446655440000";
+
   @Nested
   @DisplayName("pluginShortId validation")
   class PluginShortIdValidation {
@@ -36,11 +43,42 @@ class WebhookDispatcherAdditionalTest {
       byte[] payload = "{}".getBytes();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
+      headers.set("X-Idempotency-Key", COMMAND_KEY);
 
-      ResponseEntity<Void> result = dispatcher.dispatchWebhook(pluginShortId, payload, headers);
+      ResponseEntity<Void> result =
+          dispatcher.dispatchWebhook(pluginShortId, payload, COMMAND_KEY, headers);
 
       assertThat(result.getStatusCode().value()).isEqualTo(expectedStatus);
     }
+  }
+
+  @Test
+  @DisplayName("webhook rejects absent, malformed, and duplicate command keys")
+  void shouldRejectInvalidCommandKeys() {
+    WebhookDispatcher dispatcher = createDispatcher(null);
+    HttpHeaders headers = new HttpHeaders();
+
+    assertThat(
+            dispatcher
+                .dispatchWebhook("ai-grader", new byte[0], null, headers)
+                .getStatusCode()
+                .value())
+        .isEqualTo(400);
+    headers.set("X-Idempotency-Key", "not-a-uuid");
+    assertThat(
+            dispatcher
+                .dispatchWebhook("ai-grader", new byte[0], "not-a-uuid", headers)
+                .getStatusCode()
+                .value())
+        .isEqualTo(400);
+    headers.set("X-Idempotency-Key", COMMAND_KEY);
+    headers.add("X-Idempotency-Key", COMMAND_KEY);
+    assertThat(
+            dispatcher
+                .dispatchWebhook("ai-grader", new byte[0], COMMAND_KEY, headers)
+                .getStatusCode()
+                .value())
+        .isEqualTo(400);
   }
 
   @Nested
@@ -62,11 +100,13 @@ class WebhookDispatcherAdditionalTest {
       byte[] payload = "{}".getBytes();
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
+      headers.set("X-Idempotency-Key", COMMAND_KEY);
       if (providedSecret != null && !providedSecret.isBlank()) {
         headers.set(IntegrationHeaders.HEADER_INTERNAL_SECRET, providedSecret);
       }
 
-      ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
+      ResponseEntity<Void> result =
+          dispatcher.dispatchWebhook("ai-grader", payload, COMMAND_KEY, headers);
 
       assertThat(result.getStatusCode().value()).isEqualTo(expectedStatus);
     }
@@ -97,7 +137,8 @@ class WebhookDispatcherAdditionalTest {
           new WebhookDispatchService(
               properties,
               new RestClientWebhookDeliveryAdapter(RestClient.builder()),
-              Runnable::run);
+              Runnable::run,
+              testStore());
       WebhookDispatcher dispatcher = new WebhookDispatcher(properties, dispatchService);
 
       // Act
@@ -128,7 +169,8 @@ class WebhookDispatcherAdditionalTest {
           new WebhookDispatchService(
               properties,
               new RestClientWebhookDeliveryAdapter(RestClient.builder()),
-              Runnable::run);
+              Runnable::run,
+              testStore());
       WebhookDispatcher dispatcher = new WebhookDispatcher(properties, dispatchService);
 
       // Act
@@ -155,7 +197,17 @@ class WebhookDispatcherAdditionalTest {
 
     WebhookDispatchService dispatchService =
         new WebhookDispatchService(
-            properties, new RestClientWebhookDeliveryAdapter(RestClient.builder()), Runnable::run);
+            properties,
+            new RestClientWebhookDeliveryAdapter(RestClient.builder()),
+            Runnable::run,
+            testStore());
     return new WebhookDispatcher(properties, dispatchService);
+  }
+
+  private static WebhookDispatchStore testStore() {
+    WebhookDispatchStore store = mock(WebhookDispatchStore.class);
+    when(store.admit(any())).thenReturn(WebhookDispatchStore.Admission.NEW);
+    when(store.claim(anyString())).thenReturn(Optional.empty());
+    return store;
   }
 }

@@ -39,7 +39,11 @@ public final class CredentialGatewayAssertionSigner {
 
   /** Signs the exact Broker method, canonical body digest, request, and caller capability. */
   public SignedGatewayAssertion sign(
-      String method, JsonNode body, String requestId, CredentialTaskCapability capability) {
+      String method,
+      JsonNode body,
+      String requestId,
+      CredentialTaskCapability capability,
+      String idempotencyKey) {
     Instant now = clock.instant();
     capability.requireCaller(
         capability.beadsTaskId(), capability.agentInstanceId(), capability.capability(), now);
@@ -48,6 +52,7 @@ public final class CredentialGatewayAssertionSigner {
             "CredentialGatewayAssertion/v1",
             method,
             CanonicalCredentialJson.sha256(body),
+            idempotencyKey,
             requestId,
             audience,
             capability.capability().wireValue(),

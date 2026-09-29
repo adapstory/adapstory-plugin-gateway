@@ -30,6 +30,9 @@ public final class RestClientCredentialBrokerTransport implements CredentialBrok
             .header("X-Credential-Assertion", request.assertion())
             .header("X-Credential-Signature", request.signature())
             .header("X-Request-Id", request.requestId());
+    if (request.idempotencyKey() != null) {
+      outbound.header("X-Idempotency-Key", request.idempotencyKey());
+    }
     if (!HttpMethod.GET.matches(request.httpMethod())) {
       outbound.body(request.body());
     }

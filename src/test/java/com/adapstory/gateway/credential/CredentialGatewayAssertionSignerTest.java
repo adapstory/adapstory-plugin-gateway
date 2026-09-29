@@ -40,7 +40,13 @@ class CredentialGatewayAssertionSignerTest {
             now.plusSeconds(60));
     JsonNode body = objectMapper.readTree("{\"z\":1,\"a\":{\"y\":2,\"x\":3}}");
 
-    SignedGatewayAssertion signed = signer.sign("POST /v1/plans", body, "request-1", capability);
+    SignedGatewayAssertion signed =
+        signer.sign(
+            "POST /v1/plans",
+            body,
+            "request-1",
+            capability,
+            "550e8400-e29b-41d4-a716-446655440000");
 
     byte[] payload = Base64.getDecoder().decode(signed.assertion());
     Signature verifier = Signature.getInstance("Ed25519");
@@ -52,6 +58,8 @@ class CredentialGatewayAssertionSignerTest {
     assertThat(assertion.path("method").asString()).isEqualTo("POST /v1/plans");
     assertThat(assertion.path("body_digest").asString())
         .isEqualTo(CanonicalCredentialJson.sha256(body));
+    assertThat(assertion.path("idempotency_key").asString())
+        .isEqualTo("550e8400-e29b-41d4-a716-446655440000");
     assertThat(assertion.path("audience").asString()).isEqualTo("credential-broker");
     assertThat(assertion.path("capability").asString()).isEqualTo("credential.lifecycle.plan");
     assertThat(assertion.path("task_id").asString()).isEqualTo("adapstory-ymi3c");

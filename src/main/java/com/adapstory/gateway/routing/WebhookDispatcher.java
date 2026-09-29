@@ -1,6 +1,7 @@
 package com.adapstory.gateway.routing;
 
 import com.adapstory.commons.header.IntegrationHeaders;
+import com.adapstory.commons.idempotency.IdempotencyKey;
 import com.adapstory.gateway.config.GatewayProperties;
 import com.adapstory.gateway.util.PluginSlugValidator;
 import io.swagger.v3.oas.annotations.Operation;
@@ -60,10 +61,12 @@ public class WebhookDispatcher {
       summary = "Dispatch webhook to plugin pod",
       description =
           "Forwards CloudEvents 1.0 payload from core BC to the target plugin pod. "
-              + "Dispatch is async (returns 202 immediately). Retries with exponential backoff.")
+              + "Returns 202 only after keyed delivery is saved. Retries with exponential backoff.")
   @ApiResponse(responseCode = "202", description = "Webhook accepted for async delivery")
   @ApiResponse(responseCode = "400", description = "Invalid plugin short ID")
   @ApiResponse(responseCode = "403", description = "Invalid internal secret")
+  @ApiResponse(responseCode = "409", description = "Command key is bound to another webhook")
+  @ApiResponse(responseCode = "503", description = "Durable delivery storage is unavailable")
   @PostMapping("/{pluginShortId}")
   public ResponseEntity<Void> dispatchWebhook(
       @Parameter(
@@ -76,6 +79,7 @@ public class WebhookDispatcher {
               required = true)
           @RequestBody
           byte[] payload,
+      @RequestHeader("X-Idempotency-Key") String idempotencyKey,
       @RequestHeader HttpHeaders headers) {
     if (!PluginSlugValidator.isValidSlug(pluginShortId)) {
       log.warn("Webhook dispatch rejected: invalid pluginShortId '{}'", pluginShortId);
@@ -96,10 +100,21 @@ public class WebhookDispatcher {
       }
     }
 
-    String pluginPodUrl = dispatchService.resolvePluginPodEndpoint(pluginShortId);
-    dispatchService.dispatchAsync(pluginShortId, pluginPodUrl, payload, headers);
+    if (!hasOneCanonicalCommandKey(idempotencyKey, headers)) {
+      return ResponseEntity.badRequest().build();
+    }
 
-    return ResponseEntity.accepted().build();
+    String pluginPodUrl = dispatchService.resolvePluginPodEndpoint(pluginShortId);
+    try {
+      WebhookDispatchStore.Admission admission =
+          dispatchService.accept(idempotencyKey, pluginShortId, pluginPodUrl, payload, headers);
+      return admission == WebhookDispatchStore.Admission.CONFLICT
+          ? ResponseEntity.status(409).build()
+          : ResponseEntity.accepted().build();
+    } catch (WebhookDispatchStorageException exception) {
+      log.error("Webhook admission storage is unavailable", exception);
+      return ResponseEntity.status(503).build();
+    }
   }
 
   /**
@@ -109,5 +124,18 @@ public class WebhookDispatcher {
    */
   String resolvePluginPodEndpoint(String pluginShortId) {
     return dispatchService.resolvePluginPodEndpoint(pluginShortId);
+  }
+
+  private static boolean hasOneCanonicalCommandKey(String key, HttpHeaders headers) {
+    var values = headers.get("X-Idempotency-Key");
+    if (values == null || values.size() != 1 || !values.getFirst().equals(key)) {
+      return false;
+    }
+    try {
+      new IdempotencyKey(key);
+      return true;
+    } catch (IllegalArgumentException | NullPointerException exception) {
+      return false;
+    }
   }
 }

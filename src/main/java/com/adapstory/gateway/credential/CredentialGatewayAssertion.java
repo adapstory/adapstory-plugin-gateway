@@ -6,6 +6,7 @@ public record CredentialGatewayAssertion(
     String version,
     String method,
     @JsonProperty("body_digest") String bodyDigest,
+    @JsonProperty("idempotency_key") String idempotencyKey,
     @JsonProperty("request_id") String requestId,
     String audience,
     String capability,

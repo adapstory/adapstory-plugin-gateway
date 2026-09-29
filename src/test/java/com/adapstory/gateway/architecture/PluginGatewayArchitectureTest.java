@@ -1,6 +1,9 @@
 package com.adapstory.gateway.architecture;
 
 import static com.adapstory.starter.testing.archunit.HexagonalArchitectureRules.haveAtMostNConstructorDependencies;
+import static com.adapstory.starter.testing.archunit.IntegrationHeaderContractRules.controllersMustNotUseLegacyUserIdForEndUserIdentity;
+import static com.adapstory.starter.testing.archunit.IntegrationHeaderContractRules.mutatingEndpointsMustDeclareIdempotencyKey;
+import static com.adapstory.starter.testing.archunit.NonEmptyArchitectureRules.importedClassesMustNotBeEmpty;
 import static com.adapstory.starter.testing.archunit.RestControllerSecurityRules.allEndpointMethodsMustHaveSecurityAnnotation;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
@@ -20,11 +23,11 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Architecture rules for Plugin Gateway.
  *
- * <p>Validates BFF-specific structural constraints: package residency, dependency direction,
- * constructor injection limits, field injection ban, and endpoint security annotations. Additional
+ * <p>Validates gateway structural constraints: package residency, dependency direction, constructor
+ * injection limits, field injection ban, and endpoint security annotations. Additional
  * gateway-specific rules enforce DTO, event, and filter package containment.
  */
-@DisplayName("BFF architecture rules for Plugin Gateway")
+@DisplayName("Architecture rules for Plugin Gateway")
 @AnalyzeClasses(
     packages = "com.adapstory.gateway",
     importOptions = ImportOption.DoNotIncludeTests.class)
@@ -34,9 +37,19 @@ class PluginGatewayArchitectureTest {
 
   // ── Shared starter rules ──────────────────────────────────────────────
 
+  @ArchTest static final ArchRule IMPORTED_CLASSES_NONEMPTY = importedClassesMustNotBeEmpty();
+
   @ArchTest
   static final ArchRule ALL_ENDPOINTS_HAVE_SECURITY_ANNOTATION =
       allEndpointMethodsMustHaveSecurityAnnotation(BASE);
+
+  @ArchTest
+  static final ArchRule MUTATING_ENDPOINTS_DECLARE_IDEMPOTENCY_KEY =
+      mutatingEndpointsMustDeclareIdempotencyKey(BASE);
+
+  @ArchTest
+  static final ArchRule CONTROLLERS_DO_NOT_USE_LEGACY_USER_ID_ALONE =
+      controllersMustNotUseLegacyUserIdForEndUserIdentity(BASE);
 
   // ── No field injection ────────────────────────────────────────────────
 

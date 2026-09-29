@@ -8,4 +8,5 @@ public record CredentialBrokerRequest(
     JsonNode body,
     String assertion,
     String signature,
-    String requestId) {}
+    String requestId,
+    String idempotencyKey) {}

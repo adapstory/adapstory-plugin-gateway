@@ -53,6 +53,8 @@ import tools.jackson.databind.ObjectMapper;
 @Isolated
 class McpRouteControllerTest {
 
+  private static final String COMMAND_KEY = "550e8400-e29b-41d4-a716-446655440000";
+
   private WireMockServer wireMockServer;
   private McpRouteController controller;
   private ObjectMapper objectMapper;
@@ -119,6 +121,7 @@ class McpRouteControllerTest {
   }
 
   private static void addEstablishedSessionHeaders(MockHttpServletRequest request) {
+    request.addHeader("X-Idempotency-Key", COMMAND_KEY);
     request.addHeader("Mcp-Session-Id", "session-123");
     request.addHeader("MCP-Protocol-Version", "2025-11-25");
   }
@@ -158,12 +161,15 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcp("course-builder", COMMAND_KEY, request, response);
 
       // Assert
       assertThat(response.getStatus()).isEqualTo(200);
       assertThat(response.getContentAsString()).contains("tools");
-      wireMockServer.verify(1, postRequestedFor(urlEqualTo("/mcp")));
+      wireMockServer.verify(
+          1,
+          postRequestedFor(urlEqualTo("/mcp"))
+              .withHeader("X-Idempotency-Key", equalTo(COMMAND_KEY)));
       var counter =
           meterRegistry.get("plugin_gateway_mcp_proxy_total").tag("status", "success").counter();
       assertThat(counter.getId().getTag("slug")).isNull();
@@ -196,7 +202,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcp("course-builder", COMMAND_KEY, request, response);
 
       // Assert
       wireMockServer.verify(
@@ -232,7 +238,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcp("course-builder", COMMAND_KEY, request, response);
 
       // Assert
       wireMockServer.verify(postRequestedFor(urlEqualTo("/mcp")).withoutHeader("Authorization"));
@@ -261,10 +267,11 @@ class McpRouteControllerTest {
           new McpRouteController(proxyService, objectMapper, meterRegistry);
       MockHttpServletRequest request =
           new MockHttpServletRequest("POST", "/internal/plugins/v1/course-builder/mcp");
+      request.addHeader("X-Idempotency-Key", COMMAND_KEY);
       request.setAttribute(PluginMcpJwtClaimFilter.MCP_TENANT_ID_ATTR, "tenant-1");
       MockHttpServletResponse response = new MockHttpServletResponse();
 
-      routeController.proxyMcp("course-builder", request, response);
+      routeController.proxyMcp("course-builder", COMMAND_KEY, request, response);
 
       assertThat(response.getStatus()).isEqualTo(400);
       GatewayErrorResponse error =
@@ -286,6 +293,7 @@ class McpRouteControllerTest {
       // Arrange
       MockHttpServletRequest request =
           new MockHttpServletRequest("POST", "/internal/plugins/v1/../etc/passwd/mcp");
+      request.addHeader("X-Idempotency-Key", COMMAND_KEY);
       request.setContent("{}".getBytes());
       request.setContentType("application/json");
       request.setAttribute(
@@ -296,7 +304,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("../etc/passwd", request, response);
+      controller.proxyMcp("../etc/passwd", COMMAND_KEY, request, response);
 
       // Assert
       assertThat(response.getStatus()).isEqualTo(400);
@@ -310,6 +318,7 @@ class McpRouteControllerTest {
 
       MockHttpServletRequest request =
           new MockHttpServletRequest("POST", "/internal/plugins/v1/course-builder/mcp");
+      request.addHeader("X-Idempotency-Key", COMMAND_KEY);
       request.setContent("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}".getBytes());
       request.setContentType("application/json");
       request.setAttribute(
@@ -323,7 +332,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcp("course-builder", COMMAND_KEY, request, response);
 
       // Assert
       assertThat(response.getStatus()).isEqualTo(502);
@@ -351,6 +360,7 @@ class McpRouteControllerTest {
 
       MockHttpServletRequest request =
           new MockHttpServletRequest("POST", "/internal/plugins/v1/course-builder/mcp");
+      request.addHeader("X-Idempotency-Key", COMMAND_KEY);
       request.setContent("invalid json".getBytes());
       request.setContentType("application/json");
       request.setAttribute(
@@ -364,7 +374,7 @@ class McpRouteControllerTest {
       MockHttpServletResponse response = new MockHttpServletResponse();
 
       // Act
-      controller.proxyMcp("course-builder", request, response);
+      controller.proxyMcp("course-builder", COMMAND_KEY, request, response);
 
       // Assert — 4xx passes through transparently
       assertThat(response.getStatus()).isEqualTo(400);
@@ -431,11 +441,13 @@ class McpRouteControllerTest {
               org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(
                       "/internal/plugins/v1/course-builder/mcp")
                   .header("Mcp-Session-Id", "session-123")
+                  .header("X-Idempotency-Key", COMMAND_KEY)
                   .header("MCP-Protocol-Version", "2025-11-25"))
           .andExpect(status().isNoContent());
 
       wireMockServer.verify(
           deleteRequestedFor(urlEqualTo("/mcp"))
+              .withHeader("X-Idempotency-Key", equalTo(COMMAND_KEY))
               .withHeader("Mcp-Session-Id", equalTo("session-123"))
               .withHeader("MCP-Protocol-Version", equalTo("2025-11-25")));
     }
@@ -460,10 +472,40 @@ class McpRouteControllerTest {
               org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(
                       "/internal/plugins/v1/course-builder/mcp")
                   .contentType("application/json")
+                  .header("X-Idempotency-Key", COMMAND_KEY)
                   .content("{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\"}"))
           .andExpect(status().isOk())
           .andExpect(header().string("Mcp-Session-Id", "session-123"))
           .andExpect(header().string("MCP-Protocol-Version", "2025-11-25"));
+    }
+
+    @Test
+    @DisplayName("rejects missing, malformed, and duplicated command keys before proxying")
+    void shouldRejectInvalidCommandKeys() throws Exception {
+      MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+      var endpoint = "/internal/plugins/v1/course-builder/mcp";
+
+      mockMvc
+          .perform(
+              org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(endpoint))
+          .andExpect(status().isBadRequest());
+      mockMvc
+          .perform(
+              org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(endpoint)
+                  .header("X-Idempotency-Key", "not-a-uuid"))
+          .andExpect(status().isBadRequest());
+      mockMvc
+          .perform(
+              org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(endpoint)
+                  .header("X-Idempotency-Key", COMMAND_KEY, COMMAND_KEY))
+          .andExpect(status().isBadRequest());
+      mockMvc
+          .perform(
+              org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete(endpoint))
+          .andExpect(status().isBadRequest());
+
+      wireMockServer.verify(0, postRequestedFor(urlEqualTo("/mcp")));
+      wireMockServer.verify(0, deleteRequestedFor(urlEqualTo("/mcp")));
     }
 
     @Test

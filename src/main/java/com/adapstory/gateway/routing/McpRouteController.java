@@ -1,5 +1,6 @@
 package com.adapstory.gateway.routing;
 
+import com.adapstory.commons.idempotency.IdempotencyKey;
 import com.adapstory.gateway.filter.PluginMcpJwtClaimFilter;
 import com.adapstory.gateway.util.GatewayErrorWriter;
 import com.adapstory.gateway.util.PluginSlugValidator;
@@ -14,6 +15,7 @@ import jakarta.annotation.security.PermitAll;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import tools.jackson.databind.ObjectMapper;
@@ -77,9 +80,13 @@ public class McpRouteController {
               schema = @Schema(minLength = 1, maxLength = 63))
           @PathVariable
           String slug,
+      @RequestHeader("X-Idempotency-Key") String idempotencyKey,
       HttpServletRequest request,
       HttpServletResponse response)
       throws IOException {
+    if (!requireCommandKey(idempotencyKey, request, response)) {
+      return;
+    }
     proxyMcpInternal(slug, request, response);
   }
 
@@ -123,10 +130,43 @@ public class McpRouteController {
               schema = @Schema(minLength = 1, maxLength = 63))
           @PathVariable
           String slug,
+      @RequestHeader("X-Idempotency-Key") String idempotencyKey,
       HttpServletRequest request,
       HttpServletResponse response)
       throws IOException {
+    if (!requireCommandKey(idempotencyKey, request, response)) {
+      return;
+    }
     proxyMcpInternal(slug, request, response);
+  }
+
+  private boolean requireCommandKey(
+      String idempotencyKey, HttpServletRequest request, HttpServletResponse response)
+      throws IOException {
+    Enumeration<String> values = request.getHeaders("X-Idempotency-Key");
+    boolean valid = values != null && values.hasMoreElements();
+    if (valid) {
+      String raw = values.nextElement();
+      valid = raw.equals(idempotencyKey) && !values.hasMoreElements();
+      if (valid) {
+        try {
+          new IdempotencyKey(raw);
+        } catch (IllegalArgumentException exception) {
+          valid = false;
+        }
+      }
+    }
+    if (!valid) {
+      GatewayErrorWriter.writeError(
+          objectMapper,
+          response,
+          request,
+          400,
+          "Bad Request",
+          "A single canonical X-Idempotency-Key is required",
+          Map.of("reason", "invalid_idempotency_key"));
+    }
+    return valid;
   }
 
   private void proxyMcpInternal(

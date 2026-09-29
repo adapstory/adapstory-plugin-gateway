@@ -41,6 +41,10 @@ final class RestClientWebhookDeliveryAdapter implements WebhookDeliveryPort {
               if (correlationId != null) {
                 targetHeaders.set(IntegrationHeaders.HEADER_CORRELATION_ID, correlationId);
               }
+              String commandKey = headers.getFirst("X-Idempotency-Key");
+              if (commandKey != null) {
+                targetHeaders.set("X-Idempotency-Key", commandKey);
+              }
             })
         .body(payload)
         .retrieve()

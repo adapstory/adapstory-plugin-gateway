@@ -1,14 +1,20 @@
 package com.adapstory.gateway.routing;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.adapstory.gateway.config.GatewayProperties;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +33,8 @@ import org.springframework.web.client.RestClient;
  */
 @Isolated
 class WebhookDispatcherTest {
+
+  private static final String COMMAND_KEY = "550e8400-e29b-41d4-a716-446655440000";
 
   private WireMockServer wireMockServer;
   private WebhookDispatchService dispatchService;
@@ -52,7 +60,10 @@ class WebhookDispatcherTest {
 
     dispatchService =
         new WebhookDispatchService(
-            properties, new RestClientWebhookDeliveryAdapter(RestClient.builder()), Runnable::run);
+            properties,
+            new RestClientWebhookDeliveryAdapter(RestClient.builder()),
+            Runnable::run,
+            testStore());
     dispatcher = new WebhookDispatcher(properties, dispatchService);
   }
 
@@ -70,9 +81,11 @@ class WebhookDispatcherTest {
     byte[] payload = "{\"type\":\"test.event\",\"data\":{}}".getBytes();
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.set("X-Idempotency-Key", COMMAND_KEY);
 
     // Act
-    ResponseEntity<Void> result = dispatcher.dispatchWebhook("ai-grader", payload, headers);
+    ResponseEntity<Void> result =
+        dispatcher.dispatchWebhook("ai-grader", payload, COMMAND_KEY, headers);
 
     // Assert — immediate 202, dispatch happens async
     assertThat(result.getStatusCode().value()).isEqualTo(202);
@@ -90,12 +103,17 @@ class WebhookDispatcherTest {
     byte[] payload = "{\"type\":\"test.event\"}".getBytes();
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
+    headers.set("X-Idempotency-Key", COMMAND_KEY);
 
     // Act
     dispatchService.executeWithRetry("ai-grader", webhookUrl(), payload, headers);
 
     // Assert
     wireMockServer.verify(expectedAttempts, postRequestedFor(urlEqualTo("/webhook")));
+    wireMockServer.verify(
+        expectedAttempts,
+        postRequestedFor(urlEqualTo("/webhook"))
+            .withHeader("X-Idempotency-Key", equalTo(COMMAND_KEY)));
   }
 
   @Test
@@ -151,7 +169,10 @@ class WebhookDispatcherTest {
 
     WebhookDispatchService realDispatchService =
         new WebhookDispatchService(
-            properties, new RestClientWebhookDeliveryAdapter(RestClient.builder()), Runnable::run);
+            properties,
+            new RestClientWebhookDeliveryAdapter(RestClient.builder()),
+            Runnable::run,
+            testStore());
     WebhookDispatcher realDispatcher = new WebhookDispatcher(properties, realDispatchService);
 
     assertThat(realDispatcher.resolvePluginPodEndpoint("ai-grader"))
@@ -160,5 +181,12 @@ class WebhookDispatcherTest {
 
   private String webhookUrl() {
     return "http://127.0.0.1:" + wireMockServer.port() + "/webhook";
+  }
+
+  private static WebhookDispatchStore testStore() {
+    WebhookDispatchStore store = mock(WebhookDispatchStore.class);
+    when(store.admit(any())).thenReturn(WebhookDispatchStore.Admission.NEW);
+    when(store.claim(anyString())).thenReturn(Optional.empty());
+    return store;
   }
 }

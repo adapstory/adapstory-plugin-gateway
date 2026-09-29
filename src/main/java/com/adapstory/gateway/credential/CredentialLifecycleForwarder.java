@@ -26,10 +26,11 @@ public final class CredentialLifecycleForwarder {
       String brokerMethod,
       String brokerPath,
       JsonNode body,
-      CredentialAgentHeaders headers) {
+      CredentialAgentHeaders headers,
+      String idempotencyKey) {
     CredentialTaskCapability capability = issuer.issue(headers, requiredCapability);
     SignedGatewayAssertion assertion =
-        signer.sign(brokerMethod, body, headers.requestId(), capability);
+        signer.sign(brokerMethod, body, headers.requestId(), capability, idempotencyKey);
     String httpMethod = brokerMethod.substring(0, brokerMethod.indexOf(' '));
     return transport.forward(
         new CredentialBrokerRequest(
@@ -38,6 +39,7 @@ public final class CredentialLifecycleForwarder {
             body,
             assertion.assertion(),
             assertion.signature(),
-            headers.requestId()));
+            headers.requestId(),
+            idempotencyKey));
   }
 }

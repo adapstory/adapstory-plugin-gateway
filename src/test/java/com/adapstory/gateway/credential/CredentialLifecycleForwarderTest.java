@@ -69,18 +69,27 @@ class CredentialLifecycleForwarderTest {
     JsonNode body = objectMapper.readTree("{\"operation\":\"rotate\"}");
 
     CredentialBrokerResponse response =
-        forwarder.forward(CredentialCapability.PLAN, "POST /v1/plans", "/v1/plans", body, headers);
+        forwarder.forward(
+            CredentialCapability.PLAN,
+            "POST /v1/plans",
+            "/v1/plans",
+            body,
+            headers,
+            "550e8400-e29b-41d4-a716-446655440000");
 
     assertThat(response.status()).isEqualTo(201);
     assertThat(captured.get().path()).isEqualTo("/v1/plans");
     assertThat(captured.get().assertion()).isNotBlank();
     assertThat(captured.get().signature()).isNotBlank();
+    assertThat(captured.get().idempotencyKey()).isEqualTo("550e8400-e29b-41d4-a716-446655440000");
     JsonNode forwardedAssertion =
         objectMapper.readTree(Base64.getDecoder().decode(captured.get().assertion()));
     assertThat(forwardedAssertion.path("capability").asString())
         .isEqualTo("credential.lifecycle.plan");
     assertThat(forwardedAssertion.path("body_digest").asString())
         .isEqualTo(CanonicalCredentialJson.sha256(body));
+    assertThat(forwardedAssertion.path("idempotency_key").asString())
+        .isEqualTo(captured.get().idempotencyKey());
   }
 
   @Test
@@ -127,7 +136,8 @@ class CredentialLifecycleForwarderTest {
                     "POST /v1/operations",
                     "/v1/operations",
                     objectMapper.createObjectNode(),
-                    headers))
+                    headers,
+                    "550e8400-e29b-41d4-a716-446655440000"))
         .isInstanceOf(CredentialCapabilityRejectedException.class)
         .hasMessageContaining("intent");
   }

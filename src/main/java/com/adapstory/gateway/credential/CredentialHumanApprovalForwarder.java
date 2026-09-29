@@ -28,7 +28,11 @@ public final class CredentialHumanApprovalForwarder {
 
   /** Forwards one OIDC-derived approval without accepting identity fields from request JSON. */
   public CredentialBrokerResponse forward(
-      String planRef, JsonNode body, String requestId, CredentialHumanApprovalIdentity identity) {
+      String planRef,
+      JsonNode body,
+      String requestId,
+      CredentialHumanApprovalIdentity identity,
+      String idempotencyKey) {
     Instant now = clock.instant();
     CredentialTaskCapability internalCapability =
         new CredentialTaskCapability(
@@ -41,7 +45,12 @@ public final class CredentialHumanApprovalForwarder {
             now,
             now.plusSeconds(60));
     SignedGatewayAssertion assertion =
-        signer.sign("POST /v1/plans/{plan_ref}/approvals", body, requestId, internalCapability);
+        signer.sign(
+            "POST /v1/plans/{plan_ref}/approvals",
+            body,
+            requestId,
+            internalCapability,
+            idempotencyKey);
     return transport.forward(
         new CredentialBrokerRequest(
             "POST",
@@ -49,6 +58,7 @@ public final class CredentialHumanApprovalForwarder {
             body,
             assertion.assertion(),
             assertion.signature(),
-            requestId));
+            requestId,
+            idempotencyKey));
   }
 }

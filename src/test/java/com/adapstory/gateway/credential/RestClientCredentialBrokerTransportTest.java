@@ -48,6 +48,25 @@ class RestClientCredentialBrokerTransportTest {
   }
 
   @Test
+  void forwardsSignedCommandKeyToBroker() {
+    server
+        .expect(requestTo("https://broker.example/credentials"))
+        .andExpect(header("X-Idempotency-Key", "550e8400-e29b-41d4-a716-446655440000"))
+        .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
+
+    transport.forward(
+        new CredentialBrokerRequest(
+            "POST",
+            "/credentials",
+            JsonMapper.builder().build().createObjectNode(),
+            "assertion",
+            "signature",
+            "request-id",
+            "550e8400-e29b-41d4-a716-446655440000"));
+    server.verify();
+  }
+
+  @Test
   void translatesMalformedBrokerJsonToTransportFailure() {
     server
         .expect(requestTo("https://broker.example/credentials"))
@@ -82,6 +101,6 @@ class RestClientCredentialBrokerTransportTest {
 
   private static CredentialBrokerRequest request() {
     return new CredentialBrokerRequest(
-        "GET", "/credentials", null, "assertion", "signature", "request-id");
+        "GET", "/credentials", null, "assertion", "signature", "request-id", null);
   }
 }
