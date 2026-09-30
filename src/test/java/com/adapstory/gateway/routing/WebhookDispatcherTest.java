@@ -91,6 +91,35 @@ class WebhookDispatcherTest {
     assertThat(result.getStatusCode().value()).isEqualTo(202);
   }
 
+  @Test
+  @DisplayName("Missing, duplicated, and invalid command keys are rejected before dispatch")
+  void shouldRejectInvalidCommandKeysBeforeDispatch() {
+    byte[] payload = "{}".getBytes();
+    HttpHeaders headers = new HttpHeaders();
+
+    assertThat(
+            dispatcher.dispatchWebhook("ai-grader", payload, null, headers).getStatusCode().value())
+        .isEqualTo(400);
+
+    headers.add("X-Idempotency-Key", COMMAND_KEY);
+    headers.add("X-Idempotency-Key", COMMAND_KEY);
+    assertThat(
+            dispatcher
+                .dispatchWebhook("ai-grader", payload, COMMAND_KEY, headers)
+                .getStatusCode()
+                .value())
+        .isEqualTo(400);
+
+    headers.set("X-Idempotency-Key", "invalid key");
+    assertThat(
+            dispatcher
+                .dispatchWebhook("ai-grader", payload, "invalid key", headers)
+                .getStatusCode()
+                .value())
+        .isEqualTo(400);
+    wireMockServer.verify(0, postRequestedFor(urlEqualTo("/webhook")));
+  }
+
   @ParameterizedTest(name = "status {0} -> {1} attempts")
   @CsvSource({
     "200, 1", "400, 1", "500, 3",

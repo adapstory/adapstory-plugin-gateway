@@ -196,13 +196,13 @@ public final class CredentialLifecycleController {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "command key is required");
     }
     String headerKey = values.nextElement();
-    if (values.hasMoreElements() || !headerKey.equals(rawKey)) {
+    if (values.hasMoreElements() || headerKey == null || !headerKey.equals(rawKey)) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "one command key is required");
     }
     IdempotencyKey key;
     try {
       key = new IdempotencyKey(rawKey);
-    } catch (IllegalArgumentException | NullPointerException exception) {
+    } catch (IllegalArgumentException exception) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid command key");
     }
     return key.getValue();

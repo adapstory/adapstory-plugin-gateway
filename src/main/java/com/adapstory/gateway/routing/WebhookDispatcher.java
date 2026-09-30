@@ -128,13 +128,13 @@ public class WebhookDispatcher {
 
   private static boolean hasOneCanonicalCommandKey(String key, HttpHeaders headers) {
     var values = headers.get("X-Idempotency-Key");
-    if (values == null || values.size() != 1 || !values.getFirst().equals(key)) {
+    if (key == null || values == null || values.size() != 1 || !key.equals(values.getFirst())) {
       return false;
     }
     try {
       new IdempotencyKey(key);
       return true;
-    } catch (IllegalArgumentException | NullPointerException exception) {
+    } catch (IllegalArgumentException exception) {
       return false;
     }
   }
